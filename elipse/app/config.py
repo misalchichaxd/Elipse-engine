@@ -3,9 +3,8 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     app_name: str = "ELIPSE"
     ollama_model: str = "hf.co/unsloth/Qwen3-4B-Instruct-2507-GGUF:Q4_K_M"
-    ollama_code_model: str = "qwen2.5-coder:3b"
-    ollama_research_model: str = "phi3:mini"  # sin capacidad de thinking; evita el bug de think=False en qwen3:4b
     ollama_num_ctx: int = 2048  # contexto fijo y chico a propósito: libera VRAM para meter más capas en GPU
+    ollama_num_predict: int = 1536  # tope de tokens de salida: sin esto, si el modelo entra en loop no para hasta el timeout
     ollama_timeout_seconds: int = 120  # si Ollama se cae o se cuelga, fallar rápido en vez de esperar para siempre
     workspace_dir: str = "workspace"
 
@@ -14,7 +13,6 @@ class Settings(BaseSettings):
     # API compatible: OpenRouter, Mistral, Groq, LM Studio, vLLM... vía openai_base_url),
     # "gemini" (Google AI).
     default_provider: str = "ollama"
-    code_provider: str = ""  # vacío = las consultas de código usan también el proveedor por defecto
     cloud_timeout_seconds: int = 120
 
     anthropic_api_key: str = ""
@@ -31,6 +29,35 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-2.5-flash"
     gemini_max_tokens: int = 8192
     gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
+
+    # --- Proveedor por rol: "code" (código) e "research" (investigación) pueden
+    # pensar con un proveedor y modelo distintos al general. Si "{rol}_provider"
+    # queda vacío, el rol HEREDA por completo la configuración general de arriba
+    # (mismo comportamiento que antes de que existieran estos overrides).
+    # Si se define un proveedor para el rol, cada campo "{rol}_{proveedor}_*"
+    # vacío también hereda su equivalente general (p. ej. code_anthropic_model
+    # vacío usa anthropic_model) — así no hay que repetir todo para cambiar
+    # solo una cosa.
+    code_provider: str = ""
+    code_ollama_model: str = "qwen2.5-coder:3b"
+    code_anthropic_api_key: str = ""
+    code_anthropic_model: str = ""
+    code_openai_api_key: str = ""
+    code_openai_base_url: str = ""
+    code_openai_model: str = ""
+    code_gemini_api_key: str = ""
+    code_gemini_model: str = ""
+
+    research_provider: str = ""
+    # sin capacidad de "thinking" por default; evita el bug de think=False en qwen3
+    research_ollama_model: str = "phi3:mini"
+    research_anthropic_api_key: str = ""
+    research_anthropic_model: str = ""
+    research_openai_api_key: str = ""
+    research_openai_base_url: str = ""
+    research_openai_model: str = ""
+    research_gemini_api_key: str = ""
+    research_gemini_model: str = ""
 
     # --- MCP (Model Context Protocol): conectar herramientas externas ---
     mcp_config_file: str = "mcp_servers.json"  # relativo a la raíz del proyecto; si no existe, MCP queda apagado

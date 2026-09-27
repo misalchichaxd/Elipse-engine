@@ -15,7 +15,18 @@ from app.core.research import run_research_pipeline
 WORKSPACE_ROOT = (Path(__file__).parent.parent.parent / settings.workspace_dir).resolve()
 WORKSPACE_ROOT.mkdir(parents=True, exist_ok=True)
 
-
+def save_uploaded_attachment(filename: str, content: str) -> str:
+    """
+    Guarda un archivo subido desde el cliente directamente en el workspace (con su
+    nombre de archivo, sin subcarpetas, por seguridad), para que el modelo trabaje
+    sobre él con read_file/write_file en vez de necesitar todo su contenido pegado
+    en el mensaje cada vez que se lo menciona — eso es lo que hacía que archivos
+    grandes se comieran el contexto y la respuesta se cortara a mitad de camino.
+    """
+    safe_name = Path(filename).name  # descarta cualquier ruta, solo el nombre
+    target = _resolve_safe_path(safe_name)
+    target.write_text(content, encoding="utf-8")
+    return safe_name
 def _resolve_safe_path(relative_path: str) -> Path:
     """
     Convierte una ruta relativa en una ruta absoluta dentro de WORKSPACE_ROOT,

@@ -1,15 +1,25 @@
-import re
+from typing import Optional
 
 from ddgs import DDGS
-import ollama
 
 from app.config import settings
 from app.core import memory
 from app.core.db import get_connection
+from app.core.providers import Provider
 
 RESEARCH_MAX_RESULTS = 5
 RESEARCH_SNIPPET_CHARS = 600
-_THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+
+# Proveedor que resume los hallazgos. Se configura una sola vez al arrancar
+# (tasks.py llama a configure_provider con el resultado de build_role_provider),
+# así el pipeline no depende de Ollama a secas y puede usar Claude/GPT/Gemini
+# si el rol "research" se configuró para eso.
+_provider: Optional[Provider] = None
+
+
+def configure_provider(provider: Provider):
+    global _provider
+    _provider = provider
 
 
 def _raw_search(query: str):
@@ -47,6 +57,9 @@ def run_research_pipeline(topic: str, emit=None) -> dict:
     if not topic or not topic.strip():
         return {"status": "error", "detail": "El tema de investigación está vacío."}
 
+    if _provider is None:
+        return {"status": "error", "detail": "No hay un proveedor configurado para investigación."}
+
     _emit({"type": "progreso", "mensaje": f"Buscando en internet sobre: {topic}..."})
     raw_results = _raw_search(topic)
 
@@ -64,7 +77,7 @@ def run_research_pipeline(topic: str, emit=None) -> dict:
 
     raw_combined = "\n\n".join(raw_text_blocks)
 
-    _emit({"type": "progreso", "mensaje": "Resumiendo hallazgos con el modelo local..."})
+    _emit({"type": "progreso", "mensaje": f"Resumiendo hallazgos con {_provider.name}..."})
 
     summarize_prompt = (
         "Eres un asistente que destila información de internet en un resumen corto, "
@@ -79,17 +92,13 @@ def run_research_pipeline(topic: str, emit=None) -> dict:
     )
 
     try:
-        response = ollama.chat(
-            model=settings.ollama_research_model,
-            messages=[{"role": "user", "content": summarize_prompt}],
+        result = _provider.chat(
+            [{"role": "user", "content": summarize_prompt}],
+            allow_tools=False,  # solo texto: no tiene sentido pedirle herramientas para resumir
         )
-        summary = response["message"]["content"].strip()
-        # Red de seguridad: por si el modelo usado alguna vez trae capacidad de
-        # thinking y se cuela un bloque de razonamiento, lo removemos antes de
-        # guardar nada en memoria.
-        summary = _THINK_BLOCK_RE.sub("", summary).strip()
+        summary = result.content.strip()
     except Exception as e:
-        return {"status": "error", "detail": f"Error al resumir con el modelo: {e}"}
+        return {"status": "error", "detail": f"Error al resumir con el modelo ({_provider.name}): {e}"}
 
     if len(summary) > settings.research_summary_max_chars:
         summary = summary[: settings.research_summary_max_chars] + "..."

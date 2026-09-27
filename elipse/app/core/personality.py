@@ -35,6 +35,21 @@ def build_system_prompt() -> str:
     rules_text = "\n".join(f"- {r['rule']}" for r in rules)
     facts_text = "\n".join(f"- {f['content']}" for f in facts) if facts else "(sin hechos guardados todavía)"
 
+    tool_rules_text = "\n".join([
+        "- Cuando uses run_python (o cualquier otra herramienta) para resolver algo, tu respuesta "
+        "final al usuario SIEMPRE debe incluir el código o comando exacto que corriste, en su propio "
+        "bloque de código. Nunca digas solo 'funcionó correctamente' sin mostrarlo: el usuario no ve "
+        "las llamadas a herramientas, solo tu texto.",
+        "- Si el usuario pregunta después dónde está ese código o qué hiciste, mostralo de nuevo tal "
+        "cual. Vos lo escribiste y lo ejecutaste en un paso anterior de esta misma conversación — no "
+        "digas que no tenés acceso a los detalles de la función, la función la llamaste vos.",
+        "- Si el mensaje del usuario menciona un 'Archivo adjunto' guardado en el workspace, tu tarea "
+        "es sobre ESE archivo: llamá a read_file con su nombre para ver el contenido actual antes de "
+        "opinar o modificarlo, y usá write_file con el mismo nombre para guardar los cambios ahí. No "
+        "reescribas el archivo entero dentro de tu respuesta de chat, y no le preguntes al usuario "
+        "datos que ya podés leer vos mismo del archivo.",
+    ])
+
     prompt_parts = [
         declaration,
         "",
@@ -43,6 +58,9 @@ def build_system_prompt() -> str:
         "",
         "Reglas de estilo:",
         rules_text,
+        "",
+        "Reglas técnicas fijas sobre el uso de herramientas:",
+        tool_rules_text,
         "",
         "Hechos que debes recordar sobre tu usuario y su contexto:",
         facts_text,

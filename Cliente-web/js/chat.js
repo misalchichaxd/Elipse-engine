@@ -9,6 +9,19 @@ window.Elipse = window.Elipse || {};
     el.classList.toggle("show", !!message);
   }
 
+  // Espejo de ALLOWED_ATTACHMENT_EXTENSIONS en main.py. El backend vuelve a validar
+  // esto igual (nunca confiar solo en el cliente), pero filtrar acá evita subir y
+  // esperar una respuesta solo para enterarse de que el formato no está habilitado.
+  const ALLOWED_ATTACHMENT_EXTENSIONS = new Set([
+    "py", "java", "js", "jsx", "ts", "tsx", "html", "htm", "css", "scss",
+    "json", "md", "markdown", "txt", "sh", "bash", "sql", "c", "h", "cpp",
+    "hpp", "go", "rs", "rb", "php", "yml", "yaml", "xml", "csv", "ini",
+    "toml", "kt", "swift", "cs", "vue", "svelte", "env", "log", "dockerfile",
+  ]);
+  const MAX_ATTACHMENT_BYTES = 2 * 1024 * 1024; // 2MB por archivo, generoso para código fuente
+
+  let pendingAttachments = []; // [{filename, content}]
+
   let chatHasMessages = false;
 
   function clearEmptyState(log){
@@ -266,27 +279,86 @@ window.Elipse = window.Elipse || {};
     return frag;
   }
 
-  /** Parsea texto con fences ``` y markdown del resto. */
+  //  // Heurística: ¿este texto "normal" en realidad es código/markup que el
+  // modelo dejó de envolver en fences a mitad de la respuesta? Pasa seguido
+  // con el modelo local en generaciones largas.
+  function looksLikeCode(text){
+    const t = (text || "").trim();
+    if(!t) return false;
+    if(t.startsWith("<")) return true;                            // arranca con una etiqueta HTML/XML
+    if(/^[a-zA-Z0-9_.#*\-\s,]+\{[\s\S]*\}/m.test(t)) return true;  // regla CSS con llaves
+    const lines = t.split("\n").filter((l) => l.trim());
+    if(!lines.length) return false;
+    const codeLike = lines.filter((l) => /[;{}>]\s*$/.test(l.trim())).length;
+    return codeLike / lines.length > 0.4; // más del 40% de las líneas terminan como código
+  }
+
+  // Lista cerrada de lenguajes reconocidos como "etiqueta" en la primera línea
+  // de un bloque (venga de una fence real o de un tramo detectado por
+  // looksLikeCode) — evita confundir una línea de código cualquiera con una
+  // etiqueta de lenguaje.
+  const KNOWN_LANGS = new Set([
+    "html","css","js","javascript","ts","typescript","py","python","json",
+    "md","markdown","sh","bash","shell","sql","c","cpp","h","hpp","java",
+    "go","rust","rs","kt","kotlin","php","xml","yaml","yml","txt","text",
+  ]);
+
+  function extractLangAndCode(raw){
+    const seg = (raw || "").replace(/^\n+/, "");
+    const nl = seg.indexOf("\n");
+    const firstLine = (nl === -1 ? seg.trim() : seg.slice(0, nl).trim()).toLowerCase();
+    if(firstLine && KNOWN_LANGS.has(firstLine) && nl !== -1){
+      return { lang: firstLine, code: seg.slice(nl + 1).replace(/\n$/, "") };
+    }
+    return { lang: seg.trim().startsWith("<") ? "html" : "", code: seg.trim() };
+  }
+
+  /** Parsea texto con fences ``` y markdown del resto (tolera fences sin cerrar,
+   * fences de más, tramos de código sin fence, y bloques de código pegados
+   * uno al lado del otro que en realidad son el mismo archivo partido). */
   function renderRichContent(text){
     const frag = document.createDocumentFragment();
     if(text == null) text = "";
     text = String(text);
 
-    const re = /```([a-zA-Z0-9_+-]*)[ \t]*\n?([\s\S]*?)```/g;
-    let last = 0;
-    let m;
-    while((m = re.exec(text)) !== null){
-      if(m.index > last){
-        const plain = text.slice(last, m.index);
-        if(plain.trim()) frag.appendChild(renderMarkdownBlock(plain));
+    const segments = text.split("```");
+    const parts = []; // {type:"text", text} | {type:"code", lang, code}
+
+    for(let i = 0; i < segments.length; i++){
+      const seg = segments[i];
+      if(i % 2 === 0){
+        if(looksLikeCode(seg)){
+          const { lang, code } = extractLangAndCode(seg);
+          if(code.trim()) parts.push({ type: "code", lang, code });
+        }else if(seg.trim()){
+          parts.push({ type: "text", text: seg });
+        }
+      }else{
+        const { lang, code } = extractLangAndCode(seg);
+        if(code.trim() || lang) parts.push({ type: "code", lang, code });
       }
-      frag.appendChild(buildCodeBlock(m[1] || "", m[2].replace(/\n$/, "")));
-      last = m.index + m[0].length;
     }
-    if(last < text.length){
-      const rest = text.slice(last);
-      if(rest.trim()) frag.appendChild(renderMarkdownBlock(rest));
+
+    // El modelo local suele "cerrar" un bloque de código y abrir uno nuevo
+    // para seguir el mismo archivo, en vez de continuar adentro del primero.
+    // Dos bloques de código pegados sin texto real en el medio son, en la
+    // práctica, siempre el mismo archivo partido en dos: los unimos.
+    const merged = [];
+    for(const part of parts){
+      const prev = merged[merged.length - 1];
+      if(part.type === "code" && prev && prev.type === "code"){
+        prev.code = prev.code.replace(/\n+$/, "") + "\n" + part.code.replace(/^\n+/, "");
+        prev.lang = prev.lang || part.lang;
+        continue;
+      }
+      merged.push(Object.assign({}, part));
     }
+
+    for(const part of merged){
+      if(part.type === "code") frag.appendChild(buildCodeBlock(part.lang, part.code));
+      else frag.appendChild(renderMarkdownBlock(part.text));
+    }
+
     if(!frag.childNodes.length){
       frag.appendChild(renderMarkdownBlock(text));
     }
@@ -542,6 +614,75 @@ window.Elipse = window.Elipse || {};
     }
   }
 
+  function extOf(filename){
+    const i = filename.lastIndexOf(".");
+    return i === -1 ? filename.toLowerCase() : filename.slice(i + 1).toLowerCase();
+  }
+
+  function renderAttachments(){
+    const box = $("#chatAttachments");
+    box.innerHTML = "";
+    pendingAttachments.forEach((att, idx) => {
+      const chip = document.createElement("div");
+      chip.className = "attachment-chip";
+      const label = document.createElement("span");
+      label.textContent = att.filename;
+      chip.appendChild(label);
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "att-remove";
+      remove.title = "Quitar";
+      remove.textContent = "×";
+      remove.addEventListener("click", () => {
+        pendingAttachments.splice(idx, 1);
+        renderAttachments();
+      });
+      chip.appendChild(remove);
+      box.appendChild(chip);
+    });
+  }
+
+  function readAsText(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("No se pudo leer '" + file.name + "'."));
+      reader.readAsText(file);
+    });
+  }
+
+  async function handleFilesSelected(fileList){
+    const banner = $("#chatBanner");
+    const files = Array.from(fileList || []);
+    const rejected = [];
+
+    for(const file of files){
+      const ext = extOf(file.name);
+      if(!ALLOWED_ATTACHMENT_EXTENSIONS.has(ext)){
+        rejected.push(file.name + " (." + ext + ")");
+        continue;
+      }
+      if(file.size > MAX_ATTACHMENT_BYTES){
+        rejected.push(file.name + " (supera el tamaño máximo)");
+        continue;
+      }
+      try{
+        const content = await readAsText(file);
+        pendingAttachments.push({ filename: file.name, content: content });
+      }catch(e){
+        rejected.push(file.name + " (error al leer)");
+      }
+    }
+
+    renderAttachments();
+
+    if(rejected.length){
+      showBanner(banner, "Formato no compatible, aún no habilitado: " + rejected.join(", "));
+    }else{
+      showBanner(banner, "");
+    }
+  }
+
   async function sendChat(){
     const input = $("#chatInput");
     const log = $("#chatLog");
@@ -549,16 +690,55 @@ window.Elipse = window.Elipse || {};
     const banner = $("#chatBanner");
 
     const text = input.value.trim();
-    if(!text) return;
+    const attachments = pendingAttachments.slice();
+    if(!text && !attachments.length) return;
+
+    const messageToSend = text || "Revisá el/los archivo(s) adjunto(s).";
+    const displayText = attachments.length
+      ? messageToSend + "\n\n📎 " + attachments.map((a) => a.filename).join(", ")
+      : messageToSend;
 
     showBanner(banner, "");
     input.value = "";
-    appendMsg(log, "user", text);
+    pendingAttachments = [];
+    renderAttachments();
+    appendMsg(log, "user", displayText);
     const pending = appendPendingMsg(log, "pensando...");
     sendBtn.disabled = true;
 
     try{
-      const result = await Elipse.api.runTask("/v1/chat", { message: text });
+      let streamedText = "";
+      let renderQueued = false;
+      const flush = () => {
+        renderQueued = false;
+        setMsgContent(pending, streamedText, "escribiendo...");
+        log.scrollTop = log.scrollHeight;
+      };
+
+      const result = await Elipse.api.runTaskStreaming("/v1/chat", { message: messageToSend, attachments: attachments }, {
+        onChunk(texto){
+          streamedText += texto;
+          // throttle con requestAnimationFrame: no re-parsear markdown/código
+          // en cada token, solo una vez por frame de pintado.
+          if(!renderQueued){
+            renderQueued = true;
+            requestAnimationFrame(flush);
+          }
+        },
+        onEvent(event){
+          // progreso / plan / verificación: mientras no haya texto todavía,
+          // se muestra como estado en vez del "pensando..." fijo.
+          if(streamedText) return;
+          const label = event.mensaje
+            || (event.type === "plan" && "Planificando los siguientes pasos...")
+            || (event.type === "verificacion" && (event.tool + (event.ok ? ": verificado" : ": reintentando")))
+            || null;
+          if(label){
+            const t = pending.querySelector(".msg-text") || pending;
+            t.innerHTML = '<span class="spinner"></span>' + escapeHtml(label);
+          }
+        },
+      });
 
       if(result.status === "error"){
         pending.remove();
@@ -566,7 +746,7 @@ window.Elipse = window.Elipse || {};
       }else if(result.status === "esperando_confirmacion"){
         const r = result.result || {};
         const reply = r.reply || "Esta acción necesita tu confirmación.";
-        setMsgContent(pending, reply, (r.provider || "") + " · esperando confirmación");
+        setMsgContent(pending, reply, (r.provider || "") + (r.reason ? " · " + r.reason : "") + " · esperando confirmación");
 
         const list = r.pending_confirmations || [];
         if(list.length){
@@ -583,8 +763,14 @@ window.Elipse = window.Elipse || {};
         }
       }else{
         const r = result.result || {};
-        const meta = (r.provider || "") + (r.used_tools ? " · usó herramientas" : "");
-        setMsgContent(pending, r.reply || "", meta);
+        const parts = [];
+        if(r.provider) parts.push(r.provider);
+        if(r.reason) parts.push(r.reason);
+        if(r.used_tools) parts.push("usó herramientas");
+        if(typeof r.prompt_tokens === "number") parts.push(r.prompt_tokens + " tokens de prompt");
+        if(r.truncated) parts.push("cortada por límite de tokens");
+        setMsgContent(pending, r.reply || "", parts.join(" · "));
+        if(r.truncated) addContinueButton(pending, r.reply || "");
       }
     }catch(e){
       pending.remove();
@@ -599,11 +785,98 @@ window.Elipse = window.Elipse || {};
   function init(){
     const sendBtn = $("#chatSendBtn");
     const input = $("#chatInput");
+    const attachBtn = $("#chatAttachBtn");
+    const fileInput = $("#chatFileInput");
+
     sendBtn.addEventListener("click", sendChat);
     input.addEventListener("keydown", (e) => {
       if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); sendChat(); }
     });
+
+    attachBtn.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", () => {
+      handleFilesSelected(fileInput.files);
+      fileInput.value = ""; // permite volver a elegir el mismo archivo después
+    });
   }
 
+    function buildContinuePrompt(previousReply){
+    const tail = (previousReply || "").slice(-500);
+    return "Tu respuesta anterior se cortó por el límite de tokens de salida antes de terminar. " +
+      "Continuá exactamente desde donde te quedaste, sin repetir nada de lo que ya escribiste, " +
+      "sin volver a saludar ni explicar de nuevo, y sin reiniciar el archivo desde cero. " +
+      "Estos son los últimos caracteres que sí llegaste a generar, para que ubiques el punto " +
+      "exacto donde seguir:\n\n---\n" + tail + "\n---\n\nContinuá el texto/código a partir de ahí, tal cual.";
+  }
+  function addContinueButton(msgDiv, replyText){
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "continue-btn";
+    btn.textContent = "⏩ Continuar generación (se cortó por el límite de tokens)";
+    btn.addEventListener("click", () => continueGeneration(msgDiv, replyText, btn));
+    msgDiv.appendChild(btn);
+  }
+
+  async function continueGeneration(msgDiv, previousReply, btn){
+    const banner = $("#chatBanner");
+    const log = $("#chatLog");
+    btn.disabled = true;
+    btn.textContent = "Continuando...";
+
+    try{
+      let streamedText = "";
+      let renderQueued = false;
+      const flush = () => {
+        renderQueued = false;
+        setMsgContent(msgDiv, previousReply + streamedText, "escribiendo...");
+        log.scrollTop = log.scrollHeight;
+      };
+
+      const result = await Elipse.api.runTaskStreaming("/v1/chat", {
+        message: buildContinuePrompt(previousReply),
+        attachments: [],
+      }, {
+        onChunk(texto){
+          streamedText += texto;
+          if(!renderQueued){
+            renderQueued = true;
+            requestAnimationFrame(flush);
+          }
+        },
+        onEvent(){ /* no hace falta mostrar progreso acá, ya hay texto previo visible */ },
+      });
+
+      if(result.status === "error"){
+        btn.disabled = false;
+        btn.textContent = "⏩ Continuar generación (se cortó por el límite de tokens)";
+        showBanner(banner, result.result?.detail || result.result?.reply || "Ocurrió un error continuando la respuesta.");
+      }else if(result.status === "esperando_confirmacion"){
+        // Esto sí necesita su propia interacción (aprobar/rechazar), no es texto
+        // para pegar al mensaje anterior, así que va como mensaje aparte.
+        btn.remove();
+        const r = result.result || {};
+        const pending = appendMsg(log, "assistant", r.reply || "Esta acción necesita tu confirmación.",
+          (r.provider || "") + (r.reason ? " · " + r.reason : "") + " · esperando confirmación");
+        const list = r.pending_confirmations || [];
+        if(list.length) pending.appendChild(buildConfirmCard(list, () => {}));
+      }else{
+        const r = result.result || {};
+        const fullText = previousReply + (r.reply || "");
+        const parts = [];
+        if(r.provider) parts.push(r.provider);
+        if(r.reason) parts.push(r.reason);
+        if(typeof r.prompt_tokens === "number") parts.push(r.prompt_tokens + " tokens de prompt");
+        if(r.truncated) parts.push("cortada por límite de tokens");
+        setMsgContent(msgDiv, fullText, parts.join(" · "));
+        if(r.truncated) addContinueButton(msgDiv, fullText);
+      }
+    }catch(e){
+      btn.disabled = false;
+      btn.textContent = "⏩ Continuar generación (se cortó por el límite de tokens)";
+      showBanner(banner, e.message);
+    }finally{
+      log.scrollTop = log.scrollHeight;
+    }
+  }
   Elipse.chat = { init };
 })();

@@ -110,7 +110,10 @@
           <p>Todavía no hay mensajes.<br>Escribe algo abajo para empezar.</p>
         </div>
       </div>
+      <div class="attachments" id="chatAttachments"></div>
       <div class="composer">
+        <input type="file" id="chatFileInput" multiple hidden>
+        <button id="chatAttachBtn" type="button" class="btn-icon" title="Adjuntar archivo de código">📎</button>
         <textarea id="chatInput" placeholder="Escribe un mensaje..." rows="1"></textarea>
         <button id="chatSendBtn">Enviar</button>
       </div>

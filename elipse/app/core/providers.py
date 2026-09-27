@@ -36,7 +36,7 @@ import re
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Optional, Protocol
+from typing import Callable, Optional, Protocol
 
 import httpx
 from ollama import Client
@@ -83,6 +83,10 @@ class ToolCall:
     # Los proveedores que dan id propio (Claude, OpenAI) lo sobreescriben; con los
     # que no (Ollama) se genera uno, porque el formato neutral siempre lo lleva.
     id: str = field(default_factory=_new_call_id)
+    # Solo lo usa Gemini 3 (thoughtSignature): hay que devolverle exactamente la
+    # misma firma que vino en la respuesta cuando le mandamos el resultado de la
+    # tool, si no tira 400. Los demás proveedores la ignoran.
+    signature: Optional[str] = None
 
 
 @dataclass
@@ -90,13 +94,18 @@ class ChatResult:
     content: str
     tool_calls: list[ToolCall] = field(default_factory=list)
     prompt_tokens: Optional[int] = None  # tokens de entrada, si el proveedor lo reporta
+    truncated: bool = False  # True si el proveedor cortó por tope de tokens de salida, no porque el modelo terminó solo
 
     def as_message(self) -> dict:
         """El mensaje del asistente en formato neutral, listo para re-inyectar."""
         message: dict = {"role": "assistant", "content": self.content}
         if self.tool_calls:
             message["tool_calls"] = [
-                {"id": c.id, "function": {"name": c.name, "arguments": c.arguments}}
+                {
+                    "id": c.id,
+                    "function": {"name": c.name, "arguments": c.arguments},
+                    **({"signature": c.signature} if c.signature else {}),
+                }
                 for c in self.tool_calls
             ]
         return message
@@ -110,6 +119,15 @@ class Provider(Protocol):
     ) -> ChatResult:
         ...
 
+    def chat_stream(
+        self,
+        messages: list[dict],
+        tools: Optional[list[dict]] = None,
+        allow_tools: bool = True,
+        on_delta: Optional[Callable[[str], None]] = None,
+    ) -> ChatResult:
+        ...
+
 
 def _field(obj, key, default=None):
     """Lee obj[key] tanto de dicts como de los objetos de respuesta de ollama."""
@@ -119,7 +137,35 @@ def _field(obj, key, default=None):
         return default
     return default if value is None else value
 
-
+def _parse_fallback_tool_call(content: str, tools: Optional[list]) -> Optional[ToolCall]:
+    """
+    Modelos locales chicos (ej. qwen2.5-coder:3b) a veces no usan el campo nativo
+    de tool_calls de Ollama: en cambio, devuelven la llamada como texto JSON plano
+    en 'content' (a veces envuelta en ```json ... ```). Esto la detecta y la
+    convierte en un ToolCall real para que el Agent Loop la ejecute, en vez de
+    mostrarle el JSON crudo al usuario como si fuera la respuesta final.
+    """
+    if not content or not tools:
+        return None
+    text = content.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```[a-zA-Z]*\n?", "", text)
+        text = re.sub(r"```$", "", text).strip()
+    if not (text.startswith("{") and text.endswith("}")):
+        return None
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return None
+    if not isinstance(data, dict):
+        return None
+    name, arguments = data.get("name"), data.get("arguments")
+    if not isinstance(name, str) or not isinstance(arguments, dict):
+        return None
+    valid_names = {t["function"]["name"] for t in tools if isinstance(t, dict) and "function" in t}
+    if name not in valid_names:
+        return None
+    return ToolCall(name=name, arguments=arguments)
 # =============================================================================
 # Ollama (local)
 # =============================================================================
@@ -146,12 +192,14 @@ class OllamaProvider:
         self,
         model: Optional[str] = None,
         num_ctx: Optional[int] = None,
+        num_predict: Optional[int] = None,
         timeout: Optional[int] = None,
     ):
         model = model or settings.ollama_model
         self.name = f"ollama:{model}"
         self._model = model
         self._num_ctx = num_ctx or settings.ollama_num_ctx
+        self._num_predict = num_predict or settings.ollama_num_predict
         # Timeout explícito: si Ollama se cuelga, falla con una excepción clara
         # en vez de dejar la tarea para siempre en "en_progreso".
         self._client = Client(timeout=timeout or settings.ollama_timeout_seconds)
@@ -165,7 +213,7 @@ class OllamaProvider:
             model=self._model,
             messages=_to_ollama_messages(messages),
             think=False,
-            options={"num_ctx": self._num_ctx},
+            options={"num_ctx": self._num_ctx, "num_predict": self._num_predict},
             **kwargs,
         )
 
@@ -177,11 +225,99 @@ class OllamaProvider:
             )
             for call in (_field(message, "tool_calls") or [])
         ]
+        content = strip_think_blocks(_field(message, "content", ""))
+
+        if not tool_calls and tools and allow_tools:
+            fallback = _parse_fallback_tool_call(content, tools)
+            if fallback:
+                tool_calls = [fallback]
+                content = ""
 
         return ChatResult(
-            content=strip_think_blocks(_field(message, "content", "")),
+            content=content,
             tool_calls=tool_calls,
             prompt_tokens=_field(response, "prompt_eval_count"),
+            truncated=_field(response, "done_reason") == "length",
+        )
+
+    def chat_stream(self, messages, tools=None, allow_tools=True, on_delta=None) -> ChatResult:
+        kwargs = {}
+        if tools and allow_tools:
+            kwargs["tools"] = tools
+
+        stream = self._client.chat(
+            model=self._model,
+            messages=_to_ollama_messages(messages),
+            think=False,
+            options={"num_ctx": self._num_ctx, "num_predict": self._num_predict},
+            stream=True,
+            **kwargs,
+        )
+
+        text_parts = []
+        tool_calls = []
+        prompt_tokens = None
+        done_reason = None
+
+        # Filtro de streaming para el bug conocido de <think> (qwen3 con think=False):
+        # no mandamos nada por on_delta hasta saber si el bloque arranca con <think>;
+        # si arranca, lo tragamos entero y recién emitimos lo que venga después.
+        buf = {"text": "", "in_think": False, "decided": False}
+
+        def handle_piece(piece: str):
+            buf["text"] += piece
+            if not buf["decided"]:
+                stripped = buf["text"].lstrip()
+                if stripped and not "<think>".startswith(stripped[:7]):
+                    buf["decided"] = True
+                elif stripped.startswith("<think>"):
+                    buf["decided"] = True
+                    buf["in_think"] = True
+                    buf["text"] = stripped[len("<think>"):]
+                else:
+                    return  # todavía no sabemos si arranca con <think>, esperar más texto
+            if buf["in_think"]:
+                if "</think>" not in buf["text"]:
+                    return
+                buf["text"] = buf["text"].split("</think>", 1)[1]
+                buf["in_think"] = False
+            if buf["text"]:
+                if on_delta:
+                    on_delta(buf["text"])
+                buf["text"] = ""
+
+        for part in stream:
+            message = part["message"]
+            piece = _field(message, "content", "")
+            if piece:
+                text_parts.append(piece)
+                handle_piece(piece)
+            calls = _field(message, "tool_calls")
+            if calls:
+                tool_calls = [
+                    ToolCall(name=c["function"]["name"], arguments=dict(c["function"]["arguments"] or {}))
+                    for c in calls
+                ]
+            if _field(part, "done"):
+                prompt_tokens = _field(part, "prompt_eval_count")
+                done_reason = _field(part, "done_reason")
+
+        content = strip_think_blocks("".join(text_parts))
+        if not tool_calls and tools and allow_tools:
+            fallback = _parse_fallback_tool_call(content, tools)
+            if fallback:
+                tool_calls = [fallback]
+                content = ""
+                # Nota: si un modelo local chico cae en este fallback (JSON de tool
+                # call como texto plano en vez de tool_calls nativo), ese JSON ya se
+                # habrá mostrado en pantalla vía on_delta antes de detectarlo acá.
+                # Caso borde de modelos sin tool-calling nativo confiable.
+
+        return ChatResult(
+            content=content,
+            tool_calls=tool_calls,
+            prompt_tokens=prompt_tokens,
+            truncated=done_reason == "length",
         )
 
 
@@ -384,7 +520,94 @@ class AnthropicProvider(_HTTPProvider):
             + (usage.get("cache_creation_input_tokens") or 0)
         ) or None
 
-        return ChatResult(content=text.strip(), tool_calls=calls, prompt_tokens=prompt_tokens)
+        return ChatResult(
+            content=text.strip(),
+            tool_calls=calls,
+            prompt_tokens=prompt_tokens,
+            truncated=data.get("stop_reason") == "max_tokens",
+        )
+
+    def chat_stream(self, messages, tools=None, allow_tools=True, on_delta=None) -> ChatResult:
+        system, converted = _to_anthropic_messages(messages)
+        if not converted:
+            raise ProviderError("No hay ningún mensaje de usuario que enviar a Claude.")
+
+        body: dict = {"model": self._model, "max_tokens": self._max_tokens, "messages": converted, "stream": True}
+        if system:
+            body["system"] = system
+        if tools:
+            body["tools"] = _to_anthropic_tools(tools)
+            if not allow_tools:
+                body["tool_choice"] = {"type": "none"}
+
+        headers = {
+            "x-api-key": self._api_key,
+            "anthropic-version": self.API_VERSION,
+            "content-type": "application/json",
+        }
+
+        text_parts: list[str] = []
+        blocks: dict[int, dict] = {}
+        stop_reason = None
+        usage: dict = {}
+
+        # Nota: a diferencia de _post, este camino streaming no reintenta en
+        # 429/5xx (complicaría manejar un stream a medio abrir). Si hace falta,
+        # se puede sumar un reintento antes de abrir la conexión.
+        with self._http.stream("POST", self._url, headers=headers, json=body) as response:
+            if response.status_code >= 400:
+                response.read()
+                raise ProviderError(_error_detail(response))
+            for line in response.iter_lines():
+                if not line or not line.startswith("data:"):
+                    continue
+                payload = line[len("data:"):].strip()
+                if not payload or payload == "[DONE]":
+                    continue
+                event = json.loads(payload)
+                etype = event.get("type")
+
+                if etype == "message_start":
+                    usage = event["message"].get("usage", {})
+                elif etype == "content_block_start":
+                    blocks[event["index"]] = dict(event["content_block"], json="")
+                elif etype == "content_block_delta":
+                    delta = event["delta"]
+                    if delta.get("type") == "text_delta":
+                        text_parts.append(delta["text"])
+                        if on_delta:
+                            on_delta(delta["text"])
+                    elif delta.get("type") == "input_json_delta":
+                        idx = event["index"]
+                        blocks[idx]["json"] += delta.get("partial_json", "")
+                elif etype == "message_delta":
+                    stop_reason = event["delta"].get("stop_reason")
+                    if event.get("usage", {}).get("output_tokens") is not None:
+                        usage["output_tokens"] = event["usage"]["output_tokens"]
+                elif etype == "error":
+                    raise ProviderError(str(event.get("error")))
+
+        calls = []
+        for b in blocks.values():
+            if b.get("type") == "tool_use":
+                try:
+                    args = json.loads(b.get("json") or "{}")
+                except ValueError:
+                    args = {}
+                calls.append(ToolCall(name=b["name"], arguments=args, id=b["id"]))
+
+        prompt_tokens = (
+            (usage.get("input_tokens") or 0)
+            + (usage.get("cache_read_input_tokens") or 0)
+            + (usage.get("cache_creation_input_tokens") or 0)
+        ) or None
+
+        return ChatResult(
+            content="".join(text_parts).strip(),
+            tool_calls=calls,
+            prompt_tokens=prompt_tokens,
+            truncated=stop_reason == "max_tokens",
+        )
 
 
 # =============================================================================
@@ -488,6 +711,75 @@ class OpenAICompatibleProvider(_HTTPProvider):
             content=strip_think_blocks(message.get("content") or ""),
             tool_calls=calls,
             prompt_tokens=(data.get("usage") or {}).get("prompt_tokens"),
+            truncated=choices[0].get("finish_reason") == "length",
+        )
+
+    def chat_stream(self, messages, tools=None, allow_tools=True, on_delta=None) -> ChatResult:
+        body: dict = {"model": self._model, "messages": _to_openai_messages(messages), "stream": True}
+        if tools:
+            body["tools"] = tools
+            if not allow_tools:
+                body["tool_choice"] = "none"
+
+        headers = {"content-type": "application/json"}
+        if self._api_key:
+            headers["authorization"] = f"Bearer {self._api_key}"
+
+        text_parts: list[str] = []
+        tool_calls_acc: dict[int, dict] = {}
+        finish_reason = None
+        prompt_tokens = None
+
+        with self._http.stream("POST", self._url, headers=headers, json=body) as response:
+            if response.status_code >= 400:
+                response.read()
+                raise ProviderError(_error_detail(response))
+            for line in response.iter_lines():
+                if not line or not line.startswith("data:"):
+                    continue
+                payload = line[len("data:"):].strip()
+                if not payload or payload == "[DONE]":
+                    continue
+                chunk = json.loads(payload)
+                usage = chunk.get("usage")
+                if usage:
+                    prompt_tokens = usage.get("prompt_tokens")
+                choices = chunk.get("choices") or []
+                if not choices:
+                    continue
+                choice = choices[0]
+                delta = choice.get("delta") or {}
+                if delta.get("content"):
+                    text_parts.append(delta["content"])
+                    if on_delta:
+                        on_delta(delta["content"])
+                for tc in (delta.get("tool_calls") or []):
+                    idx = tc.get("index", 0)
+                    acc = tool_calls_acc.setdefault(idx, {"id": None, "name": "", "arguments": ""})
+                    if tc.get("id"):
+                        acc["id"] = tc["id"]
+                    fn = tc.get("function") or {}
+                    if fn.get("name"):
+                        acc["name"] += fn["name"]
+                    if fn.get("arguments"):
+                        acc["arguments"] += fn["arguments"]
+                if choice.get("finish_reason"):
+                    finish_reason = choice["finish_reason"]
+
+        calls = [
+            ToolCall(
+                name=acc["name"],
+                arguments=_parse_openai_arguments(acc["arguments"]),
+                id=acc["id"] or _new_call_id(),
+            )
+            for acc in tool_calls_acc.values()
+        ]
+
+        return ChatResult(
+            content=strip_think_blocks("".join(text_parts)),
+            tool_calls=calls,
+            prompt_tokens=prompt_tokens,
+            truncated=finish_reason == "length",
         )
 
 
@@ -544,6 +836,10 @@ def _to_gemini_messages(messages: list[dict]) -> tuple[Optional[dict], list[dict
                 # Algunos modelos de Gemini devuelven id; lo reinyectamos si existe.
                 if call.get("id"):
                     part["functionCall"]["id"] = call["id"]
+                # Gemini 3: si esta tool call vino con thoughtSignature, hay que
+                # devolvérsela tal cual al reenviar el historial, o tira 400.
+                if call.get("signature"):
+                    part["thoughtSignature"] = call["signature"]
                 parts.append(part)
             push("model", parts)
 
@@ -659,6 +955,7 @@ class GeminiProvider(_HTTPProvider):
                     name=fc.get("name") or "",
                     arguments=dict(fc.get("args") or {}),
                     id=fc.get("id") or _new_call_id(),
+                    signature=part.get("thoughtSignature"),
                 ))
 
         usage = data.get("usageMetadata") or {}
@@ -668,12 +965,160 @@ class GeminiProvider(_HTTPProvider):
             content=strip_think_blocks("".join(text_chunks).strip()),
             tool_calls=calls,
             prompt_tokens=prompt_tokens,
+            truncated=candidates[0].get("finishReason") == "MAX_TOKENS",
+        )
+
+    def chat_stream(self, messages, tools=None, allow_tools=True, on_delta=None) -> ChatResult:
+        system_instruction, contents = _to_gemini_messages(messages)
+        if not contents:
+            raise ProviderError("No hay ningún mensaje de usuario que enviar a Gemini.")
+
+        body: dict = {
+            "contents": contents,
+            "generationConfig": {"maxOutputTokens": self._max_tokens},
+        }
+        if system_instruction:
+            body["systemInstruction"] = system_instruction
+        if tools:
+            body["tools"] = _to_gemini_tools(tools)
+            body["toolConfig"] = {
+                "functionCallingConfig": {"mode": "AUTO" if allow_tools else "NONE"},
+            }
+
+        headers = {"content-type": "application/json", "x-goog-api-key": self._api_key}
+        # Mismo endpoint que chat(), pero streamGenerateContent + alt=sse en vez
+        # de generateContent: Gemini devuelve la respuesta en varios chunks SSE
+        # en lugar de uno solo.
+        stream_url = self._url.replace(":generateContent", ":streamGenerateContent") + "?alt=sse"
+
+        text_chunks: list[str] = []
+        calls: list[ToolCall] = []
+        prompt_tokens = None
+        finish_reason = None
+        last_feedback = None
+        got_candidates = False
+
+        with self._http.stream("POST", stream_url, headers=headers, json=body) as response:
+            if response.status_code >= 400:
+                response.read()
+                raise ProviderError(_error_detail(response))
+            for line in response.iter_lines():
+                if not line or not line.startswith("data:"):
+                    continue
+                payload = line[len("data:"):].strip()
+                if not payload:
+                    continue
+                chunk = json.loads(payload)
+
+                candidates = chunk.get("candidates") or []
+                if candidates:
+                    got_candidates = True
+                    cand = candidates[0]
+                    if cand.get("finishReason"):
+                        finish_reason = cand["finishReason"]
+                    for part in (cand.get("content") or {}).get("parts") or []:
+                        if part.get("text"):
+                            text_chunks.append(part["text"])
+                            if on_delta:
+                                on_delta(part["text"])
+                        fc = part.get("functionCall")
+                        if fc:
+                            calls.append(ToolCall(
+                                name=fc.get("name") or "",
+                                arguments=dict(fc.get("args") or {}),
+                                id=fc.get("id") or _new_call_id(),
+                                signature=part.get("thoughtSignature"),
+                            ))
+                else:
+                    last_feedback = chunk.get("promptFeedback") or last_feedback
+
+                usage = chunk.get("usageMetadata")
+                if usage and usage.get("promptTokenCount") is not None:
+                    prompt_tokens = usage["promptTokenCount"]
+
+        if not got_candidates:
+            # Igual que en chat(): a veces Gemini bloquea por safety y no manda candidates.
+            raise ProviderError(f"Gemini no devolvió candidatos. promptFeedback={last_feedback!r}")
+
+        return ChatResult(
+            content=strip_think_blocks("".join(text_chunks).strip()),
+            tool_calls=calls,
+            prompt_tokens=prompt_tokens,
+            truncated=finish_reason == "MAX_TOKENS",
         )
 
 
 # =============================================================================
 # Fábrica: nombre (de la configuración) -> proveedor
 # =============================================================================
+
+def _pick(role: str, role_field: str, general_field: str):
+    """
+    Valor efectivo de un campo para un rol: el override del rol si no está
+    vacío, si no el valor general. 'general' nunca tiene override propio,
+    así que siempre devuelve directamente el campo general.
+    """
+    if role != "general":
+        role_value = getattr(settings, role_field, "")
+        if role_value:
+            return role_value
+    return getattr(settings, general_field)
+
+
+def build_role_provider(role: str) -> Optional["Provider"]:
+    """
+    Arma el proveedor de un ROL ("general", "code", "research"), no de un
+    nombre de proveedor suelto. Esto es lo que usan tasks.py y research.py
+    para saber con qué piensa cada tipo de tarea.
+
+    - "general" siempre construye algo: usa DEFAULT_PROVIDER tal cual.
+    - "code" / "research" heredan TODO de "general" si "{ROL}_PROVIDER" está
+      vacío en la config -> devuelve None (el llamador debe usar el proveedor
+      general en ese caso, sin crear una instancia duplicada).
+    - Si el rol sí define un proveedor propio, cada campo suyo que esté vacío
+      hereda su equivalente general (ver `_pick`).
+    """
+    if role == "general":
+        provider_name = settings.default_provider
+    else:
+        provider_name = getattr(settings, f"{role}_provider", "").strip()
+        if not provider_name:
+            return None
+
+    key = provider_name.strip().lower()
+
+    if key == "ollama":
+        model = _pick(role, f"{role}_ollama_model", "ollama_model")
+        return OllamaProvider(model=model)
+
+    if key == "anthropic":
+        return AnthropicProvider(
+            api_key=_pick(role, f"{role}_anthropic_api_key", "anthropic_api_key"),
+            model=_pick(role, f"{role}_anthropic_model", "anthropic_model"),
+            max_tokens=settings.anthropic_max_tokens,
+            base_url=settings.anthropic_base_url,
+        )
+
+    if key == "openai":
+        return OpenAICompatibleProvider(
+            api_key=_pick(role, f"{role}_openai_api_key", "openai_api_key"),
+            model=_pick(role, f"{role}_openai_model", "openai_model"),
+            base_url=_pick(role, f"{role}_openai_base_url", "openai_base_url"),
+        )
+
+    if key == "gemini":
+        return GeminiProvider(
+            api_key=_pick(role, f"{role}_gemini_api_key", "gemini_api_key"),
+            model=_pick(role, f"{role}_gemini_model", "gemini_model"),
+            max_tokens=settings.gemini_max_tokens,
+            base_url=settings.gemini_base_url,
+        )
+
+    raise ProviderConfigError(
+        f"Proveedor desconocido para el rol '{role}': '{provider_name}'. "
+        "Opciones válidas: ollama, anthropic, openai, gemini."
+    )
+
 
 def build_provider(name: str) -> Provider:
     key = (name or "").strip().lower()

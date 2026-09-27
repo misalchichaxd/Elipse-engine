@@ -10,9 +10,12 @@ window.Elipse = window.Elipse || {};
     try{
       const data = await Elipse.api.apiFetch("/v1/status", {});
       dot.className = "dot ok";
+      const p = data.providers || {};
       text.textContent = data.name + " · " + (data.model || "modelo activo");
       if(meta){
-        meta.textContent = data.model || "Conectado correctamente";
+        meta.textContent = "General: " + (p.general || "—")
+          + " · Código: " + (p.code || "—")
+          + " · Investigación: " + (p.research || "—");
       }
     }catch(e){
       console.error("checkStatus falló:", e);

@@ -117,9 +117,9 @@ class ElipseCore:
                 "used_tools": False,
             }
 
-    def _choose(self, message: str) -> tuple[Provider, str]:
+    def _choose(self, message: str, history: list) -> tuple[Provider, str]:
         """Decide qué proveedor atiende este mensaje y deja el motivo por escrito."""
-        provider_type, reason = choose_provider(message)
+        provider_type, reason = choose_provider(message, history)
         if provider_type == "code":
             if self.code_provider is not None:
                 return self.code_provider, reason
@@ -133,9 +133,12 @@ class ElipseCore:
         history = get_recent_messages()
 
         emit({"type": "progreso", "mensaje": "Buscando contexto relevante en memoria..."})
-        memory_context = build_memory_context(message)
+        # Con un archivo adjunto, la tarea ya trae todo el contexto necesario: sumarle memoria
+        # semántica de conversaciones viejas (a veces relacionada solo por una palabra suelta,
+        # como "mapache") distrae más de lo que ayuda a un modelo chico.
+        memory_context = "" if message.startswith("Archivo adjunto:") else build_memory_context(message)
 
-        provider, reason = self._choose(message)
+        provider, reason = self._choose(message, history)
         tools_schema = get_tools_schema()  # una sola vez por corrida: catálogo estable durante el loop
 
         save_message("user", message)
@@ -150,13 +153,18 @@ class ElipseCore:
         used_tools = False
         peak_prompt_tokens = 0
         reply = ""
+        truncated = False
+
+        def _stream_to_chunks(text: str):
+            emit({"type": "chunk", "texto": text})
 
         for iteration in range(1, MAX_LOOP_ITERATIONS + 1):
-            result = provider.chat(conversation, tools=tools_schema)
+            result = provider.chat_stream(conversation, tools=tools_schema, on_delta=_stream_to_chunks)
             peak_prompt_tokens = max(peak_prompt_tokens, result.prompt_tokens or 0)
 
             if not result.tool_calls:
                 reply = result.content  # no hizo falta ninguna herramienta: esta YA es la respuesta
+                truncated = result.truncated
                 break
 
             used_tools = True
@@ -189,9 +197,12 @@ class ElipseCore:
 
             # --- responder: solo texto (allow_tools=False), y el loop TERMINA aquí ---
             emit({"type": "progreso", "mensaje": "Generando la respuesta final..."})
-            final_result = provider.chat(conversation, tools=tools_schema, allow_tools=False)
+            final_result = provider.chat_stream(
+                conversation, tools=tools_schema, allow_tools=False, on_delta=_stream_to_chunks
+            )
             peak_prompt_tokens = max(peak_prompt_tokens, final_result.prompt_tokens or 0)
             reply = final_result.content
+            truncated = final_result.truncated
             break
 
         duration = time.time() - start
@@ -203,6 +214,7 @@ class ElipseCore:
             "provider": provider.name,
             "reason": reason,
             "used_tools": used_tools,
+            "truncated": truncated,
         }
         if peak_prompt_tokens:
             # Útil para saber si el prompt se acerca (o pasa) del num_ctx configurado.
