@@ -44,6 +44,7 @@ from ollama import Client
 from app.config import settings
 
 _THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+_TOOL_CALL_BLOCK_RE = re.compile(r"<tool_call>\s*(.*?)\s*</tool_call>", re.DOTALL)
 
 # Reintentos ante límites de velocidad (429) o saturación temporal del proveedor.
 _RETRY_STATUS = {429, 502, 503, 529}
@@ -69,6 +70,23 @@ def strip_think_blocks(text: str) -> str:
     text = _THINK_BLOCK_RE.sub("", text or "")
     if "<think>" in text:
         text = text.split("<think>")[0]
+    return text.strip()
+
+
+def strip_tool_call_blocks(text: str) -> str:
+    """
+    Quita bloques <tool_call>...</tool_call> que Qwen (y derivados) a veces
+    generan como TEXTO en vez de usar el campo nativo de tool-calling de
+    Ollama — sobre todo visto en la pasada final con allow_tools=False:
+    el modelo "quiere" seguir pidiendo una herramienta pero no puede, y en
+    vez de responder en texto puro deja el JSON crudo envuelto en estos
+    tags como si fuera su respuesta. Sin este filtro eso le llega directo
+    al usuario en el chat. Si el bloque quedó abierto (se cortó a la
+    mitad), descarta desde ahí: no hay nada útil después de eso.
+    """
+    text = _TOOL_CALL_BLOCK_RE.sub("", text or "")
+    if "<tool_call>" in text:
+        text = text.split("<tool_call>")[0]
     return text.strip()
 
 
@@ -139,18 +157,32 @@ def _field(obj, key, default=None):
 
 def _parse_fallback_tool_call(content: str, tools: Optional[list]) -> Optional[ToolCall]:
     """
-    Modelos locales chicos (ej. qwen2.5-coder:3b) a veces no usan el campo nativo
-    de tool_calls de Ollama: en cambio, devuelven la llamada como texto JSON plano
-    en 'content' (a veces envuelta en ```json ... ```). Esto la detecta y la
-    convierte en un ToolCall real para que el Agent Loop la ejecute, en vez de
-    mostrarle el JSON crudo al usuario como si fuera la respuesta final.
+    Modelos locales chicos a veces no usan el campo nativo de tool_calls de
+    Ollama: en cambio, devuelven la llamada como texto en 'content', de dos
+    formas vistas en la práctica:
+      1. El content ENTERO es un JSON plano {"name":..., "arguments":...}
+         (a veces envuelto en ```json ... ```).
+      2. Qwen y derivados a veces usan su propio formato de texto
+         <tool_call>{"name":..., "arguments":...}</tool_call>, a veces con
+         más texto antes o después (ej. el modelo escribe algo y DESPUÉS
+         decide pedir una tool con este formato).
+    Ambas se detectan acá y se convierten en un ToolCall real para que el
+    Agent Loop la ejecute de verdad, en vez de descartar el intento o
+    mostrarle el JSON/tags crudos al usuario como si fuera la respuesta
+    final (ver strip_tool_call_blocks, que limpia lo que esto no logra
+    reconocer o lo que llega en la pasada final con allow_tools=False).
     """
     if not content or not tools:
         return None
     text = content.strip()
-    if text.startswith("```"):
+
+    match = _TOOL_CALL_BLOCK_RE.search(text)
+    if match:
+        text = match.group(1).strip()
+    elif text.startswith("```"):
         text = re.sub(r"^```[a-zA-Z]*\n?", "", text)
         text = re.sub(r"```$", "", text).strip()
+
     if not (text.startswith("{") and text.endswith("}")):
         return None
     try:
@@ -233,6 +265,13 @@ class OllamaProvider:
                 tool_calls = [fallback]
                 content = ""
 
+        if not tool_calls:
+            # Limpieza final: si el modelo dejó un <tool_call>...</tool_call> como
+            # texto y no se pudo (o no se debía — allow_tools=False, la pasada
+            # salvavidas) convertir en una llamada real, que al menos no le
+            # llegue crudo al usuario en la respuesta.
+            content = strip_tool_call_blocks(content)
+
         return ChatResult(
             content=content,
             tool_calls=tool_calls,
@@ -312,6 +351,16 @@ class OllamaProvider:
                 # call como texto plano en vez de tool_calls nativo), ese JSON ya se
                 # habrá mostrado en pantalla vía on_delta antes de detectarlo acá.
                 # Caso borde de modelos sin tool-calling nativo confiable.
+
+        if not tool_calls:
+            # Misma limpieza final que en chat(): si quedó un <tool_call> como
+            # texto sin poder convertirse en llamada real (típicamente en la
+            # pasada salvavidas con allow_tools=False), no dejarlo crudo en
+            # el texto guardado/devuelto. Nota: al igual que con el fallback
+            # de arriba, en streaming puede haberse mostrado ya en pantalla
+            # antes de limpiarlo acá — ver core.py para el porqué de esta
+            # limitación conocida en modelos sin tool-calling confiable.
+            content = strip_tool_call_blocks(content)
 
         return ChatResult(
             content=content,

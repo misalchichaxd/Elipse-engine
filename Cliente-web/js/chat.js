@@ -477,18 +477,172 @@ window.Elipse = window.Elipse || {};
     document.body.appendChild(overlay);
   }
 
-  function appendMsg(log, role, text, meta){
+  // ---------- Timeline de herramientas: qué llamó el agente y con qué resultado ----------
+  // Alimentado por los eventos "verificacion" que manda el backend por WebSocket
+  // (uno por cada tool que corrió, con sus argumentos, si salió bien, y una
+  // muestra del resultado crudo — ver core/core.py). Es la prueba visible de que
+  // el agente realmente ejecutó lo que dice: no un resumen que el modelo podría
+  // inventar, sino los datos que mandó el propio backend al ejecutar cada tool.
+  const TOOL_LABELS = {
+    research_topic: "Investigó en internet",
+    write_code: "Generó código (modelo especializado)",
+    write_file: "Escribió un archivo",
+    read_file: "Leyó un archivo",
+    run_python: "Ejecutó Python",
+    search_web: "Buscó en la web",
+    remember: "Guardó en memoria",
+    recall: "Consultó la memoria",
+    list_files: "Listó archivos",
+    calculate: "Calculó",
+    get_current_datetime: "Consultó la fecha/hora",
+  };
+
+  function toolLabel(name){
+    return TOOL_LABELS[name] || ("Llamó a " + name);
+  }
+
+  function formatArgs(args){
+    if(!args || typeof args !== "object" || !Object.keys(args).length) return "";
+    try{ return JSON.stringify(args, null, 2); }catch(_){ return String(args); }
+  }
+
+  /** Construye el <details> colapsable con el resumen + el detalle por paso.
+   * Devuelve null si no hay eventos todavía (nada que mostrar). */
+  function buildToolTimeline(events, opts){
+    if(!events || !events.length) return null;
+    const stillRunning = !!(opts && opts.stillRunning);
+
+    const details = document.createElement("details");
+    details.className = "tool-timeline";
+
+    const summary = document.createElement("summary");
+
+    const label = document.createElement("span");
+    label.className = "tool-timeline-label";
+    label.textContent = events.length === 1
+      ? toolLabel(events[0].tool)
+      : "Usó " + events.length + " herramienta" + (events.length === 1 ? "" : "s");
+    summary.appendChild(label);
+
+    const okCount = events.filter((e) => e.ok).length;
+    const allOk = okCount === events.length;
+    const badge = document.createElement("span");
+    badge.className = "tool-timeline-badge " + (stillRunning ? "live" : (allOk ? "" : "warn"));
+    badge.textContent = stillRunning ? "en curso…" : (allOk ? "✓ " + events.length : okCount + "/" + events.length);
+    summary.appendChild(badge);
+
+    const chevron = document.createElement("span");
+    chevron.className = "chevron";
+    chevron.textContent = "▾";
+    summary.appendChild(chevron);
+
+    details.appendChild(summary);
+
+    const body = document.createElement("div");
+    body.className = "tool-timeline-body";
+
+    events.forEach((ev, idx) => {
+      const step = document.createElement("div");
+      step.className = "tool-step " + (ev.ok ? "ok" : "fail");
+
+      const head = document.createElement("div");
+      head.className = "tool-step-head";
+      const icon = document.createElement("span");
+      icon.className = "tool-step-icon";
+      icon.textContent = ev.ok ? "✓" : "✗";
+      head.appendChild(icon);
+      const name = document.createElement("span");
+      name.className = "tool-step-name";
+      name.textContent = (idx + 1) + ". " + toolLabel(ev.tool);
+      head.appendChild(name);
+      const idSpan = document.createElement("span");
+      idSpan.className = "tool-step-id";
+      idSpan.textContent = ev.tool;
+      head.appendChild(idSpan);
+      step.appendChild(head);
+
+      const argsText = formatArgs(ev.arguments);
+      if(argsText){
+        const argsLabel = document.createElement("div");
+        argsLabel.className = "tool-step-label";
+        argsLabel.textContent = "Argumentos enviados";
+        step.appendChild(argsLabel);
+        const args = document.createElement("pre");
+        args.className = "tool-step-args";
+        args.textContent = argsText;
+        step.appendChild(args);
+      }
+
+      if(ev.preview){
+        const prevLabel = document.createElement("div");
+        prevLabel.className = "tool-step-label";
+        prevLabel.textContent = "Resultado devuelto por la tool";
+        step.appendChild(prevLabel);
+        const prev = document.createElement("pre");
+        prev.className = "tool-step-preview";
+        prev.textContent = ev.preview;
+        step.appendChild(prev);
+      }
+
+      if(ev.detalle){
+        const verdict = document.createElement("div");
+        verdict.className = "tool-step-verdict";
+        verdict.textContent = ev.detalle;
+        step.appendChild(verdict);
+      }
+
+      body.appendChild(step);
+    });
+
+    details.appendChild(body);
+    return details;
+  }
+
+  /** Actualiza (o crea) el slot de timeline dentro de un msgDiv, preservando
+   * si el usuario ya lo tenía abierto mientras seguía llegando texto. */
+  function renderTimelineSlot(msgDiv, toolEvents, opts){
+    let slot = msgDiv.querySelector(".msg-timeline");
+    if(!slot){
+      slot = document.createElement("div");
+      slot.className = "msg-timeline";
+      msgDiv.insertBefore(slot, msgDiv.firstChild);
+    }
+    const prevOpen = slot.querySelector("details.tool-timeline");
+    const wasOpen = prevOpen ? prevOpen.open : false;
+    slot.innerHTML = "";
+    const tl = buildToolTimeline(toolEvents, opts);
+    if(tl){
+      if(wasOpen) tl.open = true;
+      slot.appendChild(tl);
+    }
+    return slot;
+  }
+
+  function appendMsg(log, role, text, meta, toolEvents){
     clearEmptyState(log);
     const div = document.createElement("div");
     div.className = "msg " + role;
+
+    if(role === "assistant" && toolEvents && toolEvents.length){
+      const slot = document.createElement("div");
+      slot.className = "msg-timeline";
+      const tl = buildToolTimeline(toolEvents);
+      if(tl) slot.appendChild(tl);
+      div.appendChild(slot);
+    }
+
+    const body = document.createElement("div");
+    body.className = "msg-body";
     if(role === "assistant" && text){
-      div.appendChild(renderRichContent(text));
+      body.appendChild(renderRichContent(text));
     }else{
       const t = document.createElement("div");
       t.className = "msg-text";
       t.textContent = text || "";
-      div.appendChild(t);
+      body.appendChild(t);
     }
+    div.appendChild(body);
+
     if(meta){
       const m = document.createElement("span");
       m.className = "meta";
@@ -504,18 +658,34 @@ window.Elipse = window.Elipse || {};
     clearEmptyState(log);
     const div = document.createElement("div");
     div.className = "msg assistant";
+    const body = document.createElement("div");
+    body.className = "msg-body";
     const t = document.createElement("div");
     t.className = "msg-text";
     t.innerHTML = '<span class="spinner"></span>' + escapeHtml(text || "pensando...");
-    div.appendChild(t);
+    body.appendChild(t);
+    div.appendChild(body);
     log.appendChild(div);
     log.scrollTop = log.scrollHeight;
     return div;
   }
 
-  function setMsgContent(div, text, meta){
-    div.innerHTML = "";
-    div.appendChild(renderRichContent(text || ""));
+  function setMsgContent(div, text, meta, toolEvents, opts){
+    toolEvents = toolEvents || [];
+    div.__toolEvents = toolEvents; // para que continueGeneration pueda retomarlos
+    renderTimelineSlot(div, toolEvents, opts);
+
+    let body = div.querySelector(".msg-body");
+    if(!body){
+      body = document.createElement("div");
+      body.className = "msg-body";
+      div.appendChild(body);
+    }
+    body.innerHTML = "";
+    body.appendChild(renderRichContent(text || ""));
+
+    const oldMeta = div.querySelector(".meta");
+    if(oldMeta) oldMeta.remove();
     if(meta){
       const m = document.createElement("span");
       m.className = "meta";
@@ -709,9 +879,10 @@ window.Elipse = window.Elipse || {};
     try{
       let streamedText = "";
       let renderQueued = false;
+      const toolEvents = []; // eventos "verificacion" (uno por cada tool que corrió), en orden
       const flush = () => {
         renderQueued = false;
-        setMsgContent(pending, streamedText, "escribiendo...");
+        setMsgContent(pending, streamedText, "escribiendo...", toolEvents, { stillRunning: true });
         log.scrollTop = log.scrollHeight;
       };
 
@@ -726,6 +897,14 @@ window.Elipse = window.Elipse || {};
           }
         },
         onEvent(event){
+          if(event.type === "verificacion"){
+            // Prueba real de qué corrió el agente (tool, argumentos, resultado):
+            // se muestra ya mismo en el timeline colapsable, no hace falta
+            // esperar a la respuesta final.
+            toolEvents.push(event);
+            renderTimelineSlot(pending, toolEvents, { stillRunning: true });
+            log.scrollTop = log.scrollHeight;
+          }
           // progreso / plan / verificación: mientras no haya texto todavía,
           // se muestra como estado en vez del "pensando..." fijo.
           if(streamedText) return;
@@ -734,7 +913,7 @@ window.Elipse = window.Elipse || {};
             || (event.type === "verificacion" && (event.tool + (event.ok ? ": verificado" : ": reintentando")))
             || null;
           if(label){
-            const t = pending.querySelector(".msg-text") || pending;
+            const t = pending.querySelector(".msg-body .msg-text") || pending.querySelector(".msg-body") || pending;
             t.innerHTML = '<span class="spinner"></span>' + escapeHtml(label);
           }
         },
@@ -746,7 +925,7 @@ window.Elipse = window.Elipse || {};
       }else if(result.status === "esperando_confirmacion"){
         const r = result.result || {};
         const reply = r.reply || "Esta acción necesita tu confirmación.";
-        setMsgContent(pending, reply, (r.provider || "") + (r.reason ? " · " + r.reason : "") + " · esperando confirmación");
+        setMsgContent(pending, reply, (r.provider || "") + (r.reason ? " · " + r.reason : "") + " · esperando confirmación", toolEvents);
 
         const list = r.pending_confirmations || [];
         if(list.length){
@@ -769,7 +948,7 @@ window.Elipse = window.Elipse || {};
         if(r.used_tools) parts.push("usó herramientas");
         if(typeof r.prompt_tokens === "number") parts.push(r.prompt_tokens + " tokens de prompt");
         if(r.truncated) parts.push("cortada por límite de tokens");
-        setMsgContent(pending, r.reply || "", parts.join(" · "));
+        setMsgContent(pending, r.reply || "", parts.join(" · "), toolEvents);
         if(r.truncated) addContinueButton(pending, r.reply || "");
       }
     }catch(e){
@@ -826,9 +1005,14 @@ window.Elipse = window.Elipse || {};
     try{
       let streamedText = "";
       let renderQueued = false;
+      // La continuación es sobre el mismo mensaje: arrancamos el timeline con
+      // los eventos que ya se habían mostrado antes (si los hubo), para no
+      // perderlos — quedaron guardados en el propio nodo por setMsgContent.
+      const toolEvents = (msgDiv.__toolEvents || []).slice();
+
       const flush = () => {
         renderQueued = false;
-        setMsgContent(msgDiv, previousReply + streamedText, "escribiendo...");
+        setMsgContent(msgDiv, previousReply + streamedText, "escribiendo...", toolEvents, { stillRunning: true });
         log.scrollTop = log.scrollHeight;
       };
 
@@ -843,7 +1027,13 @@ window.Elipse = window.Elipse || {};
             requestAnimationFrame(flush);
           }
         },
-        onEvent(){ /* no hace falta mostrar progreso acá, ya hay texto previo visible */ },
+        onEvent(event){
+          if(event.type === "verificacion"){
+            toolEvents.push(event);
+            renderTimelineSlot(msgDiv, toolEvents, { stillRunning: true });
+            log.scrollTop = log.scrollHeight;
+          }
+        },
       });
 
       if(result.status === "error"){
@@ -856,7 +1046,7 @@ window.Elipse = window.Elipse || {};
         btn.remove();
         const r = result.result || {};
         const pending = appendMsg(log, "assistant", r.reply || "Esta acción necesita tu confirmación.",
-          (r.provider || "") + (r.reason ? " · " + r.reason : "") + " · esperando confirmación");
+          (r.provider || "") + (r.reason ? " · " + r.reason : "") + " · esperando confirmación", toolEvents);
         const list = r.pending_confirmations || [];
         if(list.length) pending.appendChild(buildConfirmCard(list, () => {}));
       }else{
@@ -867,7 +1057,7 @@ window.Elipse = window.Elipse || {};
         if(r.reason) parts.push(r.reason);
         if(typeof r.prompt_tokens === "number") parts.push(r.prompt_tokens + " tokens de prompt");
         if(r.truncated) parts.push("cortada por límite de tokens");
-        setMsgContent(msgDiv, fullText, parts.join(" · "));
+        setMsgContent(msgDiv, fullText, parts.join(" · "), toolEvents);
         if(r.truncated) addContinueButton(msgDiv, fullText);
       }
     }catch(e){

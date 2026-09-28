@@ -11,7 +11,7 @@ import queue
 import uuid
 from typing import Optional
 
-from app.core import research
+from app.core import codegen, research
 from app.core.core import ElipseCore
 from app.core.providers import build_role_provider
 
@@ -21,28 +21,37 @@ def _build_core() -> ElipseCore:
     Único punto donde se decide QUÉ proveedor usa cada ROL, según el .env:
         DEFAULT_PROVIDER=ollama | anthropic | openai | gemini   (rol "general")
         CODE_PROVIDER=      (vacío = hereda "general"; o p. ej. "anthropic" solo para código)
-        RESEARCH_PROVIDER=  (idem, para el pipeline de investigación)
+        RESEARCH_PROVIDER=  (idem, para investigación)
     Si la configuración es inválida (falta una API key, nombre desconocido) falla
     AL ARRANCAR con un mensaje claro, no a mitad de una conversación.
+
+    "general" es el ÚNICO proveedor que atiende turnos de chat (ElipseCore ya
+    no recibe code_provider): "code" y "research" ahora son proveedores por
+    detrás de tools (write_code, research_topic) que el orquestador general
+    llama cuando decide que hacen falta — ver core.py y codegen.py para el
+    porqué del cambio de diseño.
     """
     general = build_role_provider("general")
-    code = build_role_provider("code")  # None = hereda "general"
-    return ElipseCore(provider=general, code_provider=code)
+    core = ElipseCore(provider=general)
+
+    # write_code (tools.py) usa este proveedor por dentro: si "code" no tiene
+    # uno propio en el .env, hereda el general (mismo mecanismo de siempre).
+    codegen.configure_provider(build_role_provider("code") or general)
+
+    # research_topic (tools.py) usa este, ídem.
+    research.configure_provider(build_role_provider("research") or general)
+
+    return core
 
 
 _core = _build_core()
-
-# El pipeline de investigación no pasa por ElipseCore (no es un turno de chat),
-# así que se configura aparte con el mismo mecanismo de roles: si "research"
-# no tiene proveedor propio, hereda el general.
-research.configure_provider(build_role_provider("research") or _core.provider)
 
 
 def describe_providers() -> dict:
     """Qué proveedores hay activos (para /v1/status)."""
     return {
         "general": _core.provider.name,
-        "code": _core.code_provider.name if _core.code_provider else _core.provider.name,
+        "code": codegen._provider.name if codegen._provider else None,
         "research": research._provider.name if research._provider else None,
     }
 

@@ -8,6 +8,7 @@ from ddgs import DDGS
 
 from app.config import settings
 from app.core import mcp_client, memory
+from app.core.codegen import run_code_generation
 from app.core.research import run_research_pipeline
 
 # ---- Carpeta restringida: nada fuera de acá se puede tocar ----
@@ -161,6 +162,51 @@ TOOLS_SCHEMA = [
     {
         "type": "function",
         "function": {
+            "name": "search_images",
+            "description": (
+                "Busca imágenes reales en internet y devuelve su URL directa (la que va en "
+                "un <img src=...>), miniatura, tamaño y página de origen. OBLIGATORIO usar "
+                "esta tool cada vez que necesites poner una imagen (en HTML, en un link, en "
+                "cualquier lado) y no tengas ya una URL real verificada en el contexto de la "
+                "conversación: NUNCA inventes ni recuerdes 'de memoria' una URL de imagen, ni "
+                "uses un servicio placeholder que no salga de estos resultados — muchos ya no "
+                "funcionan y el usuario terminaría con imágenes rotas. Las URLs de este "
+                "resultado son las únicas válidas para usar tal cual. "
+                "REGLA DE QUERY: la query DEBE estar alineada con el pedido del usuario. "
+                "Si el usuario pidió imágenes de una serie, personaje, película, juego o "
+                "tema concreto (ej. 'serie Lanterns', 'Shinobu Kocho', 'Green Lantern'), "
+                "la query tiene que incluir palabras clave de ESE tema. NUNCA uses queries "
+                "genéricas de paisajes, ciudades, atardeceres o stock photos cuando el "
+                "pedido es sobre un contenido específico."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": (
+                            "Qué imagen buscar. DEBE incluir palabras clave del tema que "
+                            "pidió el usuario (ej. 'Lanterns HBO Green Lantern series', "
+                            "'Shinobu Kocho Demon Slayer', 'Hal Jordan John Stewart'). "
+                            "Nunca uses queries genéricas no relacionadas con el pedido."
+                        )
+                    },
+                    "count": {
+                        "type": "integer",
+                        "description": (
+                            "Cuántas imágenes distintas pedir (1 a 15). Usá el número de "
+                            "casillas que necesita el diseño (ej. 4 para una galería de 4). "
+                            "Por defecto 4 si no se indica."
+                        )
+                    }
+                },
+                "required": ["query"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "run_python",
             "description": (
                 "Ejecuta código Python real en un entorno controlado y devuelve su salida (stdout/stderr). "
@@ -241,7 +287,15 @@ TOOLS_SCHEMA = [
             "description": (
                 "Investiga un tema en internet, resume los hallazgos con IA y guarda el resumen "
                 "en memoria semántica para el futuro. Tarda varios segundos (busca + resume). "
-                "Úsalo cuando el usuario pida investigar algo específico, no para preguntas simples."
+                "Úsalo cuando el usuario pida investigar algo específico, y TAMBIÉN de forma "
+                "proactiva (sin que te lo pidan explícitamente) cada vez que la respuesta dependa "
+                "de datos concretos y verificables que no tenés 100% frescos o seguros: personajes, "
+                "franquicias, videojuegos, series, lore o datos de un universo ficticio específico "
+                "(ej. 'Sonic', 'Zelda', el árbol de habilidades de tal juego), APIs, frameworks o "
+                "librerías con sintaxis/versión concreta (ej. la forma correcta de hacer algo en "
+                "Java, Spring, React, una versión específica de una librería). En esos casos NO "
+                "improvises con lo que 'te suena': investigá primero y después respondé o escribí "
+                "el código con eso confirmado. Para preguntas simples o de sentido común no hace falta."
             ),
             "parameters": {
                 "type": "object",
@@ -252,6 +306,62 @@ TOOLS_SCHEMA = [
                     }
                 },
                 "required": ["topic"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "write_code",
+            "description": (
+                "OBLIGATORIO para CUALQUIER pedido de código. "
+                "LLAMÁ UNA SOLA VEZ por turno. "
+                "Si en este mismo turno ya usaste search_images, "
+                "DEBES poner las URLs que te devolvió en el parámetro "
+                "'context'. Dejar context vacío cuando hay imágenes "
+                "recién buscadas es un error. "
+                "Si el usuario pide modificar un código anterior "
+                "('metele', 'agregale', 'metelas', 'usá esas imágenes'), "
+                "pasá el código anterior en 'existing_code' y las "
+                "URLs en 'context'. "
+                "Nunca generes una página genérica vacía cuando el "
+                "pedido involucra imágenes o un tema concreto."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "spec": {
+                        "type": "string",
+                        "description": (
+                            "Qué código escribir, en tus propias palabras, ya resuelto y específico "
+                            "(no el pedido crudo del usuario tal cual): lenguaje, qué debe hacer, "
+                            "entradas/salidas esperadas, restricciones relevantes. Incluí el número "
+                            "de imágenes o elementos si es una galería/página visual."
+                        )
+                    },
+                    "context": {
+                        "type": "string",
+                        "description": (
+                            "Información que el modelo de código necesita. "
+                            "OBLIGATORIO cuando hubo search_images en este turno: "
+                            "copiá las URLs reales que devolvió search_images "
+                            "(una por línea o numeradas). También incluí el "
+                            "pedido del usuario. Si no hay imágenes ni datos "
+                            "de investigación, dejalo vacío."
+                        )
+                    },
+                    "existing_code": {
+                        "type": "string",
+                        "description": (
+                            "Código completo que hay que modificar o extender. "
+                            "OBLIGATORIO cuando el usuario pide cambios sobre un código "
+                            "que ya generaste ('metele', 'agregale', 'modificá ese código', "
+                            "'ahora agregale hover', etc.). Copiá el código anterior entero, "
+                            "sin recortar. Si el pedido es código nuevo desde cero, dejalo vacío."
+                        )
+                    }
+                },
+                "required": ["spec"]
             }
         }
     }
@@ -380,6 +490,64 @@ def search_web(query: str):
     return "\n\n".join(formatted)
 
 
+DEFAULT_IMAGE_RESULTS = 8
+MAX_IMAGE_RESULTS_CAP = 15
+SEARCH_RETRY_ATTEMPTS = 3
+
+
+def search_images(query: str, count: int = DEFAULT_IMAGE_RESULTS):
+    if not query or not query.strip():
+        return "Error: la búsqueda no puede estar vacía."
+
+    n = max(1, min(int(count), MAX_IMAGE_RESULTS_CAP))
+
+    last_error = None
+    raw_results = None
+
+    for attempt in range(1, SEARCH_RETRY_ATTEMPTS + 1):
+        try:
+            raw_results = list(
+                DDGS().images(query.strip(), max_results=n, safesearch="moderate")
+            )
+            break
+        except Exception as e:
+            last_error = e
+            continue
+
+    if raw_results is None:
+        return (
+            f"Error al buscar imágenes (fallo transitorio de la librería de búsqueda tras "
+            f"{SEARCH_RETRY_ATTEMPTS} intentos): {last_error}. No inventes ni reutilices una "
+            f"URL para simular más resultados: avisale al usuario que la búsqueda falló."
+        )
+
+    if not raw_results:
+        return "No se encontraron imágenes para esa búsqueda. No inventes una URL."
+
+    formatted = [
+        f"[Resultados de búsqueda de imágenes reales ({len(raw_results)} encontradas) — estas "
+        "son las ÚNICAS URLs de imagen válidas para usar tal cual, y cada una es una imagen "
+        "DISTINTA. NUNCA inventes una URL nueva, y NUNCA repitas la misma URL en varias "
+        "posiciones de una galería/collage para simular que hay más imágenes de las que "
+        "realmente se encontraron — si necesitás más de las que aparecen acá, pedí más "
+        "subiendo 'count' (hasta 15) o buscá con otra query relacionada."
+    ]
+    for i, r in enumerate(raw_results, start=1):
+        title = (r.get("title") or "sin título").strip()
+        image_url = (r.get("image") or "").strip()
+        source_page = (r.get("url") or "").strip()
+        width = r.get("width", "?")
+        height = r.get("height", "?")
+
+        formatted.append(
+            f"{i}. {title}\n"
+            f"   URL de imagen directa (usar tal cual en src/href): {image_url}\n"
+            f"   Tamaño: {width}x{height}\n"
+            f"   Página de origen: {source_page}"
+        )
+
+    return "\n\n".join(formatted)
+
 PYTHON_TIMEOUT_SECONDS = 25
 MAX_OUTPUT_CHARS = 10000
 
@@ -475,6 +643,16 @@ def research_topic(topic: str):
     )
 
 
+def write_code(spec: str, context: str = "", existing_code: str = ""):
+    result = run_code_generation(spec, context=context, existing_code=existing_code)
+    if result["status"] != "ok":
+        return f"Error generando código: {result.get('detail')}"
+    return (
+        f"Código generado (modelo: {result['provider']}). Revisalo antes de darlo por bueno "
+        f"y mostraselo al usuario en tu respuesta final (él no ve esto, solo vos):\n{result['code']}"
+    )
+
+
 TOOL_FUNCTIONS = {
     "get_current_datetime": get_current_datetime,
     "calculate": calculate,
@@ -482,10 +660,12 @@ TOOL_FUNCTIONS = {
     "read_file": read_file,
     "write_file": write_file,
     "search_web": search_web,
+    "search_images": search_images,
     "run_python": run_python,
     "remember": remember,
     "recall": recall,
     "research_topic": research_topic,
+    "write_code": write_code,
 }
 
 
@@ -552,6 +732,18 @@ def _verify_research_topic(arguments: dict, result: str):
     return True, "Investigación completada y guardada en memoria."
 
 
+def _verify_write_code(arguments: dict, result: str):
+    if isinstance(result, str) and result.startswith("Error"):
+        return False, result
+    return True, "Código generado sin error reportado por el modelo de código."
+
+
+def _verify_search_images(arguments: dict, result: str):
+    if isinstance(result, str) and (result.startswith("Error") or result.startswith("No se encontraron")):
+        return False, result
+    return True, "Búsqueda de imágenes devolvió resultados."
+
+
 def _verify_default(arguments: dict, result: str):
     if isinstance(result, str) and result.startswith("Error"):
         return False, result
@@ -563,6 +755,8 @@ TOOL_VERIFIERS = {
     "run_python": _verify_run_python,
     "remember": _verify_remember,
     "research_topic": _verify_research_topic,
+    "write_code": _verify_write_code,
+    "search_images": _verify_search_images,
 }
 
 

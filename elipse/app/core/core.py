@@ -2,8 +2,29 @@
 ELIPSE Core — el cerebro.
 
 Recibe un mensaje y corre el Agent Loop completo:
-    analizar -> planificar -> ejecutar -> verificar -> responder
-(con un reintento acotado si la verificación falla).
+    analizar -> planificar -> ejecutar (0..N rondas de tools) -> responder
+
+Arquitectura (cambio importante respecto a versiones anteriores):
+  Antes, un router clasificaba el mensaje COMPLETO como "código" o "general"
+  y mandaba el turno entero a un proveedor distinto según eso — exclusivo,
+  una sola etiqueta por turno. Eso hacía imposible resolver bien un pedido
+  compuesto ("investigá X y con eso escribime el parser"): el router tenía
+  que elegir uno solo de los dos modos.
+
+  Ahora hay UN SOLO orquestador (self.provider) que atiende todo el turno y
+  tiene acceso a TODAS las tools, incluidas write_code y research_topic
+  (ver tools.py / codegen.py / research.py). Es el propio modelo, razonando
+  con tool-calling real, el que decide si necesita investigar, escribir
+  código, ambas cosas en cadena, o ninguna — no un clasificador externo
+  adivinando por palabras clave antes de que cualquier modelo vea el mensaje.
+
+  Por eso el loop de abajo ya NO fuerza allow_tools=False apenas una ronda
+  de tools sale bien: eso es lo que antes impedía encadenar investigación
+  seguida de código en el mismo turno (una sola ronda de tools por turno,
+  pase lo que pase). Ahora el modelo puede seguir llamando tools ronda tras
+  ronda hasta que decida que ya tiene lo que necesita y responde en texto —
+  el bloque allow_tools=False solo se usa como salvavidas si se llega al
+  tope de rondas sin que el modelo haya terminado solo.
 
 Lo que este módulo NO sabe (a propósito):
   - Qué proveedor de IA hay debajo (local, Claude, OpenAI...): habla con un
@@ -18,6 +39,8 @@ Por eso se puede probar sin Ollama ni internet (ver tests/) y cambiar de
 proveedor o sumar herramientas sin tocar el loop.
 """
 
+import json
+import re
 import time
 from typing import Callable, Optional
 
@@ -26,14 +49,47 @@ from app.core import memory
 from app.core.db import get_connection
 from app.core.personality import build_system_prompt
 from app.core.providers import Provider
-from app.core.router import choose_provider
 from app.core.safety import create_pending_action, is_risky
 from app.core.tools import execute_tool, get_tools_schema, verify_tool_result
 
 HISTORY_LIMIT = 10
-MAX_LOOP_ITERATIONS = 2  # 1 intento + 1 reintento si la verificación falla
+# Tope de RONDAS de tools dentro de un mismo turno (una ronda = el modelo pide
+# 1+ tool calls, se ejecutan, se le devuelven los resultados). No es "1 intento
+# + 1 reintento" como antes: es cuántas veces seguidas el modelo puede decidir
+# "necesito llamar algo más" antes de que el sistema lo obligue a responder en
+# texto. 4 alcanza para cadenas típicas (ej. research_topic -> write_code ->
+# write_file) con margen para un reintento si algo falla, sin dejar que un
+# proveedor que se cuelga en tool-calling loopee para siempre.
+MAX_TOOL_ROUNDS = 4
+
+# Cuántas veces como máximo insistimos en un mismo turno cuando el modelo
+# intenta cerrar con texto sin haber llamado una tool que el pedido claramente
+# necesitaba (ver REQUIRED_TOOLS abajo). Con modelos chicos locales (ej.
+# Qwen3-4B) se observó que el system prompt por sí solo ("REGLA FIJA: usá
+# write_code para cualquier código...") no alcanza: el modelo junta bien los
+# datos (busca, investiga) pero se olvida del último paso — o peor, responde
+# como si no tuviera lo que él mismo acaba de traer. Esto NO es un router
+# (no clasifica el turno ni elige un proveedor distinto, ver router.py
+# deprecado): es un empujón puntual, acotado, para ese caso específico.
+MAX_FORCED_NUDGES = 1
 
 EmitFn = Callable[[dict], None]
+
+TOOL_PREVIEW_CHARS = 400  # cuánto del resultado crudo de una tool se manda al cliente para mostrar
+
+
+def _preview(output) -> str:
+    """
+    Recorta el resultado de una tool a un tamaño mostrable en el evento
+    'verificacion' — así el cliente puede probar que la tool corrió de
+    verdad (ej. ver 'Código generado (modelo: anthropic)...' de write_code,
+    o el resumen real que trajo research_topic) sin mandar el output
+    completo por WebSocket cada vez.
+    """
+    text = str(output) if output is not None else ""
+    if len(text) > TOOL_PREVIEW_CHARS:
+        return text[:TOOL_PREVIEW_CHARS] + "…"
+    return text
 
 
 # ---- Acceso a historial, log y memoria (lo que el Core lee/escribe de sí mismo) ----
@@ -54,7 +110,13 @@ def get_recent_messages(limit: int = HISTORY_LIMIT):
     return list(reversed([dict(r) for r in rows]))
 
 
-def log_router_decision(message: str, provider: str, reason: str, duration: float):
+def log_turn_metadata(message: str, provider: str, reason: str, duration: float):
+    """
+    Sigue escribiendo en la tabla 'router_log' (mismo nombre de tabla y de
+    columnas que antes, para no romper /v1/router-log ni el schema de la
+    DB) pero 'reason' ya no es "qué modo eligió el router": ahora describe
+    qué tools encadenó el orquestador en este turno, o que no usó ninguna.
+    """
     conn = get_connection()
     conn.execute(
         "INSERT INTO router_log (message, provider_chosen, reason, duration_seconds) VALUES (?, ?, ?, ?)",
@@ -85,18 +147,90 @@ def build_memory_context(message: str) -> str:
     return "\n".join(lines)
 
 
+# ---- Tools "obligatorias" no usadas: empujón puntual, no un router ----
+#
+# El system prompt (personality.py) ya le dice al modelo "usá SIEMPRE
+# write_code para código" o "SIEMPRE search_images para imágenes, nunca
+# inventes una URL". Con proveedores grandes (Claude, GPT, Gemini) eso
+# alcanza. Con un modelo chico local, se vio en pruebas reales que el
+# modelo puede:
+#   (a) juntar toda la data que necesita (buscar, investigar, buscar
+#       imágenes) pero nunca dar el último paso de generar el entregable, o
+#   (b) directamente "olvidarse" de lo que juntó y responder como si no
+#       tuviera nada.
+#
+# REQUIRED_TOOLS es una lista de reglas MUY simples: "si el mensaje del
+# usuario matchea este patrón, y esta tool no fue llamada todavía en el
+# turno, avisale al modelo explícitamente antes de dejarlo cerrar". Es
+# fácil de extender (agregar una entrada más) o desactivar (vaciar la
+# lista) sin tocar el resto del loop.
+
+CODE_REQUEST_PATTERN = re.compile(
+    r"\b(c[oó]digo|script|snippet|programa|funci[oó]n|p[aá]gina\s*(web|html)?|"
+    r"html|css|javascript|python|\bjava\b|\bapp\b|aplicaci[oó]n)\b",
+    re.IGNORECASE,
+)
+
+IMAGE_REQUEST_PATTERN = re.compile(
+    r"\b(imagen|im[aá]genes|foto|fotos|galer[ií]a|collage)\b",
+    re.IGNORECASE,
+)
+
+REQUIRED_TOOLS = [
+    {
+        "name": "write_code",
+        "trigger": CODE_REQUEST_PATTERN,
+        "nudge": (
+            "Todavía no llamaste a write_code. El pedido del usuario es sobre código "
+            "(una página, un script, una función, HTML, etc.) y la regla fija del "
+            "sistema es usar write_code para eso, nunca escribirlo vos directamente "
+            "en la respuesta. Si ya investigaste algo o buscaste imágenes, pasá eso "
+            "en el argumento 'context' de write_code y llamala ahora con todo lo que "
+            "ya reuniste — no lo descartes."
+        ),
+    },
+    {
+        "name": "search_images",
+        "trigger": IMAGE_REQUEST_PATTERN,
+        "nudge": (
+            "Todavía no llamaste a search_images. El pedido menciona imágenes/fotos, "
+            "y la regla fija del sistema es que nunca inventes una URL de imagen: "
+            "llamá a search_images primero y usá las URLs reales que te devuelve."
+        ),
+    },
+]
+
+
+def _missing_required_tools(message: str, tools_called: list[str]) -> list[dict]:
+    """
+    Reglas de REQUIRED_TOOLS cuyo patrón matchea el MENSAJE ORIGINAL del
+    usuario (no la conversación entera, para no dispararse por algo que
+    se mencionó de pasada varios turnos atrás) pero cuya tool todavía no
+    fue llamada en este turno. Vacío si no falta nada.
+    """
+    return [
+        rule for rule in REQUIRED_TOOLS
+        if rule["trigger"].search(message) and rule["name"] not in tools_called
+    ]
+
+
 # ---- El Core ----
 
 class ElipseCore:
-    def __init__(self, provider: Provider, code_provider: Optional[Provider] = None):
+    def __init__(self, provider: Provider):
         """
-        provider:      el proveedor por defecto.
-        code_provider: opcional; si se da, las consultas que el router clasifica
-                       como "código" van a este (ej. Claude para código, local para el resto).
-                       Debe soportar tool-calling de forma confiable.
+        provider: el único proveedor que atiende turnos de chat (el
+                  orquestador). Debe soportar tool-calling de forma
+                  confiable — de él depende que las cadenas de tools
+                  (investigar, escribir código, etc.) funcionen bien.
+
+                  Los proveedores de "código" e "investigación" (si están
+                  configurados distinto al general) ya NO se pasan acá:
+                  viven detrás de las tools write_code / research_topic
+                  (ver codegen.py / research.py), configurados aparte en
+                  tasks.py. Este Core ni se entera de que existen.
         """
         self.provider = provider
-        self.code_provider = code_provider
 
     def run(self, message: str, emit: Optional[EmitFn] = None) -> tuple[str, dict]:
         """
@@ -117,15 +251,6 @@ class ElipseCore:
                 "used_tools": False,
             }
 
-    def _choose(self, message: str, history: list) -> tuple[Provider, str]:
-        """Decide qué proveedor atiende este mensaje y deja el motivo por escrito."""
-        provider_type, reason = choose_provider(message, history)
-        if provider_type == "code":
-            if self.code_provider is not None:
-                return self.code_provider, reason
-            return self.provider, f"{reason} (sin proveedor de código configurado: se usa el general)"
-        return self.provider, reason
-
     def _run(self, message: str, emit: EmitFn) -> tuple[str, dict]:
         # --- analizar ---
         emit({"type": "progreso", "mensaje": "Analizando tu mensaje..."})
@@ -138,7 +263,7 @@ class ElipseCore:
         # como "mapache") distrae más de lo que ayuda a un modelo chico.
         memory_context = "" if message.startswith("Archivo adjunto:") else build_memory_context(message)
 
-        provider, reason = self._choose(message, history)
+        provider = self.provider
         tools_schema = get_tools_schema()  # una sola vez por corrida: catálogo estable durante el loop
 
         save_message("user", message)
@@ -151,51 +276,99 @@ class ElipseCore:
 
         start = time.time()
         used_tools = False
+        tools_called: list[str] = []  # nombres de tools usadas en este turno, en orden, para el log
         peak_prompt_tokens = 0
         reply = ""
         truncated = False
+        tool_rounds = 0          # rondas con tool_calls REALES ya ejecutadas (tope: MAX_TOOL_ROUNDS)
+        nudges_used = 0          # empujones ya gastados por tool obligatoria faltante (tope: MAX_FORCED_NUDGES)
+        closed_by_model = False  # True si el modelo cerró solo con texto (con o sin empujón de por medio)
+        seen_calls: dict = {}    # {(tool, args_json): output} — llamadas IDÉNTICAS ya ejecutadas en este turno
 
         def _stream_to_chunks(text: str):
             emit({"type": "chunk", "texto": text})
 
-        for iteration in range(1, MAX_LOOP_ITERATIONS + 1):
+        iteration = 0
+        while True:
+            iteration += 1
             result = provider.chat_stream(conversation, tools=tools_schema, on_delta=_stream_to_chunks)
             peak_prompt_tokens = max(peak_prompt_tokens, result.prompt_tokens or 0)
 
             if not result.tool_calls:
-                reply = result.content  # no hizo falta ninguna herramienta: esta YA es la respuesta
+                # El modelo decidió que ya puede responder — puede ser la primera
+                # ronda (sin tools) o la N-ésima después de encadenar varias.
+                # Antes de aceptarlo, chequeamos si se saltó una tool que el
+                # pedido claramente necesitaba (ver REQUIRED_TOOLS). Esto NO
+                # vuelve a evaluar el contenido de la respuesta, solo si faltó
+                # llamar algo puntual — y solo insiste MAX_FORCED_NUDGES veces
+                # para no loopear si el modelo se niega.
+                missing = _missing_required_tools(message, tools_called)
+                if missing and nudges_used < MAX_FORCED_NUDGES:
+                    nudges_used += 1
+                    emit({
+                        "type": "progreso",
+                        "mensaje": "Faltó un paso obligatorio antes de responder, insistiendo...",
+                    })
+                    if result.content:
+                        # Se guarda como contexto (no como respuesta final) para que el
+                        # modelo tenga continuidad de lo que ya había armado.
+                        conversation.append({"role": "assistant", "content": result.content})
+                    conversation.append({
+                        "role": "user",
+                        "content": (
+                            "AVISO AUTOMÁTICO DEL SISTEMA (esto no lo escribió el usuario): "
+                            + " ".join(rule["nudge"] for rule in missing)
+                        ),
+                    })
+                    continue
+
+                reply = result.content
                 truncated = result.truncated
+                closed_by_model = True
                 break
 
             used_tools = True
+            tool_rounds += 1
+            tools_called.extend(c.name for c in result.tool_calls)
             conversation.append(result.as_message())
 
-            # --- planificar: las llamadas que pide el modelo son el plan ---
             emit({
                 "type": "plan",
                 "intento": iteration,
                 "pasos": [{"tool": c.name, "arguments": c.arguments} for c in result.tool_calls],
             })
 
-            # --- ejecutar + verificar ---
-            pending, failures = self._execute_calls(result.tool_calls, conversation, iteration, emit)
+            pending, failures = self._execute_calls(result.tool_calls, conversation, iteration, emit, seen_calls)
 
             if pending:
-                return self._await_confirmation(message, provider, reason, start, pending)
+                return self._await_confirmation(message, provider, tools_called, start, pending)
 
-            if failures and iteration < MAX_LOOP_ITERATIONS:
-                emit({"type": "progreso", "mensaje": "La verificación encontró problemas, reintentando..."})
+            if failures:
+                emit({"type": "progreso", "mensaje": "La verificación encontró problemas, avisando al modelo..."})
                 conversation.append({
                     "role": "user",
                     "content": (
                         "La verificación automática (basada en evidencia directa, no en lo que reportaste) "
                         "encontró problemas con el resultado anterior:\n" + "\n".join(failures) +
-                        "\nCorrige el plan y vuelve a intentarlo."
+                        "\nCorrige el plan si corresponde, o segui con lo que sí tenés."
                     ),
                 })
-                continue
 
-            # --- responder: solo texto (allow_tools=False), y el loop TERMINA aquí ---
+            if tool_rounds >= MAX_TOOL_ROUNDS:
+                # Se acabaron las rondas de tools permitidas: no le preguntamos
+                # de nuevo si quiere seguir llamando algo, vamos directo a la
+                # pasada final salvavidas de abajo (mismo comportamiento que
+                # antes, cuando esto era un for/else).
+                break
+            # Si no, el while sigue: tanto si hubo fallas (para que el modelo
+            # corrija) como si todo salió bien (para que pueda encadenar otra
+            # tool si lo necesita), se le vuelve a dar el turno con tools
+            # todavía disponibles.
+
+        if not closed_by_model:
+            # Salvavidas: se acabaron las rondas de tools sin que el modelo
+            # cerrara solo con texto (ni siquiera después del empujón) —
+            # pasada final SIN tools, obligado a responder.
             emit({"type": "progreso", "mensaje": "Generando la respuesta final..."})
             final_result = provider.chat_stream(
                 conversation, tools=tools_schema, allow_tools=False, on_delta=_stream_to_chunks
@@ -203,11 +376,17 @@ class ElipseCore:
             peak_prompt_tokens = max(peak_prompt_tokens, final_result.prompt_tokens or 0)
             reply = final_result.content
             truncated = final_result.truncated
-            break
 
         duration = time.time() - start
         save_message("assistant", reply)
-        log_router_decision(message, provider.name, reason, duration)
+
+        reason = (
+            f"orquestador encadenó: {' -> '.join(tools_called)}"
+            if tools_called else "orquestador respondió sin necesitar herramientas"
+        )
+        if nudges_used:
+            reason += f" (con {nudges_used} empujón/es por tool obligatoria faltante)"
+        log_turn_metadata(message, provider.name, reason, duration)
 
         final = {
             "reply": reply,
@@ -221,16 +400,58 @@ class ElipseCore:
             final["prompt_tokens"] = peak_prompt_tokens
         return "completado", final
 
-    def _execute_calls(self, tool_calls, conversation, iteration, emit):
+    def _execute_calls(self, tool_calls, conversation, iteration, emit, seen_calls):
         """
         Ejecuta cada llamada (salvo las riesgosas, que quedan pendientes de
         confirmación humana) y las verifica con evidencia directa.
+
+        'seen_calls' es un dict {(tool, args_json): output} con lo ya
+        ejecutado en ESTE turno (lo administra _run, vive mientras dura el
+        turno completo, no entre turnos). Si el modelo repite una llamada
+        IDÉNTICA — mismo nombre y mismos argumentos, byte a byte — más de
+        una vez en el mismo turno (visto en la práctica: el mismo `recall`
+        con la misma query dos veces seguidas), no se vuelve a ejecutar de
+        verdad: se le devuelve el mismo resultado ya obtenido, marcado
+        explícitamente como repetido, para no gastar una ronda entera (de
+        las MAX_TOOL_ROUNDS disponibles) en algo que ya tiene resuelto.
+
+        Nota: esto NO detecta llamadas "casi iguales" con argumentos
+        distintos (ej. dos write_code con specs parecidos pero no idénticos)
+        — eso requeriría comparar significado, no solo el JSON de argumentos,
+        y es más frágil de lo que vale la pena acá. Solo cubre el caso
+        determinístico: exactamente la misma tool con exactamente los
+        mismos argumentos.
+
         Devuelve (pending_confirmations, verification_failures).
         """
         pending = []
         failures = []
 
         for call in tool_calls:
+            cache_key = (call.name, json.dumps(call.arguments, sort_keys=True, ensure_ascii=False))
+
+            if cache_key in seen_calls:
+                output = seen_calls[cache_key]
+                conversation.append({
+                    "role": "tool",
+                    "tool_call_id": call.id,
+                    "name": call.name,
+                    "content": (
+                        "[Llamada repetida: ya ejecutaste EXACTAMENTE esto en este mismo turno, "
+                        "no se volvió a correr — este es el mismo resultado de antes, no cambió. "
+                        "No la llames de nuevo igual; usá lo que ya tenés o seguí con otra cosa.]\n"
+                        + str(output)
+                    ),
+                })
+                emit({
+                    "type": "verificacion", "intento": iteration, "tool": call.name,
+                    "arguments": call.arguments,
+                    "ok": True,
+                    "detalle": "Llamada duplicada dentro del turno — se reusó el resultado anterior sin re-ejecutar.",
+                    "preview": _preview(output),
+                })
+                continue
+
             emit({"type": "progreso", "mensaje": f"Ejecutando herramienta: {call.name}..."})
 
             risky, detail = is_risky(call.name, call.arguments)
@@ -249,6 +470,7 @@ class ElipseCore:
                 continue
 
             output = execute_tool(call.name, call.arguments)
+            seen_calls[cache_key] = output
             conversation.append({
                 "role": "tool",
                 "tool_call_id": call.id,
@@ -259,21 +481,27 @@ class ElipseCore:
             ok, verdict = verify_tool_result(call.name, call.arguments, output)
             emit({
                 "type": "verificacion", "intento": iteration, "tool": call.name,
+                "arguments": call.arguments,
                 "ok": ok, "detalle": verdict,
+                "preview": _preview(output),
             })
             if not ok:
                 failures.append(f"- {call.name}: {verdict}")
 
         return pending, failures
 
-    def _await_confirmation(self, message, provider, reason, start, pending) -> tuple[str, dict]:
+    def _await_confirmation(self, message, provider, tools_called, start, pending) -> tuple[str, dict]:
         reply = (
             "Esta acción necesita tu confirmación antes de ejecutarse. "
             "Usa POST /v1/confirm-action/{id} con {\"approved\": true} para aprobarla, "
             "o {\"approved\": false} para rechazarla."
         )
         save_message("assistant", reply)
-        log_router_decision(message, provider.name, reason, time.time() - start)
+        reason = (
+            f"orquestador encadenó: {' -> '.join(tools_called)} (pausado por confirmación)"
+            if tools_called else "pausado por confirmación"
+        )
+        log_turn_metadata(message, provider.name, reason, time.time() - start)
 
         return "esperando_confirmacion", {
             "reply": reply,
