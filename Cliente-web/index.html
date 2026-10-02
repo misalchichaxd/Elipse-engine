@@ -73,6 +73,7 @@
 
     <nav>
       <button class="active" data-view="chat">Chat</button>
+      <button data-view="workspace">Workspace</button>
       <button data-view="research">Investigar</button>
       <button data-view="memory">Memoria</button>
       <button data-view="keys">Llaves</button>
@@ -96,7 +97,7 @@
     <section class="view active" id="view-chat">
       <div class="view-header">
         <h1>Chat</h1>
-        <p class="view-desc">Manda un mensaje directo al agente de ELIPSE. Usa el Model Router y la memoria semántica igual que desde curl.</p>
+        <p class="view-desc">Manda un mensaje directo al agente de ELIPSE. Usa herramientas, memoria semántica y genera documentos (PDF/Word), igual que desde curl.</p>
       </div>
       <div class="banner" id="chatBanner"></div>
       <div class="log" id="chatLog">
@@ -117,6 +118,27 @@
         <textarea id="chatInput" placeholder="Escribe un mensaje..." rows="1"></textarea>
         <button id="chatSendBtn">Enviar</button>
       </div>
+    </section>
+
+    <!-- WORKSPACE -->
+    <section class="view" id="view-workspace">
+      <div class="view-header">
+        <h1>Workspace</h1>
+        <p class="view-desc">Todo lo que ELIPSE generó o recibió: documentos, código, imágenes y adjuntos. Míralos, descárgalos o bórralos.</p>
+      </div>
+      <div class="banner" id="wsBanner"></div>
+      <div class="ws-toolbar">
+        <input id="wsSearch" type="search" placeholder="Buscar por nombre o carpeta..." />
+        <select id="wsSort" title="Ordenar">
+          <option value="recent">Más recientes</option>
+          <option value="name">Nombre</option>
+          <option value="size">Tamaño</option>
+        </select>
+        <button class="btn-icon" id="wsRefresh" type="button" title="Actualizar">↻</button>
+      </div>
+      <div class="ws-chips" id="wsChips"></div>
+      <div class="ws-count" id="wsCount"></div>
+      <div class="ws-list" id="wsList"></div>
     </section>
 
     <!-- RESEARCH -->
@@ -178,6 +200,8 @@
 <script src="js/theme.js"></script>
 <script src="js/api.js"></script>
 <script src="js/nav.js"></script>
+<script src="js/docs.js"></script>
+<script src="js/workspace.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/research.js"></script>
 <script src="js/memory.js"></script>

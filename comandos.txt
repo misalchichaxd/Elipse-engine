@@ -3,3 +3,7 @@ uvicorn app.main:app --reload
 
 set MISTRAL_API_KEY=tu_clave_real_de_mistral_aqui
 litellm --config config.yaml --port 4000
+
+set DEEPSEEK_API_KEY=
+
+setx OPENROUTER_API_KEY "sk-or-v1-xxxxxxxxxxxxxxxx"

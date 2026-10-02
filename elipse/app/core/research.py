@@ -123,4 +123,5 @@ def run_research_pipeline(topic: str, emit=None) -> dict:
         "summary": summary,
         "sources": sources,
         "memory_id": memory_id,
+        "raw": raw_combined,
     }

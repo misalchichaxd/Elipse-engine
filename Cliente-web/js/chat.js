@@ -495,6 +495,9 @@ window.Elipse = window.Elipse || {};
     list_files: "Listó archivos",
     calculate: "Calculó",
     get_current_datetime: "Consultó la fecha/hora",
+    write_document: "Generó un documento",
+    read_url: "Leyó una página",
+    search_images: "Buscó imágenes",
   };
 
   function toolLabel(name){
@@ -615,6 +618,7 @@ window.Elipse = window.Elipse || {};
       if(wasOpen) tl.open = true;
       slot.appendChild(tl);
     }
+    if(Elipse.docs) Elipse.docs.attachCards(msgDiv, toolEvents);
     return slot;
   }
 
@@ -649,6 +653,7 @@ window.Elipse = window.Elipse || {};
       m.textContent = meta;
       div.appendChild(m);
     }
+    if(role === "assistant" && Elipse.docs) Elipse.docs.attachCards(div, toolEvents);
     log.appendChild(div);
     log.scrollTop = log.scrollHeight;
     return div;
@@ -853,10 +858,40 @@ window.Elipse = window.Elipse || {};
     }
   }
 
+  // ---------- Enviar / Detener ----------
+  // currentRun != null mientras hay una respuesta en curso. El botón de enviar se
+  // convierte en "Detener"; al detener se libera el input al instante (aunque el
+  // servidor tarde unos segundos en cortar) y lo que llegue de esa tarea se ignora.
+  let currentRun = null; // { pending, aborted, taskId, abort, getText, toolEvents }
+
+  function setRunning(on){
+    const btn = $("#chatSendBtn");
+    btn.textContent = on ? "⏹ Detener" : "Enviar";
+    btn.title = on ? "Detener la respuesta (Esc)" : "";
+    btn.classList.toggle("stop", on);
+    btn.disabled = false;
+  }
+
+  function stopChat(){
+    const run = currentRun;
+    if(!run || run.aborted) return;
+    run.aborted = true;
+    if(run.abort) run.abort();                                      // libera el WebSocket del navegador
+    if(run.taskId) Elipse.api.cancelTask(run.taskId);               // corta la generación en el servidor
+    setMsgContent(run.pending, (run.getText() + "\n\n⏹ *Detenido.*").trim(), "detenido por ti", run.toolEvents);
+    currentRun = null;
+    setRunning(false);
+    const input = $("#chatInput");
+    input.disabled = false;
+    input.focus();
+    const log = $("#chatLog");
+    log.scrollTop = log.scrollHeight;
+  }
+
   async function sendChat(){
+    if(currentRun) return;
     const input = $("#chatInput");
     const log = $("#chatLog");
-    const sendBtn = $("#chatSendBtn");
     const banner = $("#chatBanner");
 
     const text = input.value.trim();
@@ -874,20 +909,36 @@ window.Elipse = window.Elipse || {};
     renderAttachments();
     appendMsg(log, "user", displayText);
     const pending = appendPendingMsg(log, "pensando...");
-    sendBtn.disabled = true;
+
+    let streamedText = "";
+    const toolEvents = []; // eventos "verificacion" (uno por cada tool que corrió), en orden
+    const run = {
+      pending, aborted: false, done: false, taskId: null, abort: null, toolEvents,
+      getText: () => streamedText,
+    };
+    currentRun = run;
+    setRunning(true);
 
     try{
-      let streamedText = "";
       let renderQueued = false;
-      const toolEvents = []; // eventos "verificacion" (uno por cada tool que corrió), en orden
       const flush = () => {
         renderQueued = false;
+        if(run.aborted || run.done) return;
         setMsgContent(pending, streamedText, "escribiendo...", toolEvents, { stillRunning: true });
         log.scrollTop = log.scrollHeight;
       };
 
       const result = await Elipse.api.runTaskStreaming("/v1/chat", { message: messageToSend, attachments: attachments }, {
+        onStart(taskId, abort){
+          run.taskId = taskId;
+          run.abort = abort;
+          if(run.aborted){                       // se apretó Detener antes de tener el task_id
+            abort();
+            Elipse.api.cancelTask(taskId);
+          }
+        },
         onChunk(texto){
+          if(run.aborted) return;
           streamedText += texto;
           // throttle con requestAnimationFrame: no re-parsear markdown/código
           // en cada token, solo una vez por frame de pintado.
@@ -897,10 +948,10 @@ window.Elipse = window.Elipse || {};
           }
         },
         onEvent(event){
+          if(run.aborted) return;
           if(event.type === "verificacion"){
             // Prueba real de qué corrió el agente (tool, argumentos, resultado):
-            // se muestra ya mismo en el timeline colapsable, no hace falta
-            // esperar a la respuesta final.
+            // se muestra ya mismo en el timeline colapsable.
             toolEvents.push(event);
             renderTimelineSlot(pending, toolEvents, { stillRunning: true });
             log.scrollTop = log.scrollHeight;
@@ -918,6 +969,9 @@ window.Elipse = window.Elipse || {};
           }
         },
       });
+
+      run.done = true;                            // un flush de animación pendiente ya no debe pisar la respuesta final
+      if(run.aborted) return;
 
       if(result.status === "error"){
         pending.remove();
@@ -940,6 +994,9 @@ window.Elipse = window.Elipse || {};
           });
           pending.appendChild(card);
         }
+      }else if(result.status === "cancelado"){
+        const r = result.result || {};
+        setMsgContent(pending, r.reply || "⏹ Detenido.", "detenido", toolEvents);
       }else{
         const r = result.result || {};
         const parts = [];
@@ -947,17 +1004,21 @@ window.Elipse = window.Elipse || {};
         if(r.reason) parts.push(r.reason);
         if(r.used_tools) parts.push("usó herramientas");
         if(typeof r.prompt_tokens === "number") parts.push(r.prompt_tokens + " tokens de prompt");
-        if(r.truncated) parts.push("cortada por límite de tokens");
+        if(r.truncated) parts.push(canContinue(r) ? "cortada por límite de tokens" : "cortada por límite de tokens (no se puede continuar automáticamente)");
         setMsgContent(pending, r.reply || "", parts.join(" · "), toolEvents);
-        if(r.truncated) addContinueButton(pending, r.reply || "");
+        if(canContinue(r)) addContinueButton(pending, r.reply || "");
       }
     }catch(e){
+      if(run.aborted) return;                    // el rechazo "abortado" es esperado al detener
       pending.remove();
       showBanner(banner, e.message);
     }finally{
-      sendBtn.disabled = false;
-      log.scrollTop = log.scrollHeight;
-      input.focus();
+      if(currentRun === run){                    // si el usuario ya empezó otro turno, no pisarlo
+        currentRun = null;
+        setRunning(false);
+        log.scrollTop = log.scrollHeight;
+        input.focus();
+      }
     }
   }
 
@@ -967,9 +1028,12 @@ window.Elipse = window.Elipse || {};
     const attachBtn = $("#chatAttachBtn");
     const fileInput = $("#chatFileInput");
 
-    sendBtn.addEventListener("click", sendChat);
+    sendBtn.addEventListener("click", () => { currentRun ? stopChat() : sendChat(); });
     input.addEventListener("keydown", (e) => {
-      if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); sendChat(); }
+      if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); if(!currentRun) sendChat(); }
+    });
+    document.addEventListener("keydown", (e) => {          // Esc también detiene
+      if(e.key === "Escape" && currentRun && !document.getElementById("codeViewerOverlay")) stopChat();
     });
 
     attachBtn.addEventListener("click", () => fileInput.click());
@@ -979,19 +1043,19 @@ window.Elipse = window.Elipse || {};
     });
   }
 
-    function buildContinuePrompt(previousReply){
-    const tail = (previousReply || "").slice(-500);
-    return "Tu respuesta anterior se cortó por el límite de tokens de salida antes de terminar. " +
-      "Continuá exactamente desde donde te quedaste, sin repetir nada de lo que ya escribiste, " +
-      "sin volver a saludar ni explicar de nuevo, y sin reiniciar el archivo desde cero. " +
-      "Estos son los últimos caracteres que sí llegaste a generar, para que ubiques el punto " +
-      "exacto donde seguir:\n\n---\n" + tail + "\n---\n\nContinuá el texto/código a partir de ahí, tal cual.";
+  // El servidor recuerda qué quedó a medias (continuation.py): alcanza con un mensaje corto.
+  // Antes se mandaba un prompt de ~500 caracteres que el planificador trataba como un pedido nuevo.
+  const CONTINUE_LABEL = "⏩ Continuar (la respuesta se cortó por el límite de longitud)";
+  const canContinue = (r) => !!r.truncated && r.can_continue !== false;   // can_continue ausente = backend viejo
+
+  function buildContinuePrompt(){
+    return "continúa";
   }
   function addContinueButton(msgDiv, replyText){
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "continue-btn";
-    btn.textContent = "⏩ Continuar generación (se cortó por el límite de tokens)";
+    btn.textContent = CONTINUE_LABEL;
     btn.addEventListener("click", () => continueGeneration(msgDiv, replyText, btn));
     msgDiv.appendChild(btn);
   }
@@ -1038,7 +1102,7 @@ window.Elipse = window.Elipse || {};
 
       if(result.status === "error"){
         btn.disabled = false;
-        btn.textContent = "⏩ Continuar generación (se cortó por el límite de tokens)";
+        btn.textContent = CONTINUE_LABEL;
         showBanner(banner, result.result?.detail || result.result?.reply || "Ocurrió un error continuando la respuesta.");
       }else if(result.status === "esperando_confirmacion"){
         // Esto sí necesita su propia interacción (aprobar/rechazar), no es texto
@@ -1051,22 +1115,23 @@ window.Elipse = window.Elipse || {};
         if(list.length) pending.appendChild(buildConfirmCard(list, () => {}));
       }else{
         const r = result.result || {};
-        const fullText = previousReply + (r.reply || "");
+        const fullText = r.replace_previous ? (r.reply || "") : previousReply + (r.reply || "");
         const parts = [];
         if(r.provider) parts.push(r.provider);
         if(r.reason) parts.push(r.reason);
         if(typeof r.prompt_tokens === "number") parts.push(r.prompt_tokens + " tokens de prompt");
-        if(r.truncated) parts.push("cortada por límite de tokens");
+        if(r.truncated) parts.push(canContinue(r) ? "cortada por límite de tokens" : "cortada por límite de tokens (no se puede continuar automáticamente)");
         setMsgContent(msgDiv, fullText, parts.join(" · "), toolEvents);
-        if(r.truncated) addContinueButton(msgDiv, fullText);
+        if(canContinue(r)) addContinueButton(msgDiv, fullText);
       }
     }catch(e){
       btn.disabled = false;
-      btn.textContent = "⏩ Continuar generación (se cortó por el límite de tokens)";
+      btn.textContent = CONTINUE_LABEL;
       showBanner(banner, e.message);
     }finally{
       log.scrollTop = log.scrollHeight;
     }
   }
   Elipse.chat = { init };
+  Elipse.renderRichContent = renderRichContent;
 })();

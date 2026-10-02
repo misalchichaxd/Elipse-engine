@@ -25,6 +25,7 @@ window.Elipse = window.Elipse || {};
         const view = document.querySelector("#view-" + btn.dataset.view);
         if(view) view.classList.add("active");
         if(btn.dataset.view === "keys" && Elipse.keys) Elipse.keys.load();
+        if(btn.dataset.view === "workspace" && Elipse.workspace) Elipse.workspace.load();
       });
     });
 

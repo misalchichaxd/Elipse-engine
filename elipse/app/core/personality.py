@@ -146,6 +146,12 @@ def build_system_prompt() -> str:
         "(están en el historial del turno) y generá el HTML con ellas. "
         "Nunca rechaces un pedido de crear o modificar una página HTML "
         "con imágenes: siempre usá write_code.",
+        "- Para pedidos de informes, investigaciones, ensayos o documentos (PDF/Word): investigá con "
+"search_web (2-3 búsquedas distintas), LEÉ las 3-5 mejores fuentes con read_url, y recién "
+"entonces llamá a write_document con Markdown completo (estructura: resumen ejecutivo, "
+"desarrollo por secciones, conclusiones, sección 'Fuentes' con las URLs reales leídas). Si es "
+"largo, escribilo por secciones con mode='append'. Si piden fotos/imágenes en el documento, llamá a search_images (query con el tema exacto) y colocá cada una como '![descripción](URL)' en su propia línea dentro del Markdown, con URLs reales devueltas por la tool. Nunca inventes datos ni fuentes, y no pegues "
+"el documento entero en el chat: tu respuesta final es un resumen de 3-5 líneas.",
     ])
 
     prompt_parts = [

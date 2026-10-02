@@ -8,6 +8,8 @@ Aquí NO vive el Agent Loop (eso es core.py). Este módulo solo:
 """
 
 import queue
+import threading
+import time
 import uuid
 from typing import Optional
 
@@ -60,14 +62,35 @@ def describe_providers() -> dict:
 _tasks: dict[str, dict] = {}
 
 
+class TaskCancelled(BaseException):
+    """BaseException a propósito: los `except Exception` del core/pipeline no la tragan."""
+
+
+_TASK_TTL = 3600  # 1 hora
+
+
 def create_task() -> str:
+    now = time.time()
+    for tid in [t for t, v in _tasks.items() if v["status"] != "en_progreso" and now - v.get("created", now) > _TASK_TTL]:
+        _tasks.pop(tid, None)
     task_id = uuid.uuid4().hex[:8]
     _tasks[task_id] = {
         "status": "en_progreso",
         "result": None,
         "queue": queue.Queue(),
+        "cancel": threading.Event(),
+        "created": now,
     }
     return task_id
+
+
+def cancel_task(task_id: str) -> bool:
+    """Marca la tarea como cancelada. El hilo se corta en el próximo evento (chunk/progreso/verificación)."""
+    task = _tasks.get(task_id)
+    if not task or task["status"] != "en_progreso":
+        return False
+    task["cancel"].set()
+    return True
 
 
 def get_task(task_id: str) -> Optional[dict]:
@@ -85,11 +108,35 @@ def run_agent_task(task_id: str, message: str):
     """
     Corre el Core para 'message' dentro de una tarea. Diseñada para correr en un
     hilo aparte (ver main.py) — nunca bloquea el servidor principal.
+    Soporta cancelación: cada emit() revisa el flag y lanza TaskCancelled.
     """
-    status, final = _core.run(message, emit=lambda event: _emit(task_id, event))
+    from app.core.core import get_recent_messages, save_message
 
-    _tasks[task_id]["status"] = status
-    _tasks[task_id]["result"] = final
+    task = _tasks[task_id]
+    partial: list[str] = []
+
+    def emit(event: dict):
+        if task["cancel"].is_set():
+            raise TaskCancelled()
+        if event.get("type") == "chunk":
+            partial.append(event.get("texto", ""))
+        _emit(task_id, event)
+
+    try:
+        status, final = _core.run(message, emit=emit)
+    except TaskCancelled:
+        status = "cancelado"
+        final = {
+            "reply": "".join(partial) + "\n\n⏹ Detenido.",
+            "provider": None, "reason": "detenido por el usuario", "used_tools": False,
+        }
+        # Si quedó un mensaje del usuario sin respuesta, se cierra el par para no romper el historial.
+        recent = get_recent_messages(1)
+        if recent and recent[-1]["role"] == "user":
+            save_message("assistant", "(respuesta detenida por el usuario)")
+
+    task["status"] = status
+    task["result"] = final
     _emit(task_id, {"type": "final", "data": final})
 
 

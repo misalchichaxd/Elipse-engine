@@ -74,6 +74,18 @@ class Settings(BaseSettings):
     memory_retrieval_k: int = 4
     research_summary_max_chars: int = 800
 
+    # --- Pipeline por plan (Fase 7): el orquestador planifica UNA vez y el código
+    # ejecuta la cadena de tools (research / search_images / write_code), en vez de
+    # que el modelo chico vaya razonando ronda a ronda. Pensado para que modelos
+    # locales 4B-8B no se "cansen" a mitad del Agent Loop (ver diseño en el chat de
+    # planificación). Si el plan sale vacío o inválido, cae al Agent Loop de siempre.
+    pipeline_enabled: bool = True
+    pipeline_step_timeout_seconds: int = 90  # tope por paso paralelo (research / search_images)
+    # Si es True, se le pide al orquestador 1-2 frases de cierre en lenguaje natural;
+    # si es False (default), el cierre es una frase por plantilla, sin gastar otra
+    # llamada al modelo. Con modelos chicos, False es más confiable.
+    pipeline_close_with_model: bool = False
+
     class Config:
         env_file = ".env"
 

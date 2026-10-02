@@ -24,6 +24,11 @@ def is_risky(tool_name: str, arguments: dict):
         if target.exists():
             return True, f"Sobreescribir el archivo existente '{path}'."
 
+    if tool_name == "run_python":
+        code = str(arguments.get("code", ""))
+        preview = code if len(code) <= 300 else code[:300] + "..."
+        return True, f"Ejecutar este código Python en tu máquina:\n{preview}"
+
     # Herramientas de servidores MCP externos: código de terceros que ELIPSE no
     # controla. Ninguna es de confianza por defecto; solo se ejecutan sin
     # confirmación si el usuario lo declaró en mcp_servers.json ("auto_approve").

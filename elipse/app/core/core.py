@@ -47,10 +47,14 @@ from typing import Callable, Optional
 from app.config import settings
 from app.core import memory
 from app.core.db import get_connection
+from app.core import continuation, pipeline
 from app.core.personality import build_system_prompt
 from app.core.providers import Provider
 from app.core.safety import create_pending_action, is_risky
 from app.core.tools import execute_tool, get_tools_schema, verify_tool_result
+
+import logging
+log = logging.getLogger("elipse")
 
 HISTORY_LIMIT = 10
 # Tope de RONDAS de tools dentro de un mismo turno (una ronda = el modelo pide
@@ -175,6 +179,7 @@ IMAGE_REQUEST_PATTERN = re.compile(
     r"\b(imagen|im[aá]genes|foto|fotos|galer[ií]a|collage)\b",
     re.IGNORECASE,
 )
+DOC_REQUEST_PATTERN = re.compile(r"\b(pdf|word|docx|informe|reporte|documento|ensayo|monograf[ií]a)\b", re.IGNORECASE)
 
 REQUIRED_TOOLS = [
     {
@@ -198,6 +203,13 @@ REQUIRED_TOOLS = [
             "llamá a search_images primero y usá las URLs reales que te devuelve."
         ),
     },
+
+    {
+        "name": "write_document",
+        "trigger": DOC_REQUEST_PATTERN,
+        "nudge": ("Todavía no llamaste a write_document. El usuario pidió un documento/informe: "
+                  "generalo ahora en Markdown completo con lo que investigaste, no lo pegues en el chat."),
+    },
 ]
 
 
@@ -208,9 +220,11 @@ def _missing_required_tools(message: str, tools_called: list[str]) -> list[dict]
     se mencionó de pasada varios turnos atrás) pero cuya tool todavía no
     fue llamada en este turno. Vacío si no falta nada.
     """
+    is_doc = bool(DOC_REQUEST_PATTERN.search(message))
     return [
         rule for rule in REQUIRED_TOOLS
         if rule["trigger"].search(message) and rule["name"] not in tools_called
+        and not (is_doc and rule["name"] == "write_code")  # un informe no es código
     ]
 
 
@@ -264,6 +278,60 @@ class ElipseCore:
         memory_context = "" if message.startswith("Archivo adjunto:") else build_memory_context(message)
 
         provider = self.provider
+        start = time.time()
+
+        # --- Pipeline por plan (Fase 7) ---
+        # Antes de meter al orquestador en el Agent Loop ronda a ronda, se le pide
+        # UNA sola pasada de planificación corta (JSON: qué pasos hacen falta). Si
+        # el plan sale útil, el CÓDIGO ejecuta la cadena (research/search_images en
+        # paralelo, write_code al final) y arma la respuesta — el modelo chico no
+        # tiene que sostener el hilo completo del turno (ver pipeline.py para el
+        # porqué). Si no corresponde planificar, el plan sale vacío/inválido, o
+        # cualquier cosa falla, pipeline.try_run() devuelve None y este método
+        # sigue exactamente como antes con el Agent Loop completo.
+        # Antes del pipeline: «sigue/continúa/...» retoma lo que quedó cortado, y un mensaje que es solo
+        # puntuación («...») se contesta sin despertar al orquestador (continuation.py).
+        try:
+            pipeline_outcome = continuation.handle_turn(provider, message, emit)
+        except Exception:
+            log.exception("continuation.handle_turn falló")
+            pipeline_outcome = None
+        if pipeline_outcome is None:
+            try:
+                pipeline_outcome = pipeline.try_run(provider, message, history, emit)
+            except Exception as e:
+                log.exception("pipeline.try_run falló")
+                emit({"type": "progreso",
+                      "mensaje": f"⚠ el pipeline falló ({type(e).__name__}: {e}); sigo con el modo normal"})
+                pipeline_outcome = None
+
+        if pipeline_outcome is not None:
+            save_message("user", message)
+            save_message("assistant", getattr(pipeline_outcome, "history_note", "") or pipeline_outcome.reply)
+            if getattr(pipeline_outcome, "from_continuation", False):
+                can_continue = bool(pipeline_outcome.truncated)       # continuation.py ya guardó lo pendiente
+            elif pipeline_outcome.truncated and "write_document" not in pipeline_outcome.tools_called:
+                kind = "code" if "```" in pipeline_outcome.reply else "text"
+                can_continue = continuation.remember(kind, pipeline_outcome.reply, message)
+            else:
+                can_continue = False
+            reason = (
+                f"pipeline por plan: {pipeline_outcome.summary}"
+                if pipeline_outcome.ok else
+                f"pipeline por plan (con fallas): {pipeline_outcome.summary}"
+            )
+            log_turn_metadata(message, provider.name, reason, time.time() - start)
+            final = {
+                "reply": pipeline_outcome.reply,
+                "provider": provider.name,
+                "reason": reason,
+                "used_tools": bool(pipeline_outcome.tools_called),
+                "truncated": pipeline_outcome.truncated,
+                "can_continue": can_continue,
+                "replace_previous": bool(getattr(pipeline_outcome, "replace_previous", False)),
+            }
+            return "completado", final
+
         tools_schema = get_tools_schema()  # una sola vez por corrida: catálogo estable durante el loop
 
         save_message("user", message)
@@ -274,7 +342,6 @@ class ElipseCore:
         conversation.extend(history)
         conversation.append({"role": "user", "content": message})
 
-        start = time.time()
         used_tools = False
         tools_called: list[str] = []  # nombres de tools usadas en este turno, en orden, para el log
         peak_prompt_tokens = 0
@@ -379,6 +446,11 @@ class ElipseCore:
 
         duration = time.time() - start
         save_message("assistant", reply)
+        can_continue = False
+        if truncated:
+            can_continue = continuation.remember("code" if "```" in reply else "text", reply, message)
+        else:
+            pipeline._persist_code(reply)   # el código que se mostró queda como "el último" para editarlo después
 
         reason = (
             f"orquestador encadenó: {' -> '.join(tools_called)}"
@@ -394,6 +466,7 @@ class ElipseCore:
             "reason": reason,
             "used_tools": used_tools,
             "truncated": truncated,
+            "can_continue": can_continue,
         }
         if peak_prompt_tokens:
             # Útil para saber si el prompt se acerca (o pasa) del num_ctx configurado.

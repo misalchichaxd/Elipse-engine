@@ -98,6 +98,7 @@ window.Elipse = window.Elipse || {};
     handlers = handlers || {};
     const onChunk = handlers.onChunk || function(){};
     const onEvent = handlers.onEvent || function(){};
+    const onStart = handlers.onStart || function(){};
 
     return apiFetch(path, {
       method: "POST",
@@ -113,6 +114,16 @@ window.Elipse = window.Elipse || {};
       return new Promise((resolve, reject) => {
         let settled = false;
         let ws = null;
+
+        // Corta la espera desde el cliente (botón Detener): cierra el WebSocket y rechaza.
+        // Frenar la generación en el servidor es cancelTask(); esto solo libera al navegador.
+        const abort = () => {
+          if(settled) return;
+          settled = true;
+          try{ if(ws) ws.close(); }catch(_){}
+          reject(new Error("abortado"));
+        };
+        onStart(started.task_id, abort);
 
         const finishWithPolling = () => {
           if(settled) return;
@@ -163,5 +174,13 @@ window.Elipse = window.Elipse || {};
     });
   }
 
-  Elipse.api = { authHeaders, apiFetch, runTask, runTaskStreaming };
+  // Pide al backend que corte la tarea (se detiene en el próximo evento del agente).
+  function cancelTask(taskId){
+    return apiFetch("/v1/task/" + taskId + "/cancel", {
+      method: "POST",
+      headers: authHeaders(),
+    }).catch(() => null);
+  }
+
+  Elipse.api = { authHeaders, apiFetch, runTask, runTaskStreaming, cancelTask };
 })();

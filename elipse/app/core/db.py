@@ -4,8 +4,9 @@ from pathlib import Path
 DB_PATH = Path(__file__).parent.parent.parent / "elipse.db"
 
 def get_connection():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=15)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
     return conn
 
 def init_db():

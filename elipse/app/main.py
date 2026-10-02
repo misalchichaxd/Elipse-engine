@@ -16,8 +16,11 @@ from app.core.db import get_connection, init_db
 from app.core.seed_personality import seed
 from app.core.safety import list_pending_actions, resolve_pending_action
 from app.core.tools import MAX_FILE_CHARS, get_tools_schema, save_uploaded_attachment, tools_schema_to_mcp
-from app.core.tasks import create_task, describe_providers, get_task, run_agent_task, run_research_task
+from app.core.tasks import cancel_task, create_task, describe_providers, get_task, run_agent_task, run_research_task
 from app.core import mcp_client, memory
+from app.core.workspace_api import router as workspace_router   
+from fastapi.responses import FileResponse
+from app.core.tools import _resolve_safe_path, WORKSPACE_ROOT
 
 
 @asynccontextmanager
@@ -46,6 +49,8 @@ app.add_middleware(
 
 init_db()
 seed()
+
+app.include_router(workspace_router)   # /v1/workspace/*: explorar, descargar y borrar archivos
 
 
 # ---- Adjuntos de texto/código en el chat ----
@@ -161,6 +166,11 @@ def task_status(task_id: str):
     if not task:
         return {"status": "error", "detail": "No existe una tarea con ese id."}
     return {"status": task["status"], "result": task["result"]}
+
+
+@app.post("/v1/task/{task_id}/cancel", dependencies=[Depends(require_api_key)])
+def cancel_task_endpoint(task_id: str):
+    return {"status": "cancelando" if cancel_task(task_id) else "no_activa"}
 
 
 @app.websocket("/v1/ws/{task_id}")
@@ -301,6 +311,25 @@ def cleanup_semantic_memory():
     return memory.enforce_retention_policy()
 
 
+_MEDIA = {".pdf": "application/pdf", ".md": "text/markdown; charset=utf-8",
+          ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
+
+@app.get("/v1/files/download", dependencies=[Depends(require_api_key)])
+def download_file(path: str):
+    try:
+        target = _resolve_safe_path(path)
+    except ValueError:
+        raise HTTPException(400, "Ruta no permitida.")
+    if target.suffix.lower() not in _MEDIA or not target.is_file():
+        raise HTTPException(404, "Archivo no encontrado.")
+    return FileResponse(target, media_type=_MEDIA[target.suffix.lower()], filename=target.name)
+
+@app.get("/v1/files", dependencies=[Depends(require_api_key)])
+def list_documents():
+    folder = WORKSPACE_ROOT / "documents"
+    files = sorted(folder.glob("*.*"), key=lambda f: f.stat().st_mtime, reverse=True) if folder.exists() else []
+    return {"files": [f"documents/{f.name}" for f in files if f.suffix.lower() in _MEDIA]}
+
 # ---- Fase 5: autenticación multi-dispositivo ----
 # La PRIMERA llave se crea por CLI (python -m app.manage_keys create <nombre>),
 # porque crear una llave nueva aquí requiere ya estar autenticado con una.
@@ -338,7 +367,7 @@ PACKAGE_NAME_PATTERN = re.compile(r"^[A-Za-z0-9_.\-]+$")
 def install_package(request: InstallPackageRequest):
     package = request.package.strip()
 
-    if not package or not PACKAGE_NAME_PATTERN.match(package):
+    if not package or package.startswith("-") or not PACKAGE_NAME_PATTERN.match(package):
         return {"status": "error", "detail": "Nombre de paquete inválido."}
 
     try:

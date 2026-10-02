@@ -1,18 +1,37 @@
+# model_list:
+#   - model_name: opus
+#     litellm_params:
+#       model: mistral/codestral-latest
+#       api_key: os.environ/MISTRAL_API_KEY
+#
+#   - model_name: sonnet
+#     litellm_params:
+#       model: mistral/codestral-latest
+#       api_key: os.environ/MISTRAL_API_KEY
+#
+#   - model_name: haiku
+#     litellm_params:
+#       model: mistral/mistral-small-latest
+#       api_key: os.environ/MISTRAL_API_KEY
+#
+# litellm_settings:
+#   #/ drop_params: true
+
 model_list:
   - model_name: opus
     litellm_params:
-      model: mistral/codestral-latest
-      api_key: os.environ/MISTRAL_API_KEY
+      model: openrouter/inclusionai/ling-3.1-flash
+      api_key: os.environ/OPENROUTER_API_KEY
 
   - model_name: sonnet
     litellm_params:
-      model: mistral/codestral-latest
-      api_key: os.environ/MISTRAL_API_KEY
+      model: openrouter/inclusionai/ling-3.1-flash
+      api_key: os.environ/OPENROUTER_API_KEY
 
   - model_name: haiku
     litellm_params:
-      model: mistral/mistral-small-latest
-      api_key: os.environ/MISTRAL_API_KEY
+      model: openrouter/inclusionai/ling-3.1-flash
+      api_key: os.environ/OPENROUTER_API_KEY
 
 litellm_settings:
   drop_params: true
