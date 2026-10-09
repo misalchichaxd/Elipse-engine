@@ -76,6 +76,7 @@
       <button data-view="workspace">Workspace</button>
       <button data-view="research">Investigar</button>
       <button data-view="memory">Memoria</button>
+      <button data-view="voice">Voz</button>
       <button data-view="keys">Llaves</button>
     </nav>
 
@@ -114,7 +115,8 @@
       <div class="attachments" id="chatAttachments"></div>
       <div class="composer">
         <input type="file" id="chatFileInput" multiple hidden>
-        <button id="chatAttachBtn" type="button" class="btn-icon" title="Adjuntar archivo de código">📎</button>
+        <button id="chatAttachBtn" type="button" class="btn-icon" title="Adjuntar archivo de código o imagen (también puedes pegar o arrastrar imágenes)">📎</button>
+        <button id="voiceBtn" type="button" class="btn-icon" title="Voz">🔊</button>
         <textarea id="chatInput" placeholder="Escribe un mensaje..." rows="1"></textarea>
         <button id="chatSendBtn">Enviar</button>
       </div>
@@ -169,6 +171,55 @@
       <div id="memoryResults"></div>
     </section>
 
+        <!-- VOICE -->
+    <section class="view" id="view-voice">
+      <div class="view-header">
+        <h1>Voz</h1>
+        <p class="view-desc">Elipse habla solo cuando tú quieras y solo lo que tiene sentido decir en voz alta (nunca código, tablas ni rutas). Los cambios se aplican en caliente.</p>
+      </div>
+      <div class="voice-form">
+        <label class="check"><input type="checkbox" id="voiceEnabled"> Voz activada (interruptor global)</label>
+        <label>Modo
+          <select id="voiceMode">
+            <option value="off">off — nunca habla</option>
+            <option value="manual">manual — solo con el botón 🔊 de un mensaje</option>
+            <option value="smart">smart — respuestas conversacionales cortas (recomendado)</option>
+            <option value="always">always — todo lo hablable</option>
+          </select>
+        </label>
+        <label>Enrutamiento
+          <select id="voiceRouting">
+            <option value="failover">failover — el primero; si falla, el siguiente (recomendado)</option>
+            <option value="manual">manual — solo el proveedor elegido abajo</option>
+            <option value="round_robin">round_robin — alterna (la voz puede cambiar entre respuestas)</option>
+          </select>
+        </label>
+        <label>Proveedor elegido (modo manual)
+          <select id="voiceProvider"><option value="fish">fish</option><option value="local">local</option></select>
+        </label>
+        <label class="check"><input type="checkbox" id="voiceCloud"> Permitir proveedores en la nube (desmarcado = modo privado, solo local)</label>
+        <fieldset><legend>Fish Audio (nube)</legend>
+          <div class="pair">
+            <label>ID de voz (reference_id)<input type="text" id="voiceFishId" autocomplete="off"></label>
+            <label>Ganancia<input type="number" id="voiceFishGain" min="0.1" max="4" step="0.1"></label>
+          </div>
+        </fieldset>
+        <fieldset><legend>Local (tu TTS)</legend>
+          <div class="pair">
+            <label>ID de voz (opcional)<input type="text" id="voiceLocalId" autocomplete="off"></label>
+            <label>Ganancia<input type="number" id="voiceLocalGain" min="0.1" max="4" step="0.1"></label>
+          </div>
+        </fieldset>
+        <label class="check"><input type="checkbox" id="voiceMuted"> Silenciar en este dispositivo</label>
+        <div class="voice-actions">
+          <button class="btn" id="voiceSave" type="button">Guardar</button>
+          <button class="btn" id="voiceTest" type="button">Probar voz</button>
+          <button class="btn" id="voiceStop" type="button">⏹ Parar</button>
+        </div>
+        <div id="voiceNote"></div>
+        <div id="voiceStatusBox"></div>
+      </div>
+    </section>
     <!-- KEYS -->
     <section class="view" id="view-keys">
       <div class="view-header">
@@ -206,6 +257,7 @@
 <script src="js/research.js"></script>
 <script src="js/memory.js"></script>
 <script src="js/keys.js"></script>
+<script src="js/voice.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

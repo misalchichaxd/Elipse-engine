@@ -45,5 +45,6 @@ window.Elipse = window.Elipse || {};
     Elipse.memory.init();
     Elipse.keys.init();
     Elipse.workspace.init();
+    Elipse.voice.init();
   });
 })();

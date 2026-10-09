@@ -58,15 +58,28 @@ ROLES = {
     "": ("Razonamiento general", "Lo que usa ELIPSE por default para pensar y responder."),
     "CODE_": ("Código", "Consultas que el router detecta como de programación."),
     "RESEARCH_": ("Investigación", "El resumen de hallazgos dentro de investigar_tema."),
+    "VISION_": ("Visión", "El modelo que MIRA las imágenes que adjuntas y las describe en texto. "
+                          "No hereda del general (el modelo principal no ve imágenes): elige uno con visión."),
 }
+
+# Visión: a diferencia de CODE_/RESEARCH_, NO hereda del general. Si VISION_PROVIDER no está
+# en el .env, el backend usa estos valores por defecto (ver app/config.py); si está VACÍO,
+# la visión queda desactivada.
+VISION_PREFIX = "VISION_"
+VISION_DEFAULT_PROVIDER = "ollama"
+VISION_DEFAULT_MODEL = "qwen3-vl:2b"
+VISION_NAME_HINTS = ("vl", "llava", "vision", "minicpm-v", "moondream", "gemma3", "bakllava", "llama4", "mistral-small3")
 
 
 def role_summary(prefix: str) -> str:
     """Texto corto para la fila de la lista de roles, sin abrir el diálogo."""
     env = env_dict()
     provider_key = "DEFAULT_PROVIDER" if not prefix else f"{prefix}PROVIDER"
-    provider = env.get(provider_key, "" if prefix else "ollama").strip().lower()
+    is_vision = prefix == VISION_PREFIX
+    provider = env.get(provider_key, VISION_DEFAULT_PROVIDER if is_vision else ("" if prefix else "ollama")).strip().lower()
 
+    if is_vision and not provider:
+        return "Desactivada (las imágenes adjuntas no se analizan)"
     if prefix and not provider:
         return "Hereda de Razonamiento general"
 
@@ -80,6 +93,8 @@ def role_summary(prefix: str) -> str:
         "gemini": f"{prefix}GEMINI_MODEL",
     }[provider]
     model = env.get(model_key, "").strip()
+    if is_vision and provider == "ollama" and not model:
+        model = VISION_DEFAULT_MODEL
     label = {"ollama": "Ollama", "anthropic": "Claude", "openai": "Compatible con OpenAI", "gemini": "Gemini"}[provider]
     return f"{label}" + (f" · {model}" if model else "")
 
@@ -102,6 +117,7 @@ class ProviderDialog(tk.Toplevel):
         self.grab_set()
 
         env = env_dict()
+        is_vision = self.is_vision = prefix == VISION_PREFIX
 
         # Barra inferior FIJA: el botón de Guardar vive acá, fuera del área que
         # crece con el checklist de modelos. Así nunca queda tapado ni cortado
@@ -144,23 +160,29 @@ class ProviderDialog(tk.Toplevel):
         self.inherit = tk.BooleanVar(value=False)
         if prefix:
             provider_env = env.get(f"{prefix}PROVIDER", "").strip()
-            # Si no hay proveedor propio guardado y el diálogo se abrió desde
-            # "+ Agregar", arranca directo en el selector (desmarcado) en vez
-            # de esconderlo detrás del checkbox de heredar.
-            self.inherit.set(bool(not provider_env) and not start_unchecked)
+            if is_vision:
+                # Visión: clave ausente = activa por default; clave presente y vacía = desactivada.
+                self.inherit.set(f"{prefix}PROVIDER" in env and not provider_env)
+                chk_text = "Desactivar la visión (ELIPSE no analizará las imágenes adjuntas)"
+            else:
+                # Si no hay proveedor propio guardado y el diálogo se abrió desde
+                # "+ Agregar", arranca directo en el selector (desmarcado) en vez
+                # de esconderlo detrás del checkbox de heredar.
+                self.inherit.set(bool(not provider_env) and not start_unchecked)
+                chk_text = "Heredar de Razonamiento general (no usar un proveedor distinto para este rol)"
             chk = tk.Checkbutton(
-                f, text="Heredar de Razonamiento general (no usar un proveedor distinto para este rol)",
+                f, text=chk_text,
                 variable=self.inherit, command=self._toggle_inherit,
                 bg=C["bg"], fg=C["text"], selectcolor=C["card_hi"], activebackground=C["bg"],
                 activeforeground=C["text"], highlightthickness=0,
             )
             chk.pack(anchor="w", pady=(0, 12))
 
-        self._picker_title = tk.Label(f, text="¿Qué usa ELIPSE para pensar?", font=FT, fg=C["text"], bg=C["bg"])
+        self._picker_title = tk.Label(f, text="¿Qué usa ELIPSE para ver imágenes?" if is_vision else "¿Qué usa ELIPSE para pensar?", font=FT, fg=C["text"], bg=C["bg"])
         self._picker_title.pack(anchor="w", pady=(4, 10))
         chips = self._chips_frame = tk.Frame(f, bg=C["bg"])
         chips.pack(anchor="w", pady=(0, 12))
-        prov = env.get("DEFAULT_PROVIDER" if not prefix else f"{prefix}PROVIDER", "ollama" if not prefix else "").strip().lower()
+        prov = env.get("DEFAULT_PROVIDER" if not prefix else f"{prefix}PROVIDER", "ollama" if (not prefix or is_vision) else "").strip().lower()
         self.prov = tk.StringVar(value=prov if prov in PROVIDERS else "ollama")
         self.chips = {}
         for v, t in (
@@ -184,7 +206,7 @@ class ProviderDialog(tk.Toplevel):
         lbl(p, "Modelo de Ollama").pack(anchor="w")
         r = tk.Frame(p, bg=C["card"])
         r.pack(fill="x", pady=(4, 8))
-        self.o_model = tk.StringVar(value=env.get(f"{prefix}OLLAMA_MODEL", ""))
+        self.o_model = tk.StringVar(value=env.get(f"{prefix}OLLAMA_MODEL", "") or (VISION_DEFAULT_MODEL if is_vision else ""))
         self.o_combo = ttk.Combobox(r, textvariable=self.o_model, values=[])
         self.o_combo.pack(side="left", fill="x", expand=True)
         Pill(r, "↻", self._refresh_ollama, kind="ghost", width=44, height=36).pack(side="left", padx=(8, 0))
@@ -323,8 +345,13 @@ class ProviderDialog(tk.Toplevel):
         if models:
             msg = f"{len(models)} modelos instalados. Elige uno de la lista o escríbelo igual que en «ollama pull»."
             if current and current not in models:
-                hint = next((m for m in models if current.split(":")[0] in m), models[0])
-                msg += f"\n«{current}» no está instalado. ¿Quizá quisiste «{hint}»?"
+                if self.is_vision:
+                    msg += f"\n«{current}» no está instalado. Instálalo con:  ollama pull {current}"
+                else:
+                    hint = next((m for m in models if current.split(":")[0] in m), models[0])
+                    msg += f"\n«{current}» no está instalado. ¿Quizá quisiste «{hint}»?"
+            elif self.is_vision and current and not any(h in current.lower() for h in VISION_NAME_HINTS):
+                msg += f"\nOjo: «{current}» no parece un modelo con visión (p. ej. qwen3-vl, llava, gemma3, minicpm-v)."
             self.o_status.config(text=msg, fg=C["muted"])
         else:
             detail = (" — " + notes[-1]) if notes else ""
@@ -486,7 +513,7 @@ class ProviderDialog(tk.Toplevel):
         if prefix and self.inherit.get():
             # Hereda: solo hace falta vaciar el proveedor propio del rol.
             env_update({f"{prefix}PROVIDER": ""})
-            self.app.toast("Guardado: este rol hereda Razonamiento general")
+            self.app.toast("Visión desactivada" if self.is_vision else "Guardado: este rol hereda Razonamiento general")
             self._finish()
             return
 
@@ -495,8 +522,9 @@ class ProviderDialog(tk.Toplevel):
         up = {provider_key: p}
 
         if p == "ollama":
-            if self.o_model.get().strip():
-                up[f"{prefix}OLLAMA_MODEL"] = self.o_model.get().strip()
+            model = self.o_model.get().strip() or (VISION_DEFAULT_MODEL if self.is_vision else "")
+            if model:
+                up[f"{prefix}OLLAMA_MODEL"] = model
         elif p == "anthropic":
             if not prefix and not self.a_key.get().strip():
                 messagebox.showerror("Falta la API key", "Ingresa tu API key de Anthropic.", parent=self)
@@ -512,8 +540,8 @@ class ProviderDialog(tk.Toplevel):
                 up[f"{prefix}GEMINI_API_KEY"] = self.g_key.get().strip()
             up[f"{prefix}GEMINI_MODEL"] = self.g_model.get().strip() or ("gemini-2.5-flash" if not prefix else "")
         else:
-            if not prefix and not self.x_model.get().strip():
-                messagebox.showerror("Falta el modelo", "El modelo es obligatorio.", parent=self)
+            if (not prefix or self.is_vision) and not self.x_model.get().strip():
+                messagebox.showerror("Falta el modelo", "El modelo es obligatorio" + (" (debe tener visión)." if self.is_vision else "."), parent=self)
                 return
             up[f"{prefix}OPENAI_BASE_URL"] = self.x_base.get().strip() or ("https://api.openai.com/v1" if not prefix else "")
             if self.x_key.get().strip():

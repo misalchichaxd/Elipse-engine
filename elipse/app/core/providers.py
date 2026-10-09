@@ -32,6 +32,7 @@ resultados de herramientas.
 """
 
 import json
+import logging
 import re
 import time
 import uuid
@@ -210,6 +211,8 @@ def _to_ollama_messages(messages: list[dict]) -> list[dict]:
     out = []
     for message in messages:
         message = dict(message)
+        if message.get("images"):  # Ollama quiere una lista de strings base64
+            message["images"] = [i["data"] if isinstance(i, dict) else i for i in message["images"]]
         if message.get("role") == "tool":
             message.pop("tool_call_id", None)
             message.pop("name", None)
@@ -235,6 +238,26 @@ class OllamaProvider:
         # Timeout explícito: si Ollama se cuelga, falla con una excepción clara
         # en vez de dejar la tarea para siempre en "en_progreso".
         self._client = Client(timeout=timeout or settings.ollama_timeout_seconds)
+
+    def with_limits(self, num_predict: int) -> "OllamaProvider":
+        """Copia liviana (mismo cliente y modelo) con otro tope de tokens de salida,
+        p. ej. para el planificador, que solo devuelve un JSON corto."""
+        clone = object.__new__(OllamaProvider)
+        clone.__dict__.update(self.__dict__)
+        clone._num_predict = num_predict
+        return clone
+
+    def _log_usage(self, prompt_tokens, eval_tokens) -> None:
+        """Deja en el log cuánto del num_ctx se usó. Si el prompt llega a ~85% del contexto,
+        Ollama empieza a recortar en silencio lo más viejo (system prompt / tools)."""
+        if not prompt_tokens:
+            return
+        used = prompt_tokens + (eval_tokens or 0)
+        pct = 100.0 * used / max(self._num_ctx, 1)
+        level = logging.WARNING if used >= 0.85 * self._num_ctx else logging.INFO
+        logging.getLogger("elipse").log(
+            level, "ollama ctx: prompt=%s salida=%s de %s (%.0f%%)",
+            prompt_tokens, eval_tokens or 0, self._num_ctx, pct)
 
     def chat(self, messages, tools=None, allow_tools=True) -> ChatResult:
         kwargs = {}
@@ -272,6 +295,7 @@ class OllamaProvider:
             # llegue crudo al usuario en la respuesta.
             content = strip_tool_call_blocks(content)
 
+        self._log_usage(_field(response, "prompt_eval_count"), _field(response, "eval_count"))
         return ChatResult(
             content=content,
             tool_calls=tool_calls,
@@ -296,6 +320,7 @@ class OllamaProvider:
         text_parts = []
         tool_calls = []
         prompt_tokens = None
+        eval_tokens = None
         done_reason = None
 
         # Filtro de streaming para el bug conocido de <think> (qwen3 con think=False):
@@ -339,6 +364,7 @@ class OllamaProvider:
                 ]
             if _field(part, "done"):
                 prompt_tokens = _field(part, "prompt_eval_count")
+                eval_tokens = _field(part, "eval_count")
                 done_reason = _field(part, "done_reason")
 
         content = strip_think_blocks("".join(text_parts))
@@ -362,6 +388,7 @@ class OllamaProvider:
             # limitación conocida en modelos sin tool-calling confiable.
             content = strip_tool_call_blocks(content)
 
+        self._log_usage(prompt_tokens, eval_tokens)
         return ChatResult(
             content=content,
             tool_calls=tool_calls,
@@ -471,7 +498,11 @@ def _to_anthropic_messages(messages: list[dict]) -> tuple[str, list[dict]]:
                 system_parts.append(content)
 
         elif role == "user":
-            push("user", [{"type": "text", "text": content}])
+            blocks = [
+                {"type": "image", "source": {"type": "base64", "media_type": i["mime"], "data": i["data"]}}
+                for i in message.get("images") or []
+            ]
+            push("user", blocks + [{"type": "text", "text": content}])
 
         elif role == "assistant":
             blocks = [{"type": "text", "text": content}]
@@ -689,6 +720,12 @@ def _to_openai_messages(messages: list[dict]) -> list[dict]:
             if not message.get("tool_call_id"):
                 raise ProviderError("Mensaje de herramienta sin 'tool_call_id': no se puede enviar.")
             out.append({"role": "tool", "tool_call_id": message["tool_call_id"], "content": content})
+        elif role == "user" and message.get("images"):
+            parts = [{"type": "text", "text": content}] + [
+                {"type": "image_url", "image_url": {"url": f"data:{i['mime']};base64,{i['data']}"}}
+                for i in message["images"]
+            ]
+            out.append({"role": "user", "content": parts})
         else:
             out.append({"role": role, "content": content})
     return out
@@ -869,7 +906,8 @@ def _to_gemini_messages(messages: list[dict]) -> tuple[Optional[dict], list[dict
                 system_parts.append(content)
 
         elif role == "user":
-            push("user", [{"text": content}])
+            image_parts = [{"inlineData": {"mimeType": i["mime"], "data": i["data"]}} for i in message.get("images") or []]
+            push("user", image_parts + [{"text": content}])
 
         elif role == "assistant":
             parts: list[dict] = []
@@ -1116,7 +1154,7 @@ def _pick(role: str, role_field: str, general_field: str):
 
 def build_role_provider(role: str) -> Optional["Provider"]:
     """
-    Arma el proveedor de un ROL ("general", "code", "research"), no de un
+    Arma el proveedor de un ROL ("general", "code", "research", "vision"), no de un
     nombre de proveedor suelto. Esto es lo que usan tasks.py y research.py
     para saber con qué piensa cada tipo de tarea.
 
@@ -1138,6 +1176,9 @@ def build_role_provider(role: str) -> Optional["Provider"]:
 
     if key == "ollama":
         model = _pick(role, f"{role}_ollama_model", "ollama_model")
+        if role == "vision":  # contexto y salida propios: la imagen ocupa cientos de tokens
+            return OllamaProvider(model=model, num_ctx=settings.vision_num_ctx,
+                                  num_predict=settings.vision_num_predict)
         return OllamaProvider(model=model)
 
     if key == "anthropic":

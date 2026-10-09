@@ -7,3 +7,11 @@ litellm --config config.yaml --port 4000
 set DEEPSEEK_API_KEY=
 
 setx OPENROUTER_API_KEY "sk-or-v1-xxxxxxxxxxxxxxxx"
+
+
+voces de prueba:
+shinobu -- 03d8882db2f042428c997cf58330535c
+kanroji -- e0229f9c45e543219c4a10d9f3803337
+emilia rfe zero -- be7a8d2d4d3c4648b6e5109d2c58e8fb
+yor forger -- ba9d5ac0eaad45aabd0f7be75e198c14
+teto -- 26fbb846e9ce404f9307277467144ce2

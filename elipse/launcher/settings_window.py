@@ -14,6 +14,7 @@ from .paths import PORT
 from .provider_dialog import ROLES, ProviderDialog, role_summary
 from .theme import C, FB, FBB, FDS, FMONO, FT
 from .uiqueue import ui
+from .voice_dialog import VoiceDialog, voice_summary
 from .widgets import Pill, Surface, lbl
 
 
@@ -71,7 +72,7 @@ class Settings(tk.Toplevel):
         f = tk.Frame(self.body, bg=C["bg"])
         f.grid(row=0, column=0, sticky="nsew")
         tk.Label(f, text="¿Qué usa ELIPSE para pensar?", font=FT, fg=C["text"], bg=C["bg"]).pack(anchor="w", pady=(4, 4))
-        lbl(f, "Un proveedor por default, y opcionalmente uno distinto para código o investigación.",
+        lbl(f, "Un proveedor por default, y opcionalmente uno distinto para código, investigación o visión (imágenes).",
             wrap=700).pack(anchor="w", pady=(0, 14))
 
         self.role_rows_box = tk.Frame(f, bg=C["bg"])
@@ -84,6 +85,7 @@ class Settings(tk.Toplevel):
             w.destroy()
         for prefix, (label, _desc) in ROLES.items():
             self._build_role_row(self.role_rows_box, prefix, label)
+        self._build_voice_row(self.role_rows_box)
     def _build_role_row(self, parent, prefix, label):
         card = Surface(parent, pad=16)
         card.pack(fill="x", pady=(0, 10))
@@ -99,7 +101,20 @@ class Settings(tk.Toplevel):
             lambda p=prefix, ov=has_override: self._open_role(p, ov), kind="tonal" if prefix else "filled", height=38,
         ).pack(side="right")
 
+    def _build_voice_row(self, parent):
+        card = Surface(parent, pad=16)
+        card.pack(fill="x", pady=(0, 10))
+        row = tk.Frame(card.inner, bg=C["card"])
+        row.pack(fill="x")
+        left = tk.Frame(row, bg=C["card"])
+        left.pack(side="left", fill="x", expand=True)
+        tk.Label(left, text="Voz", font=FBB, fg=C["text"], bg=C["card"]).pack(anchor="w")
+        lbl(left, voice_summary(), wrap=520).pack(anchor="w", pady=(2, 0))
+        Pill(row, "Configurar", lambda: VoiceDialog(self.app, on_saved=self._render_role_rows), kind="tonal", height=38).pack(side="right")
+
     def _has_override(self, prefix: str) -> bool:
+        if prefix == "VISION_":  # la visión no hereda: siempre se "configura" (por default ya está activa)
+            return True
         return bool(env_dict().get(f"{prefix}PROVIDER", "").strip())
 
     def _open_role(self, prefix, has_override=True):

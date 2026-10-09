@@ -49,9 +49,10 @@ from app.core import memory
 from app.core.db import get_connection
 from app.core import continuation, pipeline
 from app.core.personality import build_system_prompt
+from app.core import vision
 from app.core.providers import Provider
 from app.core.safety import create_pending_action, is_risky
-from app.core.tools import execute_tool, get_tools_schema, verify_tool_result
+from app.core.tools import execute_tool, get_tools_schema, get_tools_schema_compact, verify_tool_result
 
 import logging
 log = logging.getLogger("elipse")
@@ -130,13 +131,85 @@ def log_turn_metadata(message: str, provider: str, reason: str, duration: float)
     conn.close()
 
 
-def build_memory_context(message: str) -> str:
+def _is_local_provider(provider) -> bool:
+    return str(getattr(provider, "name", "")).startswith("ollama")
+
+
+def _clip_text(text: str, limit: int) -> str:
+    text = text or ""
+    return text if len(text) <= limit else text[:limit].rstrip() + " …[recortado]"
+
+
+def _clip_history(history: list, limit: int, max_chars: int) -> list:
+    """Historial para el Agent Loop LOCAL: últimos `limit` mensajes, cada uno recortado
+    (los 2 últimos admiten el doble). El pipeline sigue recibiendo el historial completo
+    para poder recuperar el código anterior."""
+    recent = history[-limit:] if limit else list(history)
+    out = []
+    for i, m in enumerate(recent):
+        cap = max_chars * 2 if i >= len(recent) - 2 else max_chars
+        out.append({**m, "content": _clip_text(m.get("content", ""), cap)})
+    return out
+
+
+def _estimate_tokens(text: str) -> int:
+    return int(len(text) / 3.0) + 1  # conservador: español + JSON rondan 3-4 caracteres por token
+
+
+def _conversation_tokens(conversation: list, tools_schema: Optional[list]) -> int:
+    total = _estimate_tokens(json.dumps(tools_schema, ensure_ascii=False)) if tools_schema else 0
+    for m in conversation:
+        total += _estimate_tokens(str(m.get("content") or ""))
+        if m.get("tool_calls"):
+            total += _estimate_tokens(json.dumps(m["tool_calls"], ensure_ascii=False, default=str))
+    return total
+
+
+def _fit_to_context(conversation: list, tools_schema: Optional[list], num_ctx: int,
+                    budget: float = 0.75, current_idx: Optional[int] = None) -> None:
+    """Ajusta `conversation` (in place) al presupuesto de prompt ANTES de llamar al modelo, en vez
+    de dejar que Ollama recorte en silencio el inicio (system prompt + tools). Orden de sacrificio:
+    1) resultados de tools largos, recortados; 2) historial más viejo; 3) el bloque de memoria."""
+    if not num_ctx:
+        return
+    limit = int(num_ctx * budget)
+    before = _conversation_tokens(conversation, tools_schema)
+    if before <= limit:
+        return
+    if current_idx is None:
+        current_idx = max((i for i, m in enumerate(conversation) if m.get("role") == "user"), default=0)
+
+    for m in conversation:  # 1) tool results largos
+        if _conversation_tokens(conversation, tools_schema) <= limit:
+            break
+        if m.get("role") == "tool" and len(str(m.get("content") or "")) > 1200:
+            m["content"] = _clip_text(str(m["content"]), 1200)
+
+    while _conversation_tokens(conversation, tools_schema) > limit:  # 2) historial viejo
+        first = next((i for i, m in enumerate(conversation) if m.get("role") != "system"), None)
+        if first is None or first >= current_idx:
+            break
+        conversation.pop(first)
+        current_idx -= 1
+
+    if _conversation_tokens(conversation, tools_schema) > limit:  # 3) memoria
+        for i, m in enumerate(conversation):
+            if i > 0 and m.get("role") == "system":
+                conversation.pop(i)
+                break
+
+    after = _conversation_tokens(conversation, tools_schema)
+    log.warning("contexto ajustado al presupuesto: ~%s -> ~%s tokens (tope %s de num_ctx=%s)",
+                before, after, limit, num_ctx)
+
+
+def build_memory_context(message: str, k: Optional[int] = None, max_chars: Optional[int] = None) -> str:
     """
     RAG mínimo: busca en la memoria semántica algo relacionado con el mensaje
     actual y lo devuelve como texto para inyectar como contexto adicional.
     Si no hay nada relevante (o la memoria está vacía), devuelve "".
     """
-    hits = memory.search_memory(message, n_results=settings.memory_retrieval_k)
+    hits = memory.search_memory(message, n_results=k or settings.memory_retrieval_k)
     if not hits:
         return ""
 
@@ -147,7 +220,8 @@ def build_memory_context(message: str) -> str:
     ]
     for hit in hits:
         tipo = hit["metadata"].get("type", "memoria")
-        lines.append(f"- ({tipo}) {hit['content']}")
+        content = _clip_text(hit["content"], max_chars) if max_chars else hit["content"]
+        lines.append(f"- ({tipo}) {content}")
     return "\n".join(lines)
 
 
@@ -213,7 +287,7 @@ REQUIRED_TOOLS = [
 ]
 
 
-def _missing_required_tools(message: str, tools_called: list[str]) -> list[dict]:
+def _missing_required_tools(message: str, tools_called: list[str], has_visual: bool = False) -> list[dict]:
     """
     Reglas de REQUIRED_TOOLS cuyo patrón matchea el MENSAJE ORIGINAL del
     usuario (no la conversación entera, para no dispararse por algo que
@@ -225,6 +299,8 @@ def _missing_required_tools(message: str, tools_called: list[str]) -> list[dict]
         rule for rule in REQUIRED_TOOLS
         if rule["trigger"].search(message) and rule["name"] not in tools_called
         and not (is_doc and rule["name"] == "write_code")  # un informe no es código
+        # Con un adjunto visual, "esta foto"/"imagen" habla del adjunto, no pide buscar imágenes en internet.
+        and not (has_visual and rule["name"] == "search_images")
     ]
 
 
@@ -268,17 +344,26 @@ class ElipseCore:
     def _run(self, message: str, emit: EmitFn) -> tuple[str, dict]:
         # --- analizar ---
         emit({"type": "progreso", "mensaje": "Analizando tu mensaje..."})
-        system_prompt = build_system_prompt()
+        compact = _is_local_provider(self.provider) and settings.ollama_compact_prompt
+        system_prompt = build_system_prompt(compact=compact)
         history = get_recent_messages()
 
         emit({"type": "progreso", "mensaje": "Buscando contexto relevante en memoria..."})
         # Con un archivo adjunto, la tarea ya trae todo el contexto necesario: sumarle memoria
         # semántica de conversaciones viejas (a veces relacionada solo por una palabra suelta,
         # como "mapache") distrae más de lo que ayuda a un modelo chico.
-        memory_context = "" if message.startswith("Archivo adjunto:") else build_memory_context(message)
+        memory_context = "" if message.startswith("Archivo adjunto:") else (
+            build_memory_context(message, settings.ollama_memory_k, settings.ollama_memory_hit_chars)
+            if compact else build_memory_context(message)
+        )
 
         provider = self.provider
         start = time.time()
+
+        # --- Visión: el CÓDIGO mira los adjuntos visuales antes de que el modelo principal piense ---
+        # Si hay imagen, la describe el rol "vision" y el texto se suma al mensaje; el modelo
+        # principal (que no ve) razona sobre esa descripción. Ver vision.py.
+        vision_block, vision_history = vision.describe_attachments_ex(message, emit)
 
         # --- Pipeline por plan (Fase 7) ---
         # Antes de meter al orquestador en el Agent Loop ronda a ronda, se le pide
@@ -296,7 +381,9 @@ class ElipseCore:
         except Exception:
             log.exception("continuation.handle_turn falló")
             pipeline_outcome = None
-        if pipeline_outcome is None:
+        # Con imagen se salta el pipeline: su planificador solo ve el texto del pedido y podría
+        # planear una búsqueda de imágenes en internet en vez de usar la que adjuntó el usuario.
+        if pipeline_outcome is None and not vision_block:
             try:
                 pipeline_outcome = pipeline.try_run(provider, message, history, emit)
             except Exception as e:
@@ -332,15 +419,38 @@ class ElipseCore:
             }
             return "completado", final
 
-        tools_schema = get_tools_schema()  # una sola vez por corrida: catálogo estable durante el loop
+        if compact:
+            # Modelo local: solo las tools que este pedido necesita, con descripciones recortadas.
+            forced = tuple(r["name"] for r in REQUIRED_TOOLS
+                           if r["trigger"].search(message) and not (vision_block and r["name"] == "search_images"))
+            has_code = any("```" in (m.get("content") or "") for m in history[-2:])
+            tools_schema = get_tools_schema_compact(
+                message, max_tools=settings.ollama_max_tools, extra=forced, history_has_code=has_code)
+        else:
+            tools_schema = get_tools_schema()  # una sola vez por corrida: catálogo estable durante el loop
 
-        save_message("user", message)
+        if vision_block and "busca" not in message.lower():
+            # El usuario ya trajo su imagen: ofrecer search_images solo invita a buscar otra en internet.
+            tools_schema = [t for t in tools_schema if t.get("function", {}).get("name") != "search_images"]
+
+        # El historial guarda el mensaje CON la descripción: así las preguntas de seguimiento
+        # ("¿y de qué color era el techo?") todavía la tienen a mano.
+        message_for_model = f"{message}\n\n{vision_block}" if vision_block else message
+        # Un fallo de visión NO se guarda en el historial: si no, el modelo lo repite en cada turno.
+        # (en el historial va la versión corta: el texto OCR completo queda en el caché y se
+        # recupera con read_image_text, así el historial no se llena de texto de capturas)
+        save_message("user", message if (vision.FAIL_MARK in (vision_block or "") or not vision_history)
+                     else f"{message}\n\n{vision_history}")
 
         conversation = [{"role": "system", "content": system_prompt}]
         if memory_context:
             conversation.append({"role": "system", "content": memory_context})
-        conversation.extend(history)
-        conversation.append({"role": "user", "content": message})
+        conversation.extend(
+            _clip_history(history, settings.ollama_history_limit, settings.ollama_history_msg_chars)
+            if compact else history
+        )
+        conversation.append({"role": "user", "content": message_for_model})
+        current_idx = len(conversation) - 1
 
         used_tools = False
         tools_called: list[str] = []  # nombres de tools usadas en este turno, en orden, para el log
@@ -358,6 +468,10 @@ class ElipseCore:
         iteration = 0
         while True:
             iteration += 1
+            if compact:
+                _fit_to_context(conversation, tools_schema, getattr(provider, "_num_ctx", 0),
+                                settings.ollama_context_budget, current_idx)
+                current_idx = max((i for i, m in enumerate(conversation) if m.get("role") == "user"), default=0)
             result = provider.chat_stream(conversation, tools=tools_schema, on_delta=_stream_to_chunks)
             peak_prompt_tokens = max(peak_prompt_tokens, result.prompt_tokens or 0)
 
@@ -369,7 +483,7 @@ class ElipseCore:
                 # vuelve a evaluar el contenido de la respuesta, solo si faltó
                 # llamar algo puntual — y solo insiste MAX_FORCED_NUDGES veces
                 # para no loopear si el modelo se niega.
-                missing = _missing_required_tools(message, tools_called)
+                missing = _missing_required_tools(message, tools_called, has_visual=bool(vision_block))
                 if missing and nudges_used < MAX_FORCED_NUDGES:
                     nudges_used += 1
                     emit({
@@ -582,4 +696,4 @@ class ElipseCore:
             "reason": reason,
             "used_tools": False,
             "pending_confirmations": pending,
-        }
+        }

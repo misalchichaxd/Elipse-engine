@@ -26,6 +26,7 @@ window.Elipse = window.Elipse || {};
         if(view) view.classList.add("active");
         if(btn.dataset.view === "keys" && Elipse.keys) Elipse.keys.load();
         if(btn.dataset.view === "workspace" && Elipse.workspace) Elipse.workspace.load();
+        if(btn.dataset.view === "voice" && Elipse.voice) Elipse.voice.load();
       });
     });
 

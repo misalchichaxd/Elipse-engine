@@ -162,6 +162,29 @@ def _doc_topic(message: str) -> Optional[str]:
     return " ".join(words)[:100] or None
 
 
+# "con fotos de cosplay", "imágenes de la armadura": lo que el pedido califica de las imágenes. Sin esto
+# la búsqueda usa solo el tema y se pierde justo lo que el usuario quería ver.
+_IMG_QUALIFIER_RE = re.compile(
+    r"\b(?:fotos?|im[aá]genes)\s+(?:de|del)\s+(.+?)(?=\s+(?:para|que|en|con)\b|[,.;:!?\n]|$)", re.I)
+_QUAL_DROP = {"este", "esta", "ese", "esa", "estos", "estas", "esos", "esas", "su", "sus", "mi", "mis", "tu", "tus",
+              "el", "la", "los", "las", "un", "una", "unos", "unas", "ella", "ellos", "personaje", "personajes"}
+
+
+def _image_qualifier(message: str, topic: str) -> str:
+    """'...con fotos de cosplayer y erocosplayers' -> 'cosplayer erocosplayers' (vacío si no hay calificador)."""
+    m = _IMG_QUALIFIER_RE.search(message or "")
+    if not m:
+        return ""
+    topic_toks = set(P._tokens(topic))
+    parts = []
+    for part in re.split(r"[;,]+|\s+y\s+|\s+e\s+", m.group(1)):
+        words = [w for w in part.split() if P._norm(w) not in _QUAL_DROP]
+        if not words or all(P._norm(w) in topic_toks for w in words) or len(words) > 3:
+            continue
+        parts.append(" ".join(words))
+    return " ".join(parts[:3])[:60]
+
+
 def find_previous_research(history: list[dict]) -> Optional[dict]:
     """Busca en el historial la última investigación que ELIPSE mostró (summary, fuentes, imágenes, tema)."""
     hist = history or []
@@ -633,6 +656,12 @@ def try_run_doc(provider, message: str, history: list[dict], emit) -> Optional["
         topic = prev.get("topic") or focus or ""     # no las palabras sueltas del mensaje ("jaja hiba")
     else:
         topic = focus or (prev or {}).get("topic") or ""
+    if not prev and P.needs_referent(message, topic):
+        # "un pdf sobre ESTE personaje": el tema está en la conversación, no en este mensaje
+        emit({"type": "progreso", "mensaje": "Entendiendo a qué te refieres..."})
+        topic = P.resolve_referent(provider, message, history) or ""
+        if not topic:
+            return None                   # sin referente confiable: que resuelva el Agent Loop con todo el historial
     if not prev and not topic:
         return None                       # sin tema confiable: que resuelva el Agent Loop
 
@@ -643,6 +672,9 @@ def try_run_doc(provider, message: str, history: list[dict], emit) -> Optional["
 
     state = {"topic": topic, "count": count, "message": img_msg, "plan": None,
              "auto": auto_items, "kind": _item_kind(message), "material": ""}
+    qualifier = "" if per_item else _image_qualifier(message, topic)
+    if qualifier:
+        state["image_query"] = f"{topic} {qualifier}"[:100]
     warnings: list[str] = []
     tools_called: list[str] = []
     images: list[dict] = []
@@ -775,4 +807,4 @@ def try_run_doc(provider, message: str, history: list[dict], emit) -> Optional["
         reply += "\n\nNotas:\n" + "\n".join(f"- {w}" for w in warnings)
     emit({"type": "chunk", "texto": reply})
     return P.PipelineOutcome(reply=reply, tools_called=tools_called, ok=ok, truncated=False,
-                             summary=f"documento {fmt} | {topic}")
+                             summary=f"documento {fmt} | {topic}")

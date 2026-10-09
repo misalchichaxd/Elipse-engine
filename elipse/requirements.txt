@@ -16,3 +16,15 @@ mcp>=2,<3
 # Documentos (PDF / Word) — app/core/documents.py
 python-docx>=1.1,<2
 reportlab>=4.2,<5
+
+# Visión — app/core/vision.py, ocr.py, gallery.py
+pillow>=10                # reducir/recortar imágenes (zoom por región), estadísticas de tipo
+onnxruntime>=1.17         # lo usa el OCR (chromadb ya lo trae, se deja explícito)
+
+# OCR en CPU (OCR_ENGINE=auto elige el que encuentre). Basta con UNO de los dos:
+rapidocr-onnxruntime>=1.3; python_version < "3.13"
+rapidocr>=2; python_version >= "3.13"
+
+# Opcional: Tesseract (mejor con tildes en documentos). Además hay que instalar el programa
+# Tesseract con el idioma 'spa' y poner OCR_ENGINE=tesseract en el .env.
+# pytesseract>=0.3.10

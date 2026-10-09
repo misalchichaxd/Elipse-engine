@@ -20,7 +20,15 @@ window.Elipse = window.Elipse || {};
   ]);
   const MAX_ATTACHMENT_BYTES = 2 * 1024 * 1024; // 2MB por archivo, generoso para código fuente
 
-  let pendingAttachments = []; // [{filename, content}]
+  // --- Imágenes (las mira el modelo de visión del backend; ver app/core/vision.py) ---
+  const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp", "gif", "bmp"]);
+  const MAX_IMAGE_BYTES = 10 * 1024 * 1024;        // espejo de VISION_MAX_UPLOAD_MB
+  const MAX_IMAGES_PER_MESSAGE = 3;                // el servidor describe como máximo 3 por mensaje
+  const IMAGE_MAX_SIDE = 1600;                     // se reduce antes de subir (el servidor la baja a 768 igual)
+  const IMAGE_RESIZE_ABOVE_BYTES = 1024 * 1024;    // por debajo de 1 MB y de 1600 px se sube tal cual
+
+  // [{filename, content, encoding, isImage?, preview?}]. `preview` es solo para la miniatura: no se envía.
+  let pendingAttachments = [];
 
   let chatHasMessages = false;
 
@@ -800,6 +808,13 @@ window.Elipse = window.Elipse || {};
     pendingAttachments.forEach((att, idx) => {
       const chip = document.createElement("div");
       chip.className = "attachment-chip";
+      if(att.preview){
+        const thumb = document.createElement("img");
+        thumb.className = "att-thumb";
+        thumb.src = att.preview;
+        thumb.alt = att.filename;
+        chip.appendChild(thumb);
+      }
       const label = document.createElement("span");
       label.textContent = att.filename;
       chip.appendChild(label);
@@ -826,12 +841,85 @@ window.Elipse = window.Elipse || {};
     });
   }
 
+  function readAsDataURL(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("No se pudo leer '" + file.name + "'."));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function loadImage(src){
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("no se pudo decodificar"));
+      img.src = src;
+    });
+  }
+
+  // Extensión efectiva de una imagen: la del nombre o, si no tiene (p. ej. pegada del portapapeles), la del MIME.
+  function imageExtOf(file){
+    const ext = extOf(file.name);
+    if(IMAGE_EXTENSIONS.has(ext)) return ext;
+    const m = /^image\/(png|jpe?g|webp|gif|bmp)$/.exec(file.type || "");
+    return m ? (m[1] === "jpeg" ? "jpg" : m[1]) : "";
+  }
+
+  // Lee la imagen como data URL y, si es grande, la reduce a JPEG (lado mayor <= 1600 px).
+  // Ahorra subida en LAN/celular. Si el navegador no puede decodificarla, se manda el original.
+  async function prepareImage(file, ext){
+    const original = await readAsDataURL(file);
+    let dataUrl = original;
+    let filename = file.name && IMAGE_EXTENSIONS.has(extOf(file.name))
+      ? file.name
+      : "captura-" + Date.now() + "." + ext;   // pegadas del portapapeles: "image.png" se repetiría
+    try{
+      const img = await loadImage(original);
+      const w = img.naturalWidth, h = img.naturalHeight;
+      if(Math.max(w, h) > IMAGE_MAX_SIDE || file.size > IMAGE_RESIZE_ABOVE_BYTES){
+        const scale = Math.min(1, IMAGE_MAX_SIDE / Math.max(w, h));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(w * scale));
+        canvas.height = Math.max(1, Math.round(h * scale));
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#fff";                     // PNG/WebP con transparencia: fondo blanco, no negro
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const jpeg = canvas.toDataURL("image/jpeg", 0.85);
+        if(jpeg.length < original.length || Math.max(w, h) > IMAGE_MAX_SIDE){
+          dataUrl = jpeg;
+          filename = filename.replace(/\.[^.]+$/, "") + ".jpg";
+        }
+      }
+    }catch(_){ /* se queda con el original */ }
+    return { filename: filename, content: dataUrl, encoding: "base64", isImage: true, preview: dataUrl };
+  }
+
   async function handleFilesSelected(fileList){
     const banner = $("#chatBanner");
     const files = Array.from(fileList || []);
     const rejected = [];
 
     for(const file of files){
+      const imgExt = imageExtOf(file);
+      if(imgExt){
+        if(pendingAttachments.filter((a) => a.isImage).length >= MAX_IMAGES_PER_MESSAGE){
+          rejected.push(file.name + " (máximo " + MAX_IMAGES_PER_MESSAGE + " imágenes por mensaje)");
+          continue;
+        }
+        if(file.size > MAX_IMAGE_BYTES){
+          rejected.push(file.name + " (la imagen pesa más de " + (MAX_IMAGE_BYTES / 1024 / 1024) + " MB)");
+          continue;
+        }
+        try{
+          pendingAttachments.push(await prepareImage(file, imgExt));
+        }catch(e){
+          rejected.push(file.name + " (error al leer la imagen)");
+        }
+        continue;
+      }
       const ext = extOf(file.name);
       if(!ALLOWED_ATTACHMENT_EXTENSIONS.has(ext)){
         rejected.push(file.name + " (." + ext + ")");
@@ -843,7 +931,7 @@ window.Elipse = window.Elipse || {};
       }
       try{
         const content = await readAsText(file);
-        pendingAttachments.push({ filename: file.name, content: content });
+        pendingAttachments.push({ filename: file.name, content: content, encoding: "text" });
       }catch(e){
         rejected.push(file.name + " (error al leer)");
       }
@@ -852,7 +940,7 @@ window.Elipse = window.Elipse || {};
     renderAttachments();
 
     if(rejected.length){
-      showBanner(banner, "Formato no compatible, aún no habilitado: " + rejected.join(", "));
+      showBanner(banner, "No se pudo adjuntar: " + rejected.join(", "));
     }else{
       showBanner(banner, "");
     }
@@ -876,6 +964,7 @@ window.Elipse = window.Elipse || {};
     const run = currentRun;
     if(!run || run.aborted) return;
     run.aborted = true;
+    Elipse.voice.stop();
     if(run.abort) run.abort();                                      // libera el WebSocket del navegador
     if(run.taskId) Elipse.api.cancelTask(run.taskId);               // corta la generación en el servidor
     setMsgContent(run.pending, (run.getText() + "\n\n⏹ *Detenido.*").trim(), "detenido por ti", run.toolEvents);
@@ -890,6 +979,9 @@ window.Elipse = window.Elipse || {};
 
   async function sendChat(){
     if(currentRun) return;
+    Elipse.voice.stop();      // corta el audio del turno anterior
+    Elipse.voice.unlock();    // este clic/Enter es el gesto que permite reproducir audio después
+    Elipse.voice.liveBegin(); // voz en vivo: empieza a hablar frase por frase mientras llega el texto
     const input = $("#chatInput");
     const log = $("#chatLog");
     const banner = $("#chatBanner");
@@ -898,7 +990,11 @@ window.Elipse = window.Elipse || {};
     const attachments = pendingAttachments.slice();
     if(!text && !attachments.length) return;
 
-    const messageToSend = text || "Revisá el/los archivo(s) adjunto(s).";
+    const hasImages = attachments.some((a) => a.isImage);
+    const onlyImages = hasImages && attachments.every((a) => a.isImage);
+    const messageToSend = text || (onlyImages
+      ? "Describe lo que ves en la imagen adjunta."
+      : "Revisá el/los archivo(s) adjunto(s).");
     const displayText = attachments.length
       ? messageToSend + "\n\n📎 " + attachments.map((a) => a.filename).join(", ")
       : messageToSend;
@@ -907,8 +1003,23 @@ window.Elipse = window.Elipse || {};
     input.value = "";
     pendingAttachments = [];
     renderAttachments();
-    appendMsg(log, "user", displayText);
-    const pending = appendPendingMsg(log, "pensando...");
+    const userDiv = appendMsg(log, "user", displayText);
+    if(hasImages){                                   // miniaturas dentro de la burbuja del usuario
+      const strip = document.createElement("div");
+      strip.className = "msg-images";
+      attachments.filter((a) => a.isImage).forEach((a) => {
+        const im = document.createElement("img");
+        im.src = a.preview;
+        im.alt = a.filename;
+        strip.appendChild(im);
+      });
+      const body = userDiv.querySelector(".msg-body");
+      if(body) body.appendChild(strip);
+      log.scrollTop = log.scrollHeight;
+    }
+    const pending = appendPendingMsg(log, hasImages
+      ? "mirando la imagen (si Ollama cambia de modelo, tarda unos segundos)..."
+      : "pensando...");
 
     let streamedText = "";
     const toolEvents = []; // eventos "verificacion" (uno por cada tool que corrió), en orden
@@ -928,7 +1039,10 @@ window.Elipse = window.Elipse || {};
         log.scrollTop = log.scrollHeight;
       };
 
-      const result = await Elipse.api.runTaskStreaming("/v1/chat", { message: messageToSend, attachments: attachments }, {
+      const result = await Elipse.api.runTaskStreaming("/v1/chat", {
+        message: messageToSend,
+        attachments: attachments.map((a) => ({ filename: a.filename, content: a.content, encoding: a.encoding || "text" })),
+      }, {
         onStart(taskId, abort){
           run.taskId = taskId;
           run.abort = abort;
@@ -940,6 +1054,7 @@ window.Elipse = window.Elipse || {};
         onChunk(texto){
           if(run.aborted) return;
           streamedText += texto;
+          Elipse.voice.liveFeed(texto);
           // throttle con requestAnimationFrame: no re-parsear markdown/código
           // en cada token, solo una vez por frame de pintado.
           if(!renderQueued){
@@ -974,9 +1089,11 @@ window.Elipse = window.Elipse || {};
       if(run.aborted) return;
 
       if(result.status === "error"){
+        Elipse.voice.stop();
         pending.remove();
         showBanner(banner, result.result?.detail || result.result?.reply || "Ocurrió un error procesando el mensaje.");
       }else if(result.status === "esperando_confirmacion"){
+        Elipse.voice.liveFinish();
         const r = result.result || {};
         const reply = r.reply || "Esta acción necesita tu confirmación.";
         setMsgContent(pending, reply, (r.provider || "") + (r.reason ? " · " + r.reason : "") + " · esperando confirmación", toolEvents);
@@ -995,6 +1112,7 @@ window.Elipse = window.Elipse || {};
           pending.appendChild(card);
         }
       }else if(result.status === "cancelado"){
+        Elipse.voice.stop();
         const r = result.result || {};
         setMsgContent(pending, r.reply || "⏹ Detenido.", "detenido", toolEvents);
       }else{
@@ -1007,9 +1125,17 @@ window.Elipse = window.Elipse || {};
         if(r.truncated) parts.push(canContinue(r) ? "cortada por límite de tokens" : "cortada por límite de tokens (no se puede continuar automáticamente)");
         setMsgContent(pending, r.reply || "", parts.join(" · "), toolEvents);
         if(canContinue(r)) addContinueButton(pending, r.reply || "");
+                // Voz en vivo: si ya fue hablando mientras se escribía, solo se vacía lo que falte y NO se
+        // reproduce el mensaje entero otra vez. Si no dijo nada (p. ej. solo código), decide el servidor.
+        const liveHandled = Elipse.voice.liveFinish();
+        if(run.taskId && r.reply){
+          Elipse.voice.attachButton(pending, run.taskId, r.reply);                 // 🔊 por mensaje
+          if(!liveHandled && r.voice && r.voice.speak) Elipse.voice.autoplay(run.taskId, r.voice); // habla sola si el servidor lo decidió
+        }
       }
     }catch(e){
       if(run.aborted) return;                    // el rechazo "abortado" es esperado al detener
+      Elipse.voice.stop();
       pending.remove();
       showBanner(banner, e.message);
     }finally{
@@ -1035,6 +1161,29 @@ window.Elipse = window.Elipse || {};
     document.addEventListener("keydown", (e) => {          // Esc también detiene
       if(e.key === "Escape" && currentRun && !document.getElementById("codeViewerOverlay")) stopChat();
     });
+
+    // Pegar una imagen del portapapeles (Ctrl+V) en el cuadro de texto.
+    input.addEventListener("paste", (e) => {
+      const imgs = Array.from((e.clipboardData && e.clipboardData.files) || []).filter((f) => (f.type || "").startsWith("image/"));
+      if(imgs.length){ e.preventDefault(); handleFilesSelected(imgs); }
+    });
+    // Arrastrar archivos o imágenes sobre el compositor.
+    const composer = document.querySelector(".composer");
+    if(composer){
+      ["dragenter", "dragover"].forEach((ev) => composer.addEventListener(ev, (e) => {
+        if(e.dataTransfer && Array.from(e.dataTransfer.types || []).includes("Files")){
+          e.preventDefault();
+          composer.classList.add("drag-over");
+        }
+      }));
+      ["dragleave", "drop"].forEach((ev) => composer.addEventListener(ev, () => composer.classList.remove("drag-over")));
+      composer.addEventListener("drop", (e) => {
+        if(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length){
+          e.preventDefault();
+          handleFilesSelected(e.dataTransfer.files);
+        }
+      });
+    }
 
     attachBtn.addEventListener("click", () => fileInput.click());
     fileInput.addEventListener("change", () => {

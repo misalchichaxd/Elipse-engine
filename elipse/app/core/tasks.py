@@ -13,7 +13,7 @@ import time
 import uuid
 from typing import Optional
 
-from app.core import codegen, research
+from app.core import codegen, research, vision, voice
 from app.core.core import ElipseCore
 from app.core.providers import build_role_provider
 
@@ -43,6 +43,10 @@ def _build_core() -> ElipseCore:
     # research_topic (tools.py) usa este, ídem.
     research.configure_provider(build_role_provider("research") or general)
 
+    # describe_image y el análisis de adjuntos visuales (vision.py). A diferencia de los otros
+    # roles NO hereda el general: un modelo de texto no puede mirar imágenes. None = sin visión.
+    vision.configure_provider(build_role_provider("vision"))
+
     return core
 
 
@@ -55,6 +59,7 @@ def describe_providers() -> dict:
         "general": _core.provider.name,
         "code": codegen._provider.name if codegen._provider else None,
         "research": research._provider.name if research._provider else None,
+        "vision": vision.provider_name(),
     }
 
 # Almacén de tareas en memoria. Se pierde si reinicias el servidor — suficiente
@@ -104,7 +109,7 @@ def _emit(task_id: str, event: dict):
         task["queue"].put(event)
 
 
-def run_agent_task(task_id: str, message: str):
+def run_agent_task(task_id: str, message: str, speak: bool | None = None):
     """
     Corre el Core para 'message' dentro de una tarea. Diseñada para correr en un
     hilo aparte (ver main.py) — nunca bloquea el servidor principal.
@@ -134,6 +139,15 @@ def run_agent_task(task_id: str, message: str):
         recent = get_recent_messages(1)
         if recent and recent[-1]["role"] == "user":
             save_message("assistant", "(respuesta detenida por el usuario)")
+
+    # Voz: se decide DESPUÉS de que la respuesta existe y nunca puede romper al agente.
+    try:
+        voice_block, voice_text = voice.plan_for_final(status, final.get("reply", ""), speak)
+    except Exception:
+        voice_block, voice_text = None, None
+    if voice_block:
+        final["voice"] = voice_block          # el cliente decide si reproduce y a qué volumen
+        task["voice_text"] = voice_text       # ya filtrado: lo único que podría salir a un proveedor en la nube
 
     task["status"] = status
     task["result"] = final

@@ -24,6 +24,9 @@ def is_risky(tool_name: str, arguments: dict):
         if target.exists():
             return True, f"Sobreescribir el archivo existente '{path}'."
 
+    if tool_name == "forget_character":
+        return True, f"Borrar de la galería visual a '{arguments.get('name', '')}' y sus imágenes de referencia."
+
     if tool_name == "run_python":
         code = str(arguments.get("code", ""))
         preview = code if len(code) <= 300 else code[:300] + "..."
@@ -98,4 +101,4 @@ def resolve_pending_action(action_id: str, approved: bool):
     conn.commit()
     conn.close()
 
-    return {"status": new_status, "result": result}
+    return {"status": new_status, "result": result}

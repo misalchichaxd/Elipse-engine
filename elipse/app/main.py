@@ -15,10 +15,15 @@ from app.core.auth import create_key, list_keys, require_api_key, require_api_ke
 from app.core.db import get_connection, init_db
 from app.core.seed_personality import seed
 from app.core.safety import list_pending_actions, resolve_pending_action
-from app.core.tools import MAX_FILE_CHARS, get_tools_schema, save_uploaded_attachment, tools_schema_to_mcp
+from app.core.tools import MAX_FILE_CHARS, get_tools_schema, save_uploaded_attachment, save_uploaded_bytes, tools_schema_to_mcp
+from app.core import vision
+import base64
+import binascii
 from app.core.tasks import cancel_task, create_task, describe_providers, get_task, run_agent_task, run_research_task
 from app.core import mcp_client, memory
-from app.core.workspace_api import router as workspace_router   
+from app.core import voice
+from app.core.voice.api import router as voice_router
+from app.core.workspace_api import router as workspace_router
 from fastapi.responses import FileResponse
 from app.core.tools import _resolve_safe_path, WORKSPACE_ROOT
 
@@ -51,6 +56,7 @@ init_db()
 seed()
 
 app.include_router(workspace_router)   # /v1/workspace/*: explorar, descargar y borrar archivos
+app.include_router(voice_router)       # /v1/voice/*
 
 
 # ---- Adjuntos de texto/código en el chat ----
@@ -68,12 +74,14 @@ ALLOWED_ATTACHMENT_EXTENSIONS = {
 
 class Attachment(BaseModel):
     filename: str
-    content: str
+    content: str  # texto plano, o base64 (con o sin prefijo data:...) si es una imagen
+    encoding: str = "text"  # informativo: las imágenes se reconocen por la extensión
 
 
 class ChatRequest(BaseModel):
     message: str
     attachments: list[Attachment] = []
+    speak: bool | None = None  # True/False fuerza hablar o callar este mensaje; None = según interruptor y modo
 
 
 class MemoryRequest(BaseModel):
@@ -109,11 +117,31 @@ def status():
         "name": settings.app_name,
         "model": providers["general"],  # se mantiene la clave "model" por compatibilidad con clientes existentes
         "providers": providers,
+        "voice": voice.brief(),
     }
 
 
 def _extension_of(filename: str) -> str:
     return filename.rsplit(".", 1)[-1].lower() if "." in filename else filename.lower()
+
+
+def _decode_image_attachment(att: Attachment) -> bytes:
+    """base64 -> bytes, con tope de tamaño y comprobando por los bytes que de verdad es una imagen."""
+    raw = att.content.strip()
+    if raw.startswith("data:") and "," in raw:
+        raw = raw.split(",", 1)[1]
+    max_bytes = settings.vision_max_upload_mb * 1024 * 1024
+    if len(raw) > max_bytes * 4 // 3 + 16:
+        raise HTTPException(status_code=413, detail=f"'{att.filename}' pesa más de {settings.vision_max_upload_mb} MB.")
+    try:
+        data = base64.b64decode(raw, validate=False)
+    except (binascii.Error, ValueError):
+        raise HTTPException(status_code=400, detail=f"'{att.filename}': el contenido de la imagen no es base64 válido.")
+    if len(data) > max_bytes:
+        raise HTTPException(status_code=413, detail=f"'{att.filename}' pesa más de {settings.vision_max_upload_mb} MB.")
+    if not vision.sniff_mime(data):
+        raise HTTPException(status_code=415, detail=f"'{att.filename}' no parece una imagen válida.")
+    return data
 
 
 def _build_message_with_attachments(message: str, attachments: list[Attachment]) -> str:
@@ -130,6 +158,13 @@ def _build_message_with_attachments(message: str, attachments: list[Attachment])
 
     notes = []
     for att in attachments:
+        if vision.is_image_filename(att.filename):
+            # Imagen: se guarda en el workspace y se anota con la marca que busca vision.py.
+            # El análisis lo hace core.py en el hilo de la tarea, no acá (cargar el modelo de
+            # visión puede tardar y esto es la petición HTTP).
+            saved_name = save_uploaded_bytes(att.filename, _decode_image_attachment(att))
+            notes.append(f"{vision.VISUAL_NOTE_PREFIX}'{saved_name}' — guardado en el workspace.")
+            continue
         ext = _extension_of(att.filename)
         if ext not in ALLOWED_ATTACHMENT_EXTENSIONS:
             raise HTTPException(
@@ -150,7 +185,7 @@ def _build_message_with_attachments(message: str, attachments: list[Attachment])
 def chat(request: ChatRequest):
     final_message = _build_message_with_attachments(request.message, request.attachments)
     task_id = create_task()
-    threading.Thread(target=run_agent_task, args=(task_id, final_message), daemon=True).start()
+    threading.Thread(target=run_agent_task, args=(task_id, final_message, request.speak), daemon=True).start()
 
     return {
         "task_id": task_id,

@@ -229,6 +229,81 @@ def fallback_topic(message: str) -> Optional[str]:
     return None
 
 
+# ---------------------------------------------------------------- referencias ("este personaje", "ella")
+#
+# fallback_topic() y compañía sacan el tema SOLO del mensaje actual. Con «hazme un pdf sobre este
+# personaje» eso deja la palabra suelta «personaje» y se pierde de quién se hablaba. Estas funciones
+# detectan esa referencia y la resuelven con el historial; si no se puede con confianza, el que
+# llama debe abandonar el pipeline y dejar que el Agent Loop lo resuelva con la conversación entera.
+
+_DEICTIC_TOPIC_RE = re.compile(
+    r"\b(?:sobre|acerca\s+de|de|del|para)\s+(?:este|esta|ese|esa|aquel|aquella|estos|estas|esos|esas)\s+\w+"
+    r"|\b(?:sobre|acerca\s+de|de)\s+(?:ella|[eé]l|ellos|ellas)\b", re.I)
+_GENERIC_TOPIC_WORDS = {"personaje", "personajes", "tema", "temas", "cosa", "cosas", "chica", "chico",
+                        "ella", "el", "esto", "eso", "imagen", "imagenes", "foto", "fotos"}
+# nombres que ya confirmó la galería visual (vision.py / gallery.py) en un mensaje del historial
+_GALLERY_NAME_RE = re.compile(r"(?:Coincidencia en mi galería:|Aprendí a)\s*«([^»]{2,60})»")
+
+
+def needs_referent(message: str, topic: str = "") -> bool:
+    """¿El tema del pedido es una referencia a la conversación ('este personaje', 'ella') y no un tema propio?"""
+    if _DEICTIC_TOPIC_RE.search(message or ""):
+        return True
+    toks = re.findall(r"[a-z0-9]+", _norm(topic))
+    return bool(toks) and all(t in _GENERIC_TOPIC_WORDS for t in toks)
+
+
+def _clean_referent(raw: str) -> str:
+    for line in (raw or "").splitlines():
+        line = re.sub(r"^\s*(?:tema|respuesta|personaje)\s*:\s*", "", line.strip(), flags=re.I)
+        line = line.strip(" \t\"'`*_«».,;:!?()")
+        if line:
+            return " ".join(line.split()[:8])[:80]
+    return ""
+
+
+def resolve_referent(provider, message: str, history: list, max_turns: int = 8) -> Optional[str]:
+    """
+    A quién/qué se refiere «este personaje»/«ella»/«eso» mirando los últimos turnos. Devuelve el
+    nombre o tema concreto, o None si no se puede saber con confianza. Orden de fiabilidad:
+      1) un nombre que la galería visual ya confirmó en la conversación (sin gastar el modelo);
+      2) una pregunta corta al modelo, cuya respuesta se ACEPTA solo si aparece en la conversación
+         (anti-alucinación, mismo criterio que topic_matches_message para el plan).
+    """
+    recent = [m for m in (history or []) if m.get("role") in ("user", "assistant")][-max_turns:]
+    if not recent:
+        return None
+    for m in reversed(recent):
+        found = _GALLERY_NAME_RE.findall(m.get("content") or "")
+        if found:
+            return found[-1].strip()
+
+    lines = []
+    for m in recent:
+        who = "Usuario" if m["role"] == "user" else "Asistente"
+        lines.append(f"{who}: {' '.join((m.get('content') or '').split())[:500]}")
+    convo = "\n".join(lines)
+    prompt = (
+        "Lee esta conversación y el pedido final. El pedido usa una referencia (\"este personaje\", \"ella\", \"eso\"...). "
+        "¿A qué persona, personaje o tema CONCRETO se refiere? Responde SOLO con su nombre propio o tema "
+        "(máximo 8 palabras), tal como aparece en la conversación, sin explicación ni comillas. "
+        "Si la conversación no lo deja claro, responde exactamente: NINGUNO.\n\n"
+        f"Conversación:\n{convo}\n\nPedido: {message}\n\nRespuesta:"
+    )
+    try:
+        raw = strip_think_blocks(provider.chat([{"role": "user", "content": prompt}], allow_tools=False).content or "")
+    except Exception as e:
+        logging.getLogger("elipse").warning("resolve_referent: falló el modelo: %s", e)
+        return None
+    topic = _clean_referent(raw)
+    if not topic or _norm(topic) in ("ninguno", "ninguna", "no se", "no lo se", "no esta claro"):
+        return None
+    if not topic_matches_message(topic, convo):
+        logging.getLogger("elipse").info("resolve_referent: descarté '%s' (no aparece en la conversación)", topic)
+        return None
+    return topic
+
+
 def _count_from_message(message: str) -> Optional[int]:
     m = COUNT_PATTERN.search(message)
     if not m:
@@ -569,7 +644,10 @@ def build_plan(provider, message: str, has_prev_code: bool, followup_topic: str 
         message=message.strip()[:MAX_PLAN_MESSAGE_CHARS].replace('"', "'"),
     )
     try:
-        result = provider.chat([{"role": "user", "content": prompt}], allow_tools=False)
+        # El plan es un JSON de pocas líneas: tope de salida chico (más rápido en una RTX 2050).
+        planner = (provider.with_limits(settings.ollama_planner_num_predict)
+                   if hasattr(provider, "with_limits") else provider)
+        result = planner.chat([{"role": "user", "content": prompt}], allow_tools=False)
     except Exception:
         return None
     data = _extract_json(result.content)
@@ -670,18 +748,19 @@ def _step_images(state: dict, emit: EmitFn) -> dict:
     if state.get("items"):
         return _step_item_images(state, emit)
     topic, count = state["topic"], state["count"]
+    query = state.get("image_query") or topic    # tema + calificador del pedido ("... cosplay"), si lo hay
     # "metele otras 5 fotos": las que la página ya tiene no cuentan (se piden de más y se descartan las repetidas)
     present = {m.group(2) for m in IMG_SRC_RE.finditer(state.get("existing_code", "") or "")}
     present |= {m.group(2) for m in CSS_BG_RE.finditer(state.get("existing_code", "") or "")}
     want = min(count + IMAGE_SPARE + len(present), MAX_COUNT_SEARCH)
-    emit({"type": "progreso", "mensaje": f"Buscando imágenes de: {topic}..."})
-    args = {"query": topic, "count": want}
-    output = search_images(query=topic, count=want)
+    emit({"type": "progreso", "mensaje": f"Buscando imágenes de: {query}..."})
+    args = {"query": query, "count": want}
+    output = search_images(query=query, count=want)
     ok = _emit_verification(emit, "search_images", args, output)
     items = [it for it in (_parse_images(output) if ok else []) if it["url"] not in present]
 
     if not items:  # una sola reformulación determinística, no un reintento del modelo
-        args = {"query": f"{topic} images", "count": want}
+        args = {"query": f"{query} images", "count": want}
         output = search_images(query=args["query"], count=want)
         ok = _emit_verification(emit, "search_images", args, output)
         items = [it for it in (_parse_images(output) if ok else []) if it["url"] not in present]
@@ -1131,4 +1210,4 @@ def try_run(provider, message: str, history: list[dict], emit: EmitFn) -> Option
         outcome = PipelineOutcome(reply=f"Error ejecutando el pipeline: {e}", tools_called=[],
                                   ok=False, truncated=False, summary=f"error: {e}")
     emit({"type": "chunk", "texto": outcome.reply})
-    return outcome
+    return outcome

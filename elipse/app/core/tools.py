@@ -18,6 +18,7 @@ from app.core import mcp_client, memory
 from app.core.codegen import run_code_generation
 from app.core.documents import generate_document
 from app.core.research import run_research_pipeline
+from app.core import gallery, vision
 
 # ---- Carpeta restringida: nada fuera de acá se puede tocar ----
 
@@ -42,6 +43,23 @@ def save_uploaded_attachment(filename: str, content: str) -> str:
         safe_name = target.name
     target.write_text(content, encoding="utf-8")
     return safe_name
+
+
+def save_uploaded_bytes(filename: str, data: bytes) -> str:
+    """Igual que save_uploaded_attachment pero para binarios (imágenes): mismo saneo de nombre
+    y mismo criterio de no pisar archivos existentes."""
+    safe_name = Path(filename).name
+    target = _resolve_safe_path(safe_name)
+    if target.exists():
+        stem, suf, i = target.stem, target.suffix, 1
+        while target.exists():
+            target = target.with_name(f"{stem}_{i}{suf}")
+            i += 1
+        safe_name = target.name
+    target.write_bytes(data)
+    return safe_name
+
+
 def _resolve_safe_path(relative_path: str) -> Path:
     """
     Convierte una ruta relativa en una ruta absoluta dentro de WORKSPACE_ROOT,
@@ -877,7 +895,120 @@ def write_document(filename: str, content: str, format: str = "pdf", title: str 
     )
 
 
+def describe_image(path: str, question: str = "", region: str = "") -> str:
+    return vision.describe_image(path, question, region)
+
+
+def read_image_text(path: str, region: str = "", page: int = 1) -> str:
+    return vision.read_image_text(path, region, page)
+
+
+def learn_character(name: str, path: str = "", notes: str = "", from_web: bool = False) -> str:
+    return gallery.learn(name, path, notes, from_web)
+
+
+def identify_character(path: str, region: str = "") -> str:
+    return gallery.identify(path, region)
+
+
+def forget_character(name: str) -> str:
+    return gallery.forget(name)
+
+
+_REGION_DESC = ("Zona a mirar de cerca (zoom): arriba, abajo, izquierda, derecha, centro, arriba-izquierda, "
+                "abajo-derecha..., tercio-1/2/3 (capturas largas). Vacío = toda la imagen.")
+
+TOOLS_SCHEMA.extend([
+    {
+        "type": "function",
+        "function": {
+            "name": "describe_image",
+            "description": ("Mira una imagen guardada en el workspace (png, jpg, webp, gif) con el modelo de visión y el OCR: "
+                            "devuelve lo que ve y el texto que aparezca. Úsala para preguntas nuevas sobre un adjunto "
+                            "o para acercar una zona con 'region'."),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Nombre del archivo de imagen en el workspace, ej: 'captura.png'."},
+                    "question": {"type": "string", "description": "Qué quieres saber de la imagen. Vacío = descripción general."},
+                    "region": {"type": "string", "description": _REGION_DESC},
+                },
+                "required": ["path"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "read_image_text",
+            "description": ("Extrae el texto de una imagen del workspace con OCR (rápido, sin el modelo de visión). "
+                            "Para transcribir, copiar o leer lo que dice un adjunto. Si el texto es largo, pide la siguiente 'page'."),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Nombre del archivo de imagen en el workspace."},
+                    "region": {"type": "string", "description": _REGION_DESC},
+                    "page": {"type": "integer", "description": "Página del texto (empieza en 1) si es largo."},
+                },
+                "required": ["path"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "identify_character",
+            "description": ("Intenta reconocer un personaje, mascota, figura u objeto de una imagen del workspace comparándolo con "
+                            "la galería de lo que ELIPSE aprendió. No identifica personas reales por su rostro."),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Nombre del archivo de imagen en el workspace."},
+                    "region": {"type": "string", "description": _REGION_DESC},
+                },
+                "required": ["path"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "learn_character",
+            "description": ("Aprende un personaje, mascota, figura u objeto para reconocerlo después: guarda su nombre y su diseño. "
+                            "Con 'path' aprende de una imagen del usuario; con from_web=true lo investiga en internet. "
+                            "Úsala también cuando el usuario te corrija o te diga quién es."),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Nombre del personaje o cosa, ej: 'Shinobu Kocho'."},
+                    "path": {"type": "string", "description": "Imagen del workspace de ese personaje (opcional)."},
+                    "notes": {"type": "string", "description": "Datos extra que dijo el usuario (opcional)."},
+                    "from_web": {"type": "boolean", "description": "true = investigar en internet cómo es y traer referencias."},
+                },
+                "required": ["name"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "forget_character",
+            "description": "Borra de la galería un personaje aprendido (y sus imágenes de referencia). Pide confirmación al usuario.",
+            "parameters": {
+                "type": "object",
+                "properties": {"name": {"type": "string", "description": "Nombre exacto del personaje a olvidar."}},
+                "required": ["name"],
+            },
+        },
+    },
+])
+
 TOOL_FUNCTIONS = {
+    "describe_image": describe_image,
+    "read_image_text": read_image_text,
+    "learn_character": learn_character,
+    "identify_character": identify_character,
+    "forget_character": forget_character,
     "get_current_datetime": get_current_datetime,
     "calculate": calculate,
     "list_files": list_files,
@@ -902,6 +1033,96 @@ def get_tools_schema() -> list:
     los servidores MCP se conectan después de importar este módulo.
     """
     return TOOLS_SCHEMA + mcp_client.manager.tool_schemas()
+
+
+# ---- Catálogo compacto para modelos locales (contexto chico) ----
+# El catálogo completo son ~12.800 caracteres (~3600 tokens). Para un modelo de 4B con
+# 4096 de contexto eso es casi la mitad. Acá se manda solo lo que el pedido necesita,
+# con descripciones recortadas (las reglas críticas ya van en el system prompt compacto).
+
+_CORE_TOOLS = ("get_current_datetime", "calculate", "read_file", "write_file", "search_web", "remember")
+
+_TOOL_TRIGGERS = {
+    "write_code": ("código", "codigo", "script", "snippet", "programa", "función", "funcion", "página",
+                   "pagina", "html", "css", "javascript", "python", "java", "app", "aplicaci", "clase",
+                   "metele", "agregale", "cambiale", "modific", "hover", "galer", "sitio", "landing", "collage"),
+    "search_images": ("imagen", "imágen", "foto", "galería", "galeria", "collage", "wallpaper", "logo", "ícono", "icono"),
+    "research_topic": ("investig", "research", "averigua", "cómo funciona", "como funciona"),
+    "run_python": ("ejecuta", "ejecutá", "corre ", "corré", "correr", "python", "calcula"),
+    "read_url": ("http://", "https://", "www.", "url", "link", "enlace"),
+    "write_document": ("informe", "documento", "pdf", "word", "docx", "ensayo", "reporte", "monograf"),
+    "recall": ("recuerd", "recordá", "memoria", "qué sabes", "que sabes", "te conté", "te dije"),
+    "list_files": ("archivos", "carpeta", "workspace", "directorio"),
+    "describe_image": ("adjunto visual", "qué ves", "que ves", "describe la", "describe esta", "mira la",
+                       "mira esta", "captura", "screenshot", ".png", ".jpg", ".jpeg", ".webp", ".gif",
+                       "zoom", "acerca", "amplía", "amplia", "esquina", "parte de arriba", "parte de abajo"),
+    "read_image_text": ("adjunto visual", "qué dice", "que dice", "lee el texto", "lee esto", "transcrib",
+                        "extrae el texto", " ocr", "ocr de", "texto de la", "texto de esta", "page=2"),
+    "identify_character": ("quién es", "quien es", "qué personaje", "que personaje", "reconoce", "identifica",
+                           "personaje"),
+    "learn_character": ("aprende", "aprendé", "este es", "esta es", "se llama", "personaje", "galería visual",
+                        "galeria visual", "no es, es", "no, es"),
+    "forget_character": ("olvida a", "olvidá a", "olvida el personaje", "olvidá el personaje",
+                         "borra el personaje", "elimina el personaje"),
+}
+
+
+def select_tools_for_message(message: str, schema: list, max_tools: int = 8,
+                             extra: tuple = (), history_has_code: bool = False) -> list:
+    """Subconjunto del catálogo para este turno: tools base + las que el mensaje sugiere
+    (+ las que pida `extra`, p. ej. las de REQUIRED_TOOLS). Las de MCP entran solo si el
+    mensaje las nombra o si todavía sobra lugar bajo `max_tools`. Conserva el orden original."""
+    low = (message or "").lower()
+    wanted = set(_CORE_TOOLS) | set(extra)
+    for name, words in _TOOL_TRIGGERS.items():
+        if any(w in low for w in words):
+            wanted.add(name)
+    if history_has_code and any(w in low for w in ("metele", "agregale", "cambiale", "modific", "mejor", "ahora")):
+        wanted.add("write_code")
+    if low.startswith("archivo adjunto"):
+        wanted.update(("read_file", "write_file"))
+
+    chosen, mcp = [], []
+    for tool in schema:
+        name = tool.get("function", {}).get("name", "")
+        if name in TOOL_FUNCTIONS:
+            if name in wanted:
+                chosen.append(tool)
+        else:
+            mcp.append((name, tool))
+    for name, tool in mcp:
+        if name.lower() in low or len(chosen) < max_tools:
+            chosen.append(tool)
+    return chosen
+
+
+def _clip_sentence(text: str, limit: int) -> str:
+    text = " ".join((text or "").split())
+    if len(text) <= limit:
+        return text
+    cut = text[:limit]
+    dot = cut.rfind(". ")
+    if dot >= limit * 0.5:
+        return cut[:dot + 1]
+    return cut.rstrip() + "…"
+
+
+def compact_tool_schema(tool: dict, desc_chars: int = 150, param_chars: int = 80) -> dict:
+    """Copia de la tool con descripciones recortadas. No toca nombres, tipos ni 'required'."""
+    import copy
+    out = copy.deepcopy(tool)
+    fn = out.get("function", {})
+    fn["description"] = _clip_sentence(fn.get("description", ""), desc_chars)
+    for prop in (fn.get("parameters") or {}).get("properties", {}).values():
+        if isinstance(prop, dict) and prop.get("description"):
+            prop["description"] = _clip_sentence(prop["description"], param_chars)
+    return out
+
+
+def get_tools_schema_compact(message: str, max_tools: int = 8, extra: tuple = (),
+                             history_has_code: bool = False) -> list:
+    chosen = select_tools_for_message(message, get_tools_schema(), max_tools, tuple(extra), history_has_code)
+    return [compact_tool_schema(t) for t in chosen]
 
 
 def execute_tool(name: str, arguments: dict):
@@ -1033,4 +1254,4 @@ def tools_schema_to_mcp(schema: list | None = None):
             "description": fn["description"],
             "inputSchema": fn["parameters"],
         })
-    return mcp_tools
+    return mcp_tools
