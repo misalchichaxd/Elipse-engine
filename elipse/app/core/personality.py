@@ -1,5 +1,10 @@
 from app.core.db import get_connection
 
+# Los hechos acotados evitan que el system prompt crezca sin límite.
+FACTS_LIMIT_COMPACT = 12
+FACTS_LIMIT_FULL = 40
+FACT_CHARS_COMPACT = 220
+
 
 COMPACT_TOOL_RULES = "\n".join([
     "- Para CUALQUIER pedido de código llamá a write_code (una sola vez por turno) y pegá en tu respuesta el código EXACTO que devolvió, en un bloque de código. No lo escribas vos.",
@@ -27,7 +32,10 @@ def build_system_prompt(compact: bool = False) -> str:
     cur.execute("SELECT rule FROM style_rules")
     rules = cur.fetchall()
 
-    cur.execute("SELECT content FROM facts ORDER BY id DESC")
+    cur.execute(
+        "SELECT content FROM (SELECT id, content FROM facts ORDER BY id DESC LIMIT ?) ORDER BY id ASC",
+        (FACTS_LIMIT_COMPACT if compact else FACTS_LIMIT_FULL,),
+    )
     facts = cur.fetchall()
 
     conn.close()
@@ -46,7 +54,13 @@ def build_system_prompt(compact: bool = False) -> str:
 
     traits_text = "\n".join(f"- {t['name']}: {t['value']}" for t in traits)
     rules_text = "\n".join(f"- {r['rule']}" for r in rules)
-    facts_text = "\n".join(f"- {f['content']}" for f in facts) if facts else "(sin hechos guardados todavía)"
+    def _fact_line(content: str) -> str:
+        content = content or ""
+        if compact and len(content) > FACT_CHARS_COMPACT:
+            content = content[:FACT_CHARS_COMPACT].rstrip() + "…"
+        return f"- {content}"
+
+    facts_text = "\n".join(_fact_line(f["content"]) for f in facts) if facts else "(sin hechos guardados todavía)"
 
     tool_rules_text = "\n".join([
         "- Cuando uses run_python (o cualquier otra herramienta) para resolver algo, tu respuesta "
@@ -202,4 +216,4 @@ def build_system_prompt(compact: bool = False) -> str:
         facts_text,
     ]
 
-    return "\n".join(prompt_parts)
+    return "\n".join(prompt_parts)

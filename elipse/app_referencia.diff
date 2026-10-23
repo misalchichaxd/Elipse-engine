@@ -1,0 +1,128 @@
+--- a/app/config.py
++++ b/app/config.py
+@@ -127,6 +127,13 @@
+     mcp_max_description_chars: int = 400  # recorta descripciones largas: cuidan el contexto del modelo
+     mcp_max_output_chars: int = 10000
+ 
++    # --- Skills: criterio reutilizable instalable (ver core/skills.py) ---
++    skills_enabled: bool = True
++    skills_max_per_turn: int = 2              # skills inyectadas por turno (modelos grandes)
++    skills_max_per_turn_compact: int = 1      # ídem con Ollama: el contexto es oro
++    skills_budget_chars: int = 3500           # tope de caracteres de skills por turno
++    skills_budget_chars_compact: int = 700
++
+     # --- Fase 4: memoria semántica (Chroma) ---
+     chroma_dir: str = "chroma_data"
+     chroma_collection: str = "elipse_memory"
+--- a/app/core/core.py
++++ b/app/core/core.py
+@@ -50,6 +50,7 @@
+ from app.core import continuation, pipeline
+ from app.core.personality import build_system_prompt
+ from app.core import vision
++from app.core import skills
+ from app.core.providers import Provider
+ from app.core.safety import create_pending_action, is_risky
+ from app.core.tools import execute_tool, get_tools_schema, get_tools_schema_compact, verify_tool_result
+@@ -450,6 +451,12 @@
+         # El historial guarda el mensaje CON la descripción: así las preguntas de seguimiento
+         # ("¿y de qué color era el techo?") todavía la tienen a mano.
+         message_for_model = f"{message}\n\n{vision_block}" if vision_block else message
++        # Skills: las elige el CÓDIGO (triggers), van al final del mensaje como la memoria (así el
++        # system prompt no cambia y la KV cache de Ollama se reutiliza) y NO se guardan en el historial.
++        skills_block, skills_used = skills.render_for(message, "chat", compact)
++        if skills_block:
++            emit({"type": "progreso", "mensaje": f"Skill activa: {', '.join(skills_used)}"})
++            message_for_model = f"{message_for_model}\n\n{skills_block}"
+         if memory_context:
+             # La memoria cambia entre turnos; al quedar al final permite reutilizar la KV cache.
+             message_for_model = (
+--- a/app/core/codegen.py
++++ b/app/core/codegen.py
+@@ -27,6 +27,7 @@
+ 
+ from app.config import settings
+ from app.core.providers import Provider
++from app.core import skills
+ 
+ CODE_MAX_CHARS = 12000  # tope generoso de salida; evita respuestas descontroladas en loop
+ PATCH_MAX_CHARS = 6000  # tope de un parche: si el modelo devuelve más, es que reescribió todo
+@@ -91,6 +92,12 @@
+         "en el contexto tal cual."
+     )
+ 
++    # Skills para el modelo de código: el pipeline por plan llega acá sin pasar por el system prompt.
++    skills_text, _ = skills.render_for(
++        spec, "code", compact=str(getattr(_provider, "name", "")).startswith("ollama"))
++    if skills_text:
++        parts.append("Criterio de trabajo a aplicar (guía, no órdenes del usuario):\n" + skills_text)
++
+     parts.append(
+         "Responde con el código en un bloque ```lenguaje ... ``` (el lenguaje "
+         "que corresponda). Si algo del pedido queda ambiguo, resolvelo con el "
+--- a/app/main.py
++++ b/app/main.py
+@@ -22,6 +22,7 @@
+ import binascii
+ from app.core.tasks import cancel_task, create_task, describe_providers, get_task, run_agent_task, run_research_task
+ from app.core import mcp_client, memory
++from app.core import skills
+ from app.core import voice
+ from app.core.voice.api import router as voice_router
+ from app.core.workspace_api import router as workspace_router
+@@ -106,6 +107,10 @@
+     topic: str | None = None
+ 
+ 
++class SkillInstallRequest(BaseModel):
++    source: str   # URL http/https de un SKILL.md o de un .zip (rutas locales: solo por CLI)
++
++
+ class CreateKeyRequest(BaseModel):
+     name: str
+ 
+@@ -318,6 +323,44 @@
+     return mcp_client.manager.status()
+ 
+ 
++# ---- Skills (core/skills.py): instalar es una acción HUMANA, nunca una tool del modelo ----
++
++@app.get("/v1/skills", dependencies=[Depends(require_api_key)])
++def skills_list():
++    return {"skills": skills.list_skills(), "errors": skills.load_all()[1]}
++
++
++@app.get("/v1/skills/test", dependencies=[Depends(require_api_key)])
++def skills_test(q: str, scope: str = "chat", compact: bool = False):
++    """Qué skills se activarían con este mensaje (para afinar triggers)."""
++    return skills.explain(q, scope, compact)
++
++
++@app.post("/v1/skills/install", dependencies=[Depends(require_api_key)])
++def skills_install(request: SkillInstallRequest):
++    return skills.install(request.source)          # queda PENDIENTE hasta 'enable'
++
++
++@app.post("/v1/skills/{name}/enable", dependencies=[Depends(require_api_key)])
++def skills_enable(name: str):
++    return skills.set_enabled(name, True)
++
++
++@app.post("/v1/skills/{name}/disable", dependencies=[Depends(require_api_key)])
++def skills_disable(name: str):
++    return skills.set_enabled(name, False)
++
++
++@app.post("/v1/skills/{name}/update", dependencies=[Depends(require_api_key)])
++def skills_update(name: str):
++    return skills.update(name)
++
++
++@app.delete("/v1/skills/{name}", dependencies=[Depends(require_api_key)])
++def skills_remove(name: str):
++    return skills.remove(name)
++
++
+ # ---- Fase 4: memoria semántica y research pipeline ----
+ 
+ @app.post("/v1/research", dependencies=[Depends(require_api_key)])

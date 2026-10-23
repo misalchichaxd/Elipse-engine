@@ -1,0 +1,124 @@
+--- a/launcher/app.py
++++ b/launcher/app.py
+@@ -37,6 +37,7 @@
+ from .settings_window import Settings
+ from .setup_dialog import SetupDialog
+ from .theme import C, FB, FD
++from .nav import Navigator, Page
+ from .uiqueue import UIQ, ui
+ from .widgets import Pill, lbl, style_ttk
+ 
+@@ -54,6 +55,13 @@
+         self.protocol("WM_DELETE_WINDOW", self.close)
+         self.report_callback_exception = self._report_callback_exception
+ 
++        # Navegación: inicio y páginas (Ajustes, Voz, Skills…) comparten esta misma ventana
++        self.stage = tk.Frame(self, bg=C["bg"])
++        self.stage.pack(fill="both", expand=True)
++        self.home = tk.Frame(self.stage, bg=C["bg"])
++        self.home.pack(fill="both", expand=True)
++        self.nav = Navigator(self, self.home)
++
+         # Carpetas, .env y avisos de dependencias (no bloquea la UI)
+         self._setup_notes, self._missing_py = ensure_project_layout()
+ 
+@@ -63,7 +71,7 @@
+         ]
+         self.svc = {s.key: s for s in self.services}
+ 
+-        hd = tk.Canvas(self, width=640, height=112, bg=C["bg"], highlightthickness=0)
++        hd = tk.Canvas(self.home, width=640, height=112, bg=C["bg"], highlightthickness=0)
+         hd.pack()
+         hd.create_polygon(theme.cookie(62, 58, 32, amp=0.12), fill=C["primary_c"], outline="")
+         hd.create_polygon([c for x, y in theme.BOLT for c in (62 + x * 1.1, 58 + y * 1.1)], fill=C["warm"], outline="")
+@@ -72,16 +80,16 @@
+         hd.create_window(620, 58, window=Pill(hd, "Ajustes", self.open_settings, height=42), anchor="e")
+ 
+         for s in self.services:
+-            s.card = Card(self, s)
++            s.card = Card(self.home, s)
+             s.card.pack(pady=7)
+             s.card.refresh()
+ 
+-        bar = tk.Frame(self, bg=C["bg"])
++        bar = tk.Frame(self.home, bg=C["bg"])
+         bar.pack(fill="x", padx=20, pady=(12, 0))
+         self.all_btn = Pill(bar, "Iniciar todo", self.toggle_all, kind="filled", width=170, height=48)
+         self.all_btn.pack(side="right")
+         Pill(bar, "Abrir consola", self.open_console, kind="tonal", height=48).pack(side="right", padx=10)
+-        lbl(self, "Al cerrar el panel, lo que iniciaste aquí sigue corriendo. Usa Detener para apagarlo.",
++        lbl(self.home, "Al cerrar el panel, lo que iniciaste aquí sigue corriendo. Usa Detener para apagarlo.",
+             fg=C["dim"], wrap=600).pack(anchor="w", padx=24, pady=(16, 0))
+ 
+         self.toast_lbl = tk.Label(self, bg="#322F35", fg=C["text"], font=FB, padx=20, pady=11)
+@@ -160,7 +168,10 @@
+     def _single(self, key, make):
+         w = self._win.get(key)
+         if w and w.winfo_exists():
+-            w.lift()
++            if isinstance(w, Page):
++                self.nav.show(w)        # ya está abierta: volver a ella
++            else:
++                w.lift()                # ventanas aparte (logs)
+         else:
+             self._win[key] = make()
+ 
+--- a/launcher/provider_dialog.py
++++ b/launcher/provider_dialog.py
+@@ -32,6 +32,7 @@
+ )
+ from .theme import C, FMONO, FT
+ from .uiqueue import ui
++from .nav import Page
+ from .widgets import Pill, Surface, field, lbl, safe_grab
+ 
+ OPENAI_PRESETS = {
+@@ -99,8 +100,8 @@
+     return f"{label}" + (f" · {model}" if model else "")
+ 
+ 
+-class ProviderDialog(tk.Toplevel):
+-    """Ventana modal: configura el proveedor de un solo rol y guarda al cerrar."""
++class ProviderDialog(Page):
++    """Página: configura el proveedor de un solo rol y guarda al cerrar."""
+ 
+     WIDTH = 780
+ 
+--- a/launcher/voice_dialog.py
++++ b/launcher/voice_dialog.py
+@@ -23,6 +23,7 @@
+ from .paths import ROOT
+ from .theme import C
+ from .uiqueue import ui
++from .nav import Page
+ from .widgets import Pill, Surface, field, lbl, safe_grab
+ 
+ MODES = (("off", "Apagada"), ("manual", "Manual"), ("smart", "Inteligente"), ("always", "Siempre"))
+@@ -86,7 +87,7 @@
+         pass                                    # la tabla se crea la primera vez que el core usa la voz
+ 
+ 
+-class VoiceDialog(tk.Toplevel):
++class VoiceDialog(Page):
+     WIDTH = 780
+ 
+     def __init__(self, app, on_saved=None):
+--- a/launcher/settings_window.py
++++ b/launcher/settings_window.py
+@@ -12,6 +12,7 @@
+ from .process_utils import lan_ip, run_keys
+ from .paths import PORT
+ from .provider_dialog import ROLES, ProviderDialog, role_summary
++from .nav import Page
+ from .skills_dialog import SkillsDialog, skills_summary
+ from .theme import C, FB, FBB, FDS, FMONO, FT
+ from .uiqueue import ui
+@@ -19,7 +20,7 @@
+ from .widgets import Pill, Surface, lbl
+ 
+ 
+-class Settings(tk.Toplevel):
++class Settings(Page):
+     WIDTH = 780
+ 
+     def __init__(self, app):

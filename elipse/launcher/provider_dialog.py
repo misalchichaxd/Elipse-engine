@@ -32,7 +32,8 @@ from .network import (
 )
 from .theme import C, FMONO, FT
 from .uiqueue import ui
-from .widgets import Pill, Surface, field, lbl
+from .nav import Page
+from .widgets import Pill, Surface, field, lbl, safe_grab
 
 OPENAI_PRESETS = {
     "Mistral": ("https://api.mistral.ai/v1", "Usa «Obtener modelos». La capa gratuita tiene límites bajos."),
@@ -99,8 +100,8 @@ def role_summary(prefix: str) -> str:
     return f"{label}" + (f" · {model}" if model else "")
 
 
-class ProviderDialog(tk.Toplevel):
-    """Ventana modal: configura el proveedor de un solo rol y guarda al cerrar."""
+class ProviderDialog(Page):
+    """Página: configura el proveedor de un solo rol y guarda al cerrar."""
 
     WIDTH = 780
 
@@ -114,7 +115,7 @@ class ProviderDialog(tk.Toplevel):
         self.configure(bg=C["bg"])
         self.resizable(False, False)
         self.transient(app)
-        self.grab_set()
+        safe_grab(self)
 
         env = env_dict()
         is_vision = self.is_vision = prefix == VISION_PREFIX

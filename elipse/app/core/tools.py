@@ -813,6 +813,16 @@ _WIKI_HEADERS = {"User-Agent": "ELIPSE-research/1.0 (asistente local; https://lo
 _WIKI_URL_RE = re.compile(r"^https?://([a-z\-]+)\.wikipedia\.org/wiki/([^#?]+)", re.I)
 
 
+# Cliente compartido: reutiliza conexiones entre lecturas y descargas.
+_HTTP = httpx.Client(
+    timeout=15,
+    follow_redirects=False,
+    limits=httpx.Limits(max_connections=10, max_keepalive_connections=5, keepalive_expiry=60),
+)
+MAX_DOWNLOAD_BYTES = 10_000_000
+MAX_PAGE_BYTES = 2_000_000
+
+
 def _wikipedia_text(url: str):
     """Texto plano del artículo vía la API oficial de Wikipedia (limpio y sin bloqueos). None si no aplica/falla."""
     m = _WIKI_URL_RE.search(url or "")
@@ -820,7 +830,7 @@ def _wikipedia_text(url: str):
         return None
     lang, title = m.group(1).lower(), unquote(m.group(2)).replace("_", " ")
     try:
-        r = httpx.get(f"https://{lang}.wikipedia.org/w/api.php", timeout=15, headers=_WIKI_HEADERS, params={
+        r = _HTTP.get(f"https://{lang}.wikipedia.org/w/api.php", headers=_WIKI_HEADERS, params={
             "action": "query", "prop": "extracts", "explaintext": 1, "exsectionformat": "plain",
             "redirects": 1, "titles": title, "format": "json"})
         r.raise_for_status()
@@ -831,17 +841,25 @@ def _wikipedia_text(url: str):
     return (text or "").strip() or None
 
 
-def _safe_get(url: str, max_hops: int = 4):
+def _safe_get(url: str, max_hops: int = 4, max_bytes: int = MAX_DOWNLOAD_BYTES):
+    """GET con validación SSRF por salto y descarga limitada en memoria."""
     for _ in range(max_hops + 1):
         if not _is_public_url(url):
             raise ValueError("URL no permitida (red privada o esquema inválido).")
-        r = httpx.get(url, timeout=15, follow_redirects=False, headers=_BROWSER_HEADERS)
-        if r.is_redirect and r.headers.get("location"):
-            url = str(httpx.URL(url).join(r.headers["location"]))
-            continue
-        return r
+        with _HTTP.stream("GET", url, headers=_BROWSER_HEADERS) as r:
+            if r.is_redirect and r.headers.get("location"):
+                url = str(httpx.URL(url).join(r.headers["location"]))
+                continue
+            body = bytearray()
+            for chunk in r.iter_bytes():
+                body.extend(chunk)
+                if len(body) >= max_bytes:
+                    del body[max_bytes:]
+                    break
+            headers = {k: v for k, v in r.headers.items()
+                       if k.lower() not in ("content-encoding", "content-length", "transfer-encoding")}
+            return httpx.Response(r.status_code, headers=headers, content=bytes(body), request=r.request)
     raise ValueError("Demasiadas redirecciones.")
-
 
 def read_url(url: str):
     if not url or not _is_public_url(url.strip()):
@@ -850,7 +868,7 @@ def read_url(url: str):
     text = _wikipedia_text(url)                    # Wikipedia: API oficial, más limpia que parsear el HTML
     if not text:
         try:
-            r = _safe_get(url)
+            r = _safe_get(url, max_bytes=MAX_PAGE_BYTES)
             r.raise_for_status()
         except httpx.HTTPStatusError as e:
             return f"Error al descargar la página: HTTP {e.response.status_code} (el sitio bloquea lectores automáticos)."
@@ -1254,4 +1272,4 @@ def tools_schema_to_mcp(schema: list | None = None):
             "description": fn["description"],
             "inputSchema": fn["parameters"],
         })
-    return mcp_tools
+    return mcp_tools

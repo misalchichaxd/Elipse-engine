@@ -238,6 +238,7 @@ class OllamaProvider:
         # Timeout explícito: si Ollama se cuelga, falla con una excepción clara
         # en vez de dejar la tarea para siempre en "en_progreso".
         self._client = Client(timeout=timeout or settings.ollama_timeout_seconds)
+        self._keep_alive = (settings.llm_keep_alive or "").strip() or None
 
     def with_limits(self, num_predict: int) -> "OllamaProvider":
         """Copia liviana (mismo cliente y modelo) con otro tope de tokens de salida,
@@ -247,22 +248,39 @@ class OllamaProvider:
         clone._num_predict = num_predict
         return clone
 
-    def _log_usage(self, prompt_tokens, eval_tokens) -> None:
+    def _log_usage(self, prompt_tokens, eval_tokens, timings=None) -> None:
         """Deja en el log cuánto del num_ctx se usó. Si el prompt llega a ~85% del contexto,
         Ollama empieza a recortar en silencio lo más viejo (system prompt / tools)."""
+        elog = logging.getLogger("elipse")
+        if timings:
+            load, p_eval, gen = (float(timings.get(k) or 0) / 1e9
+                                 for k in ("load_duration", "prompt_eval_duration", "eval_duration"))
+            reloaded = load > 1.0
+            elog.log(logging.WARNING if reloaded else logging.INFO,
+                     "ollama tiempos [%s]: carga=%.2fs prompt=%.2fs generación=%.2fs%s",
+                     self._model, load, p_eval, gen, "  <- RECARGÓ EL MODELO" if reloaded else "")
         if not prompt_tokens:
             return
         used = prompt_tokens + (eval_tokens or 0)
         pct = 100.0 * used / max(self._num_ctx, 1)
         level = logging.WARNING if used >= 0.85 * self._num_ctx else logging.INFO
-        logging.getLogger("elipse").log(
-            level, "ollama ctx: prompt=%s salida=%s de %s (%.0f%%)",
-            prompt_tokens, eval_tokens or 0, self._num_ctx, pct)
+        elog.log(level, "ollama ctx: prompt=%s salida=%s de %s (%.0f%%)",
+                 prompt_tokens, eval_tokens or 0, self._num_ctx, pct)
 
-    def chat(self, messages, tools=None, allow_tools=True) -> ChatResult:
+    @staticmethod
+    def _timings_of(obj) -> dict:
+        return {k: _field(obj, k) for k in ("load_duration", "prompt_eval_duration", "eval_duration")}
+
+    def _base_kwargs(self, tools, allow_tools) -> dict:
         kwargs = {}
         if tools and allow_tools:
             kwargs["tools"] = tools
+        if self._keep_alive:
+            kwargs["keep_alive"] = self._keep_alive
+        return kwargs
+
+    def chat(self, messages, tools=None, allow_tools=True) -> ChatResult:
+        kwargs = self._base_kwargs(tools, allow_tools)
 
         response = self._client.chat(
             model=self._model,
@@ -295,7 +313,7 @@ class OllamaProvider:
             # llegue crudo al usuario en la respuesta.
             content = strip_tool_call_blocks(content)
 
-        self._log_usage(_field(response, "prompt_eval_count"), _field(response, "eval_count"))
+        self._log_usage(_field(response, "prompt_eval_count"), _field(response, "eval_count"), self._timings_of(response))
         return ChatResult(
             content=content,
             tool_calls=tool_calls,
@@ -304,9 +322,7 @@ class OllamaProvider:
         )
 
     def chat_stream(self, messages, tools=None, allow_tools=True, on_delta=None) -> ChatResult:
-        kwargs = {}
-        if tools and allow_tools:
-            kwargs["tools"] = tools
+        kwargs = self._base_kwargs(tools, allow_tools)
 
         stream = self._client.chat(
             model=self._model,
@@ -322,6 +338,7 @@ class OllamaProvider:
         prompt_tokens = None
         eval_tokens = None
         done_reason = None
+        timings = None
 
         # Filtro de streaming para el bug conocido de <think> (qwen3 con think=False):
         # no mandamos nada por on_delta hasta saber si el bloque arranca con <think>;
@@ -366,6 +383,7 @@ class OllamaProvider:
                 prompt_tokens = _field(part, "prompt_eval_count")
                 eval_tokens = _field(part, "eval_count")
                 done_reason = _field(part, "done_reason")
+                timings = self._timings_of(part)
 
         content = strip_think_blocks("".join(text_parts))
         if not tool_calls and tools and allow_tools:
@@ -388,7 +406,7 @@ class OllamaProvider:
             # limitación conocida en modelos sin tool-calling confiable.
             content = strip_tool_call_blocks(content)
 
-        self._log_usage(prompt_tokens, eval_tokens)
+        self._log_usage(prompt_tokens, eval_tokens, timings)
         return ChatResult(
             content=content,
             tool_calls=tool_calls,

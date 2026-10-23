@@ -6,11 +6,25 @@ DB_PATH = Path(__file__).parent.parent.parent / "elipse.db"
 def get_connection():
     conn = sqlite3.connect(DB_PATH, timeout=15)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
+    conn.execute("PRAGMA busy_timeout=15000")
     return conn
+
+
+def prune_old_rows(keep_messages: int = 2000, keep_logs: int = 500) -> None:
+    """Mantiene acotadas las tablas que solo crecen sin alterar lecturas actuales."""
+    conn = get_connection()
+    try:
+        for table, keep in (("messages", keep_messages), ("router_log", keep_logs), ("research_log", keep_logs)):
+            conn.execute(f"DELETE FROM {table} WHERE id <= (SELECT MAX(id) FROM {table}) - ?", (keep,))
+        conn.commit()
+    finally:
+        conn.close()
+
 
 def init_db():
     conn = get_connection()
+    conn.execute("PRAGMA journal_mode=WAL")
     cur = conn.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS identity (
@@ -91,3 +105,4 @@ def init_db():
 """)
     conn.commit()
     conn.close()
+    prune_old_rows()

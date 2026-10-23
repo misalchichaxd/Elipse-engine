@@ -4,6 +4,7 @@ import re
 import subprocess
 import sys
 import threading
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -21,6 +22,7 @@ import base64
 import binascii
 from app.core.tasks import cancel_task, create_task, describe_providers, get_task, run_agent_task, run_research_task
 from app.core import mcp_client, memory
+from app.core import skills
 from app.core import voice
 from app.core.voice.api import router as voice_router
 from app.core.workspace_api import router as workspace_router
@@ -103,6 +105,10 @@ class ResearchRequest(BaseModel):
 class SemanticMemoryRequest(BaseModel):
     content: str
     topic: str | None = None
+
+
+class SkillInstallRequest(BaseModel):
+    source: str   # URL http/https de un SKILL.md o de un .zip (rutas locales: solo por CLI)
 
 
 class CreateKeyRequest(BaseModel):
@@ -208,9 +214,13 @@ def cancel_task_endpoint(task_id: str):
     return {"status": "cancelando" if cancel_task(task_id) else "no_activa"}
 
 
+WS_PING_EVERY = 30
+WS_POLL_SECONDS = 0.03
+
+
 @app.websocket("/v1/ws/{task_id}")
 async def ws_task(websocket: WebSocket, task_id: str):
-    await require_api_key_ws(websocket)  # valida ?token=... antes de aceptar la conexión
+    await require_api_key_ws(websocket)
     await websocket.accept()
 
     task = get_task(task_id)
@@ -219,23 +229,47 @@ async def ws_task(websocket: WebSocket, task_id: str):
         await websocket.close()
         return
 
+    q = task["queue"]
+    last_send = time.monotonic()
     try:
         while True:
+            batch = []
             try:
-                event = await asyncio.to_thread(task["queue"].get, True, 30)
+                while True:
+                    batch.append(q.get_nowait())
             except queue_module.Empty:
-                await websocket.send_json({"type": "ping"})
+                pass
+
+            if not batch:
+                if time.monotonic() - last_send >= WS_PING_EVERY:
+                    await websocket.send_json({"type": "ping"})
+                    last_send = time.monotonic()
+                await asyncio.sleep(WS_POLL_SECONDS)
                 continue
 
-            await websocket.send_json(event)
+            merged = []
+            for ev in batch:
+                if ev.get("type") == "chunk" and merged and merged[-1].get("type") == "chunk":
+                    merged[-1] = {**merged[-1], "texto": merged[-1].get("texto", "") + ev.get("texto", "")}
+                else:
+                    merged.append(ev)
 
-            if event["type"] == "final":
+            finished = False
+            for ev in merged:
+                await websocket.send_json(ev)
+                if ev.get("type") == "final":
+                    finished = True
+                    break
+            last_send = time.monotonic()
+            if finished:
                 break
-    except WebSocketDisconnect:
+    except (WebSocketDisconnect, RuntimeError):
+        return
+
+    try:
+        await websocket.close()
+    except RuntimeError:
         pass
-
-    await websocket.close()
-
 
 @app.post("/v1/memory", dependencies=[Depends(require_api_key)])
 def add_memory(request: MemoryRequest):
@@ -287,6 +321,44 @@ def list_tools(format: str = "ollama"):
 def mcp_status():
     """Estado de cada servidor MCP configurado (conectado, herramientas, error). Sin secretos."""
     return mcp_client.manager.status()
+
+
+# ---- Skills (core/skills.py): instalar es una acción HUMANA, nunca una tool del modelo ----
+
+@app.get("/v1/skills", dependencies=[Depends(require_api_key)])
+def skills_list():
+    return {"skills": skills.list_skills(), "errors": skills.load_all()[1]}
+
+
+@app.get("/v1/skills/test", dependencies=[Depends(require_api_key)])
+def skills_test(q: str, scope: str = "chat", compact: bool = False):
+    """Qué skills se activarían con este mensaje (para afinar triggers)."""
+    return skills.explain(q, scope, compact)
+
+
+@app.post("/v1/skills/install", dependencies=[Depends(require_api_key)])
+def skills_install(request: SkillInstallRequest):
+    return skills.install(request.source)          # queda PENDIENTE hasta 'enable'
+
+
+@app.post("/v1/skills/{name}/enable", dependencies=[Depends(require_api_key)])
+def skills_enable(name: str):
+    return skills.set_enabled(name, True)
+
+
+@app.post("/v1/skills/{name}/disable", dependencies=[Depends(require_api_key)])
+def skills_disable(name: str):
+    return skills.set_enabled(name, False)
+
+
+@app.post("/v1/skills/{name}/update", dependencies=[Depends(require_api_key)])
+def skills_update(name: str):
+    return skills.update(name)
+
+
+@app.delete("/v1/skills/{name}", dependencies=[Depends(require_api_key)])
+def skills_remove(name: str):
+    return skills.remove(name)
 
 
 # ---- Fase 4: memoria semántica y research pipeline ----

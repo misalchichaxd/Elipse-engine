@@ -13,7 +13,7 @@ A diferencia de un simple Sí/No, da tres caminos:
 import tkinter as tk
 
 from .theme import C, FT
-from .widgets import Pill, lbl
+from .widgets import Pill, lbl, safe_grab
 
 
 class SetupDialog(tk.Toplevel):
@@ -40,7 +40,7 @@ class SetupDialog(tk.Toplevel):
         Pill(bar2, "Ahora no", lambda: self._run(on_skip), kind="ghost", height=38).pack(side="right")
 
         self.after_idle(self._autosize)
-        self.grab_set()
+        safe_grab(self)
 
     def _autosize(self):
         try:

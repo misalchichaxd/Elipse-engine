@@ -50,6 +50,7 @@ from app.core.db import get_connection
 from app.core import continuation, pipeline
 from app.core.personality import build_system_prompt
 from app.core import vision
+from app.core import skills
 from app.core.providers import Provider
 from app.core.safety import create_pending_action, is_risky
 from app.core.tools import execute_tool, get_tools_schema, get_tools_schema_compact, verify_tool_result
@@ -225,6 +226,25 @@ def build_memory_context(message: str, k: Optional[int] = None, max_chars: Optio
     return "\n".join(lines)
 
 
+_TRIVIAL_MSG = re.compile(
+    r"^\W*(hola|holi|buenas|buen[oa]s?( d[ií]as| tardes| noches)?|hey|ok|okay|vale|gracias|listo|"
+    r"s[ií]|no|dale|perfecto|genial|bien|entiendo|claro)\W*$", re.I)
+
+
+def _memory_for_turn(message: str, compact: bool) -> str:
+    """Memoria semántica para este turno, omitida cuando no puede aportar valor."""
+    text = (message or "").strip()
+    if message.startswith("Archivo adjunto:") or len(text) < 8 or _TRIVIAL_MSG.match(text):
+        return ""
+    try:
+        if compact:
+            return build_memory_context(message, settings.ollama_memory_k, settings.ollama_memory_hit_chars)
+        return build_memory_context(message)
+    except Exception:
+        log.exception("memoria semántica falló; sigo sin ella")
+        return ""
+
+
 # ---- Tools "obligatorias" no usadas: empujón puntual, no un router ----
 #
 # El system prompt (personality.py) ya le dice al modelo "usá SIEMPRE
@@ -345,17 +365,7 @@ class ElipseCore:
         # --- analizar ---
         emit({"type": "progreso", "mensaje": "Analizando tu mensaje..."})
         compact = _is_local_provider(self.provider) and settings.ollama_compact_prompt
-        system_prompt = build_system_prompt(compact=compact)
         history = get_recent_messages()
-
-        emit({"type": "progreso", "mensaje": "Buscando contexto relevante en memoria..."})
-        # Con un archivo adjunto, la tarea ya trae todo el contexto necesario: sumarle memoria
-        # semántica de conversaciones viejas (a veces relacionada solo por una palabra suelta,
-        # como "mapache") distrae más de lo que ayuda a un modelo chico.
-        memory_context = "" if message.startswith("Archivo adjunto:") else (
-            build_memory_context(message, settings.ollama_memory_k, settings.ollama_memory_hit_chars)
-            if compact else build_memory_context(message)
-        )
 
         provider = self.provider
         start = time.time()
@@ -419,6 +429,11 @@ class ElipseCore:
             }
             return "completado", final
 
+        # Solo si el pipeline no resolvió el turno se necesita construir este contexto.
+        system_prompt = build_system_prompt(compact=compact)
+        emit({"type": "progreso", "mensaje": "Buscando contexto relevante en memoria..."})
+        memory_context = _memory_for_turn(message, compact)
+
         if compact:
             # Modelo local: solo las tools que este pedido necesita, con descripciones recortadas.
             forced = tuple(r["name"] for r in REQUIRED_TOOLS
@@ -436,6 +451,17 @@ class ElipseCore:
         # El historial guarda el mensaje CON la descripción: así las preguntas de seguimiento
         # ("¿y de qué color era el techo?") todavía la tienen a mano.
         message_for_model = f"{message}\n\n{vision_block}" if vision_block else message
+        # Skills: las elige el CÓDIGO (triggers), van al final del mensaje como la memoria (así el
+        # system prompt no cambia y la KV cache de Ollama se reutiliza) y NO se guardan en el historial.
+        skills_block, skills_used = skills.render_for(message, "chat", compact)
+        if skills_block:
+            emit({"type": "progreso", "mensaje": f"Skill activa: {', '.join(skills_used)}"})
+            message_for_model = f"{message_for_model}\n\n{skills_block}"
+        if memory_context:
+            # La memoria cambia entre turnos; al quedar al final permite reutilizar la KV cache.
+            message_for_model = (
+                f"{message_for_model}\n\n[Nota del sistema, no la escribió el usuario]\n{memory_context}"
+            )
         # Un fallo de visión NO se guarda en el historial: si no, el modelo lo repite en cada turno.
         # (en el historial va la versión corta: el texto OCR completo queda en el caché y se
         # recupera con read_image_text, así el historial no se llena de texto de capturas)
@@ -443,8 +469,6 @@ class ElipseCore:
                      else f"{message}\n\n{vision_history}")
 
         conversation = [{"role": "system", "content": system_prompt}]
-        if memory_context:
-            conversation.append({"role": "system", "content": memory_context})
         conversation.extend(
             _clip_history(history, settings.ollama_history_limit, settings.ollama_history_msg_chars)
             if compact else history
@@ -696,4 +720,4 @@ class ElipseCore:
             "reason": reason,
             "used_tools": False,
             "pending_confirmations": pending,
-        }
+        }

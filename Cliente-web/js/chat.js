@@ -4,6 +4,43 @@ window.Elipse = window.Elipse || {};
   const Elipse = window.Elipse;
   const $ = Elipse.$;
 
+  // Autoscroll: solo sigue el final si el usuario no se fue hacia arriba; 1 scroll por frame.
+  let stickToBottom = true;
+  let scrollQueued = false;
+  document.addEventListener("scroll", (e) => {
+    const el = e.target;
+    if(el && el.id === "chatLog"){
+      stickToBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    }
+  }, true);
+  function scrollEnd(force){
+    const log = document.getElementById("chatLog");
+    if(!log) return;
+    if(force) stickToBottom = true;
+    if(!stickToBottom || scrollQueued) return;
+    scrollQueued = true;
+    requestAnimationFrame(() => {
+      scrollQueued = false;
+      log.scrollTop = log.scrollHeight;
+    });
+  }
+
+  // Renderizar markdown completo cuesta cada vez más a medida que crece la respuesta.
+  function makeFlusher(render, getLen){
+    let timer = null;
+    let last = 0;
+    return function schedule(){
+      if(timer !== null) return;
+      const interval = Math.min(350, 30 + getLen() / 50);
+      const wait = Math.max(0, last + interval - performance.now());
+      timer = setTimeout(() => {
+        timer = null;
+        last = performance.now();
+        requestAnimationFrame(render);
+      }, wait);
+    };
+  }
+
   function showBanner(el, message){
     el.textContent = message;
     el.classList.toggle("show", !!message);
@@ -663,7 +700,7 @@ window.Elipse = window.Elipse || {};
     }
     if(role === "assistant" && Elipse.docs) Elipse.docs.attachCards(div, toolEvents);
     log.appendChild(div);
-    log.scrollTop = log.scrollHeight;
+    scrollEnd(role === "user");
     return div;
   }
 
@@ -679,7 +716,7 @@ window.Elipse = window.Elipse || {};
     body.appendChild(t);
     div.appendChild(body);
     log.appendChild(div);
-    log.scrollTop = log.scrollHeight;
+    scrollEnd(true);
     return div;
   }
 
@@ -974,7 +1011,7 @@ window.Elipse = window.Elipse || {};
     input.disabled = false;
     input.focus();
     const log = $("#chatLog");
-    log.scrollTop = log.scrollHeight;
+    scrollEnd();
   }
 
   async function sendChat(){
@@ -1015,7 +1052,7 @@ window.Elipse = window.Elipse || {};
       });
       const body = userDiv.querySelector(".msg-body");
       if(body) body.appendChild(strip);
-      log.scrollTop = log.scrollHeight;
+      scrollEnd();
     }
     const pending = appendPendingMsg(log, hasImages
       ? "mirando la imagen (si Ollama cambia de modelo, tarda unos segundos)..."
@@ -1036,8 +1073,9 @@ window.Elipse = window.Elipse || {};
         renderQueued = false;
         if(run.aborted || run.done) return;
         setMsgContent(pending, streamedText, "escribiendo...", toolEvents, { stillRunning: true });
-        log.scrollTop = log.scrollHeight;
+        scrollEnd();
       };
+      const scheduleFlush = makeFlusher(flush, () => streamedText.length);
 
       const result = await Elipse.api.runTaskStreaming("/v1/chat", {
         message: messageToSend,
@@ -1055,12 +1093,7 @@ window.Elipse = window.Elipse || {};
           if(run.aborted) return;
           streamedText += texto;
           Elipse.voice.liveFeed(texto);
-          // throttle con requestAnimationFrame: no re-parsear markdown/código
-          // en cada token, solo una vez por frame de pintado.
-          if(!renderQueued){
-            renderQueued = true;
-            requestAnimationFrame(flush);
-          }
+          scheduleFlush();
         },
         onEvent(event){
           if(run.aborted) return;
@@ -1069,7 +1102,7 @@ window.Elipse = window.Elipse || {};
             // se muestra ya mismo en el timeline colapsable.
             toolEvents.push(event);
             renderTimelineSlot(pending, toolEvents, { stillRunning: true });
-            log.scrollTop = log.scrollHeight;
+            scrollEnd();
           }
           // progreso / plan / verificación: mientras no haya texto todavía,
           // se muestra como estado en vez del "pensando..." fijo.
@@ -1107,7 +1140,7 @@ window.Elipse = window.Elipse || {};
               ? "Listo. Si querés que el agente continúe con el resultado, mandá otro mensaje (ej. «seguí» o «¿quedó bien?»)."
               : "Acción rechazada. Podés pedir otra cosa cuando quieras.";
             pending.appendChild(note);
-            log.scrollTop = log.scrollHeight;
+            scrollEnd();
           });
           pending.appendChild(card);
         }
@@ -1142,7 +1175,7 @@ window.Elipse = window.Elipse || {};
       if(currentRun === run){                    // si el usuario ya empezó otro turno, no pisarlo
         currentRun = null;
         setRunning(false);
-        log.scrollTop = log.scrollHeight;
+        scrollEnd();
         input.focus();
       }
     }
@@ -1218,16 +1251,19 @@ window.Elipse = window.Elipse || {};
     try{
       let streamedText = "";
       let renderQueued = false;
+      let finished = false;
       // La continuación es sobre el mismo mensaje: arrancamos el timeline con
       // los eventos que ya se habían mostrado antes (si los hubo), para no
       // perderlos — quedaron guardados en el propio nodo por setMsgContent.
       const toolEvents = (msgDiv.__toolEvents || []).slice();
 
       const flush = () => {
+        if(finished) return;
         renderQueued = false;
         setMsgContent(msgDiv, previousReply + streamedText, "escribiendo...", toolEvents, { stillRunning: true });
-        log.scrollTop = log.scrollHeight;
+        scrollEnd();
       };
+      const scheduleFlush = makeFlusher(flush, () => previousReply.length + streamedText.length);
 
       const result = await Elipse.api.runTaskStreaming("/v1/chat", {
         message: buildContinuePrompt(previousReply),
@@ -1235,19 +1271,17 @@ window.Elipse = window.Elipse || {};
       }, {
         onChunk(texto){
           streamedText += texto;
-          if(!renderQueued){
-            renderQueued = true;
-            requestAnimationFrame(flush);
-          }
+          scheduleFlush();
         },
         onEvent(event){
           if(event.type === "verificacion"){
             toolEvents.push(event);
             renderTimelineSlot(msgDiv, toolEvents, { stillRunning: true });
-            log.scrollTop = log.scrollHeight;
+            scrollEnd();
           }
         },
       });
+      finished = true;
 
       if(result.status === "error"){
         btn.disabled = false;
@@ -1278,7 +1312,7 @@ window.Elipse = window.Elipse || {};
       btn.textContent = CONTINUE_LABEL;
       showBanner(banner, e.message);
     }finally{
-      log.scrollTop = log.scrollHeight;
+      scrollEnd();
     }
   }
   Elipse.chat = { init };

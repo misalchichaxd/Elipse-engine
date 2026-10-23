@@ -1,0 +1,3 @@
+core/router.py y core/topic_tag.py ya no se usan en ningún lado (verificado con
+grep — nada los importa). Se pueden borrar. Se dejan en el zip por si querés
+revisar el código viejo antes de tirarlos vos mismo.

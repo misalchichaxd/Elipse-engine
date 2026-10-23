@@ -12,13 +12,15 @@ from .env_store import env_dict, load_prefs, save_prefs
 from .process_utils import lan_ip, run_keys
 from .paths import PORT
 from .provider_dialog import ROLES, ProviderDialog, role_summary
+from .nav import Page
+from .skills_dialog import SkillsDialog, skills_summary
 from .theme import C, FB, FBB, FDS, FMONO, FT
 from .uiqueue import ui
 from .voice_dialog import VoiceDialog, voice_summary
 from .widgets import Pill, Surface, lbl
 
 
-class Settings(tk.Toplevel):
+class Settings(Page):
     WIDTH = 780
 
     def __init__(self, app):
@@ -86,6 +88,7 @@ class Settings(tk.Toplevel):
         for prefix, (label, _desc) in ROLES.items():
             self._build_role_row(self.role_rows_box, prefix, label)
         self._build_voice_row(self.role_rows_box)
+        self._build_skills_row(self.role_rows_box)
     def _build_role_row(self, parent, prefix, label):
         card = Surface(parent, pad=16)
         card.pack(fill="x", pady=(0, 10))
@@ -111,6 +114,22 @@ class Settings(tk.Toplevel):
         tk.Label(left, text="Voz", font=FBB, fg=C["text"], bg=C["card"]).pack(anchor="w")
         lbl(left, voice_summary(), wrap=520).pack(anchor="w", pady=(2, 0))
         Pill(row, "Configurar", lambda: VoiceDialog(self.app, on_saved=self._render_role_rows), kind="tonal", height=38).pack(side="right")
+
+    def _build_skills_row(self, parent):
+        card = Surface(parent, pad=16)
+        card.pack(fill="x", pady=(0, 10))
+        row = tk.Frame(card.inner, bg=C["card"])
+        row.pack(fill="x")
+        left = tk.Frame(row, bg=C["card"])
+        left.pack(side="left", fill="x", expand=True)
+        tk.Label(left, text="Skills", font=FBB, fg=C["text"], bg=C["card"]).pack(anchor="w")
+        lbl(left, skills_summary(), wrap=520).pack(anchor="w", pady=(2, 0))
+        Pill(row, "Administrar", lambda: self.app._single("skills", lambda: SkillsDialog(self.app, on_changed=self._refresh_rows)),
+             kind="tonal", height=38).pack(side="right")
+
+    def _refresh_rows(self):
+        if self.winfo_exists():   # el diálogo de skills puede seguir abierto con Ajustes ya cerrado
+            self._render_role_rows()
 
     def _has_override(self, prefix: str) -> bool:
         if prefix == "VISION_":  # la visión no hereda: siempre se "configura" (por default ya está activa)

@@ -23,7 +23,8 @@ from .fish_api import describe_voice, extract_fish_id, fetch_fish_voice
 from .paths import ROOT
 from .theme import C
 from .uiqueue import ui
-from .widgets import Pill, Surface, field, lbl
+from .nav import Page
+from .widgets import Pill, Surface, field, lbl, safe_grab
 
 MODES = (("off", "Apagada"), ("manual", "Manual"), ("smart", "Inteligente"), ("always", "Siempre"))
 MODE_HINTS = {
@@ -86,7 +87,7 @@ def _clear_web_overrides():
         pass                                    # la tabla se crea la primera vez que el core usa la voz
 
 
-class VoiceDialog(tk.Toplevel):
+class VoiceDialog(Page):
     WIDTH = 780
 
     def __init__(self, app, on_saved=None):
@@ -96,7 +97,7 @@ class VoiceDialog(tk.Toplevel):
         self.configure(bg=C["bg"])
         self.resizable(False, False)
         self.transient(app)
-        self.grab_set()
+        safe_grab(self)
         self._tok = 0
         self._after = None
         self._detected = None

@@ -37,6 +37,7 @@ from .services import BUSY, Card, Service
 from .settings_window import Settings
 from .setup_dialog import SetupDialog
 from .theme import C, FB, FD
+from .nav import Navigator, Page
 from .uiqueue import UIQ, ui
 from .widgets import Pill, lbl, style_ttk
 
@@ -54,6 +55,13 @@ class App(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self.close)
         self.report_callback_exception = self._report_callback_exception
 
+        # Navegación: inicio y páginas (Ajustes, Voz, Skills…) comparten esta misma ventana
+        self.stage = tk.Frame(self, bg=C["bg"])
+        self.stage.pack(fill="both", expand=True)
+        self.home = tk.Frame(self.stage, bg=C["bg"])
+        self.home.pack(fill="both", expand=True)
+        self.nav = Navigator(self, self.home)
+
         # Carpetas, .env y avisos de dependencias (no bloquea la UI)
         self._setup_notes, self._missing_py = ensure_project_layout()
 
@@ -63,7 +71,7 @@ class App(tk.Tk):
         ]
         self.svc = {s.key: s for s in self.services}
 
-        hd = tk.Canvas(self, width=640, height=112, bg=C["bg"], highlightthickness=0)
+        hd = tk.Canvas(self.home, width=640, height=112, bg=C["bg"], highlightthickness=0)
         hd.pack()
         hd.create_polygon(theme.cookie(62, 58, 32, amp=0.12), fill=C["primary_c"], outline="")
         hd.create_polygon([c for x, y in theme.BOLT for c in (62 + x * 1.1, 58 + y * 1.1)], fill=C["warm"], outline="")
@@ -72,16 +80,16 @@ class App(tk.Tk):
         hd.create_window(620, 58, window=Pill(hd, "Ajustes", self.open_settings, height=42), anchor="e")
 
         for s in self.services:
-            s.card = Card(self, s)
+            s.card = Card(self.home, s)
             s.card.pack(pady=7)
             s.card.refresh()
 
-        bar = tk.Frame(self, bg=C["bg"])
+        bar = tk.Frame(self.home, bg=C["bg"])
         bar.pack(fill="x", padx=20, pady=(12, 0))
         self.all_btn = Pill(bar, "Iniciar todo", self.toggle_all, kind="filled", width=170, height=48)
         self.all_btn.pack(side="right")
         Pill(bar, "Abrir consola", self.open_console, kind="tonal", height=48).pack(side="right", padx=10)
-        lbl(self, "Al cerrar el panel, lo que iniciaste aquí sigue corriendo. Usa Detener para apagarlo.",
+        lbl(self.home, "Al cerrar el panel, lo que iniciaste aquí sigue corriendo. Usa Detener para apagarlo.",
             fg=C["dim"], wrap=600).pack(anchor="w", padx=24, pady=(16, 0))
 
         self.toast_lbl = tk.Label(self, bg="#322F35", fg=C["text"], font=FB, padx=20, pady=11)
@@ -160,7 +168,10 @@ class App(tk.Tk):
     def _single(self, key, make):
         w = self._win.get(key)
         if w and w.winfo_exists():
-            w.lift()
+            if isinstance(w, Page):
+                self.nav.show(w)        # ya está abierta: volver a ella
+            else:
+                w.lift()                # ventanas aparte (logs)
         else:
             self._win[key] = make()
 

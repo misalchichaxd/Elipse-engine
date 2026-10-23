@@ -1,0 +1,36 @@
+
+===== 2026-10-19 09:22:42 =====
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/tkinter/__init__.py", line 1967, in __call__
+    return self.func(*args)
+           ^^^^^^^^^^^^^^^^
+  File "/home/misa/Elipse-engine/elipse/launcher/widgets.py", line 39, in <lambda>
+    self.bind("<Button-1>", lambda e: self.enabled and self.cmd and self.cmd())
+                                                                    ^^^^^^^^^^
+  File "/home/misa/Elipse-engine/elipse/launcher/settings_window.py", line 113, in <lambda>
+    Pill(row, "Configurar", lambda: VoiceDialog(self.app, on_saved=self._render_role_rows), kind="tonal", height=38).pack(side="right")
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/misa/Elipse-engine/elipse/launcher/voice_dialog.py", line 99, in __init__
+    self.grab_set()
+  File "/usr/lib/python3.12/tkinter/__init__.py", line 963, in grab_set
+    self.tk.call('grab', 'set', self._w)
+_tkinter.TclError: grab failed: window not viewable
+
+===== 2026-10-19 09:22:50 =====
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/tkinter/__init__.py", line 1967, in __call__
+    return self.func(*args)
+           ^^^^^^^^^^^^^^^^
+  File "/home/misa/Elipse-engine/elipse/launcher/widgets.py", line 39, in <lambda>
+    self.bind("<Button-1>", lambda e: self.enabled and self.cmd and self.cmd())
+                                                                    ^^^^^^^^^^
+  File "/home/misa/Elipse-engine/elipse/launcher/settings_window.py", line 101, in <lambda>
+    lambda p=prefix, ov=has_override: self._open_role(p, ov), kind="tonal" if prefix else "filled", height=38,
+                                      ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/misa/Elipse-engine/elipse/launcher/settings_window.py", line 121, in _open_role
+    ProviderDialog(self.app, prefix, on_saved=self._render_role_rows, start_unchecked=not has_override)
+  File "/home/misa/Elipse-engine/elipse/launcher/provider_dialog.py", line 117, in __init__
+    self.grab_set()
+  File "/usr/lib/python3.12/tkinter/__init__.py", line 963, in grab_set
+    self.tk.call('grab', 'set', self._w)
+_tkinter.TclError: grab failed: window not viewable

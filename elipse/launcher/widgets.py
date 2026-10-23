@@ -111,3 +111,27 @@ def style_ttk(root):
     for k, v in (("background", C["card_hi"]), ("foreground", C["text"]),
                  ("selectBackground", C["primary_c"]), ("selectForeground", C["on_primary_c"]), ("font", theme.FB)):
         root.option_add(f"*TCombobox*Listbox.{k}", v)
+
+
+def safe_grab(win):
+    """grab_set seguro: en Linux (X11/Wayland) falla con 'window not viewable'
+    si la ventana aun no es visible. Espera a que se mapee y, si aun asi falla,
+    sigue sin modal en vez de romper el panel."""
+    import tkinter as tk
+    try:
+        win.wait_visibility()
+    except tk.TclError:
+        pass
+    try:
+        win.grab_set()
+    except tk.TclError:
+        win.after(50, lambda: _retry_grab(win))
+
+
+def _retry_grab(win):
+    import tkinter as tk
+    try:
+        if win.winfo_exists():
+            win.grab_set()
+    except tk.TclError:
+        pass

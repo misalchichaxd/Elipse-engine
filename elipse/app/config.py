@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     ollama_num_ctx: int = 4096
     ollama_num_predict: int = 1536  # tope de tokens de salida: sin esto, si el modelo entra en loop no para hasta el timeout
     ollama_timeout_seconds: int = 120  # si Ollama se cae o se cuelga, fallar rápido en vez de esperar para siempre
+    llm_keep_alive: str = "10m"  # cuánto queda el modelo cargado en la GPU tras cada llamada ("" = default de Ollama)
     workspace_dir: str = "workspace"
 
     # --- Modo compacto para modelos locales (Ollama) ---
@@ -126,6 +127,13 @@ class Settings(BaseSettings):
     mcp_max_description_chars: int = 400  # recorta descripciones largas: cuidan el contexto del modelo
     mcp_max_output_chars: int = 10000
 
+    # --- Skills: criterio reutilizable instalable (ver core/skills.py) ---
+    skills_enabled: bool = True
+    skills_max_per_turn: int = 2              # skills inyectadas por turno (modelos grandes)
+    skills_max_per_turn_compact: int = 1      # ídem con Ollama: el contexto es oro
+    skills_budget_chars: int = 3500           # tope de caracteres de skills por turno
+    skills_budget_chars_compact: int = 700
+
     # --- Fase 4: memoria semántica (Chroma) ---
     chroma_dir: str = "chroma_data"
     chroma_collection: str = "elipse_memory"
@@ -177,4 +185,4 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
 
-settings = Settings()
+settings = Settings()

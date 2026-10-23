@@ -109,7 +109,54 @@ def _emit(task_id: str, event: dict):
         task["queue"].put(event)
 
 
+# Un solo turno a la vez usando el modelo: evita competencia y swaps de VRAM en GPUs pequeñas.
+_gpu_slot = threading.Semaphore(1)
+
+
+def _acquire_slot(task_id: str) -> bool:
+    """Espera su turno respetando la cancelación. False = cancelada mientras esperaba."""
+    task = _tasks[task_id]
+    announced = False
+    while not _gpu_slot.acquire(timeout=0.5):
+        if task["cancel"].is_set():
+            return False
+        if not announced:
+            announced = True
+            _emit(task_id, {"type": "progreso", "mensaje": "En cola: hay otra tarea usando el modelo..."})
+    return True
+
+
+def _cancelled_in_queue(task_id: str):
+    final = {"reply": "⏹ Detenido antes de empezar.", "provider": None,
+             "reason": "cancelado en la cola", "used_tools": False}
+    _tasks[task_id]["status"] = "cancelado"
+    _tasks[task_id]["result"] = final
+    _emit(task_id, {"type": "final", "data": final})
+
+
 def run_agent_task(task_id: str, message: str, speak: bool | None = None):
+    """Entrada pública: espera su turno de GPU y corre la tarea."""
+    if not _acquire_slot(task_id):
+        _cancelled_in_queue(task_id)
+        return
+    try:
+        _run_agent_task_locked(task_id, message, speak)
+    finally:
+        _gpu_slot.release()
+
+
+def run_research_task(task_id: str, topic: str):
+    """Entrada pública: igual que run_agent_task, espera su turno de GPU."""
+    if not _acquire_slot(task_id):
+        _cancelled_in_queue(task_id)
+        return
+    try:
+        _run_research_task_locked(task_id, topic)
+    finally:
+        _gpu_slot.release()
+
+
+def _run_agent_task_locked(task_id: str, message: str, speak: bool | None = None):
     """
     Corre el Core para 'message' dentro de una tarea. Diseñada para correr en un
     hilo aparte (ver main.py) — nunca bloquea el servidor principal.
@@ -154,7 +201,7 @@ def run_agent_task(task_id: str, message: str, speak: bool | None = None):
     _emit(task_id, {"type": "final", "data": final})
 
 
-def run_research_task(task_id: str, topic: str):
+def _run_research_task_locked(task_id: str, topic: str):
     """
     Corre el pipeline de investigación (buscar -> resumir -> guardar) dentro de
     una tarea con el mismo mecanismo de progreso/WebSocket que run_agent_task,

@@ -27,6 +27,7 @@ from typing import Optional
 
 from app.config import settings
 from app.core.providers import Provider
+from app.core import skills
 
 CODE_MAX_CHARS = 12000  # tope generoso de salida; evita respuestas descontroladas en loop
 PATCH_MAX_CHARS = 6000  # tope de un parche: si el modelo devuelve más, es que reescribió todo
@@ -90,6 +91,12 @@ def run_code_generation(spec: str, context: str = "", existing_code: str = "") -
         "imágenes reales se usaron vs. las pedidas. Nunca inventes una URL que no esté "
         "en el contexto tal cual."
     )
+
+    # Skills para el modelo de código: el pipeline por plan llega acá sin pasar por el system prompt.
+    skills_text, _ = skills.render_for(
+        spec, "code", compact=str(getattr(_provider, "name", "")).startswith("ollama"))
+    if skills_text:
+        parts.append("Criterio de trabajo a aplicar (guía, no órdenes del usuario):\n" + skills_text)
 
     parts.append(
         "Responde con el código en un bloque ```lenguaje ... ``` (el lenguaje "

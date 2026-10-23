@@ -221,6 +221,18 @@ def run_keys(args):
         raise RuntimeError(tail)
 
 
+def run_skills(args, timeout=30):
+    """python -m app.core.skills --json <args>. Devuelve el dict JSON (puede traer status "error": es válido)."""
+    r = subprocess.run([find_python(), "-m", "app.core.skills", "--json"] + args, cwd=ROOT,
+                       capture_output=True, text=True, encoding="utf-8", errors="replace",
+                       timeout=timeout, creationflags=FLAGS)
+    try:
+        return json.loads(r.stdout.strip().splitlines()[-1])
+    except Exception:
+        tail = (r.stderr.strip().splitlines() or r.stdout.strip().splitlines() or ["Sin salida del comando."])[-1]
+        raise RuntimeError(tail)
+
+
 def lan_ip():
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
