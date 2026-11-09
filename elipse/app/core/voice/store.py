@@ -30,7 +30,7 @@ def _load() -> dict:
         return _cache
 
 
-def effective() -> dict:
+def effective(profile=None) -> dict:
     """Configuración vigente = .env + overrides guardados."""
     o = _load()
     providers = [p.strip() for p in settings.voice_providers.split(",") if p.strip() in PROVIDER_NAMES]
@@ -43,7 +43,7 @@ def effective() -> dict:
             key = f"{name}.{field}"
             if key in o:
                 pcfg[name][field] = o[key]
-    return {
+    out = {
         "enabled": o.get("enabled", settings.voice_enabled),
         "mode": o.get("mode", settings.voice_mode),
         "routing": o.get("routing", settings.voice_routing),
@@ -56,6 +56,46 @@ def effective() -> dict:
         "cooldown": settings.voice_cooldown_seconds,
         "fail_threshold": settings.voice_fail_threshold,
     }
+    return out if profile is None or profile.is_default else _profile_layers(out, o, profile)
+
+
+def _apply_flat(out: dict, flat: dict) -> None:
+    """Aplica claves planas (enabled, mode, fish.voice_id…) validando; lo inválido se ignora en silencio."""
+    for k in ("enabled", "cloud_allowed"):
+        if k in flat:
+            out[k] = bool(flat[k])
+    for k, valid in (("mode", MODES), ("routing", ROUTINGS), ("provider", PROVIDER_NAMES)):
+        if flat.get(k) in valid:
+            out[k] = flat[k]
+    for name in PROVIDER_NAMES:
+        vid = flat.get(f"{name}.voice_id")
+        if isinstance(vid, str) and vid and len(vid) <= 128 and not any(c.isspace() for c in vid):
+            out["providers_cfg"][name]["voice_id"] = vid
+        try:
+            g = float(flat[f"{name}.gain"])
+            if 0.1 <= g <= 4.0:
+                out["providers_cfg"][name]["gain"] = g
+        except (KeyError, TypeError, ValueError):
+            pass
+
+
+def _profile_layers(out: dict, o: dict, profile) -> dict:
+    """Capas de un perfil: .env < voice_settings globales < spec.voice (∩ caps) < filas 'profile:<n>:*'.
+    La nube solo sale si el spec (∩ caps) la permite Y data_policy no es local_only: nada puede subirla."""
+    from app.core.profiles import Capabilities
+    caps = Capabilities(profile)
+    out = {**out, "providers_cfg": {n: dict(c) for n, c in out["providers_cfg"].items()}}
+    spec_v = caps.voice_config()
+    flat = {k: spec_v[k] for k in ("enabled", "mode", "routing", "provider") if k in spec_v}
+    if isinstance(spec_v.get("voice_id"), str):
+        flat[f"{spec_v.get('provider') or out['provider']}.voice_id"] = spec_v["voice_id"]
+    _apply_flat(out, flat)
+    prefix = f"profile:{profile.name}:"
+    _apply_flat(out, {k[len(prefix):]: v for k, v in o.items() if k.startswith(prefix) and not k.endswith("cloud_allowed")})
+    if not caps.voice_allowed():
+        out["enabled"] = False
+    out["cloud_allowed"] = bool(out["cloud_allowed"]) and bool(spec_v.get("cloud_allowed")) and caps.data_policy() != "local_only"
+    return out
 
 
 def _save(key: str, value) -> None:

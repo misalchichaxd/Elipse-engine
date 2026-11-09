@@ -116,15 +116,18 @@ def _new_part(partial: str, full: str) -> tuple[str, bool]:
     return full, True
 
 
+_STALE_NOTE_RE = re.compile(r"(?m)^- El código (?:puede estar|sigue) incompleto[^\n]*\n?")
+_EMPTY_NOTES_RE = re.compile(r"\n*Notas:\s*$")
+
+
 def _continue_code(pending: dict, emit):
     partial = pending["partial"]
     emit({"type": "progreso", "mensaje": "Retomando el código donde se cortó..."})
-    full, done = P.continue_code(partial)
+    full, done = P.continue_code(partial, pending.get("request", ""))
     if not done or full.strip() == partial.strip():
         return _outcome("No pude retomar el código: el modelo no devolvió una continuación útil. "
                         "Pídeme el cambio de nuevo o dime qué parte falta.", "continuación de código fallida", ok=False)
     still = P.looks_truncated(full, False)
-    new, replace = _new_part(partial, full)
     if still:
         remember("code", full, pending.get("request", ""))
         new_note = "El código sigue incompleto: puedes pedir «sigue» otra vez."
@@ -132,11 +135,14 @@ def _continue_code(pending: dict, emit):
         P._persist_code(full)
         clear_pending()
         new_note = ""
-    if not replace:
-        # el cliente ya tiene `partial`; el texto nuevo se agrega y, si hace falta, se avisa al final
-        new = new + (f"\n\n{new_note}" if new_note else "")
+    # El código crece DENTRO de su bloque ```; lo que el cliente ya mostró termina en el cierre del bloque y las
+    # notas, así que pegar solo lo nuevo lo dejaría fuera del bloque. Siempre se manda el mensaje completo y
+    # el cliente lo reemplaza (replace_previous). Las notas viejas de «incompleto» ya no valen.
+    full = _EMPTY_NOTES_RE.sub("", _STALE_NOTE_RE.sub("", full)).rstrip()
+    if new_note:
+        full += f"\n\n{new_note}"
     lines = sum(len(b.splitlines()) for _, b in P._blocks(full)) or len(full.splitlines())
-    return _outcome(new, f"continuación de código | {lines} líneas", ok=True, truncated=still, replace_previous=replace,
+    return _outcome(full, f"continuación de código | {lines} líneas", ok=True, truncated=still, replace_previous=True,
                     history_note=f"Listo: completé el código ({lines} líneas)." + (f" {new_note}" if new_note else ""))
 
 

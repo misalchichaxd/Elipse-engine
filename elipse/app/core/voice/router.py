@@ -89,9 +89,9 @@ def _ok(name: str, **stats) -> None:
         s.update(stats)
 
 
-def open_stream(text: str) -> tuple[VoiceProvider, float, Iterator[bytes]]:
+def open_stream(text: str, cfg: dict | None = None) -> tuple[VoiceProvider, float, Iterator[bytes]]:
     """Abre el audio. Bloquea hasta el primer pedazo (ahí se decide el failover). Llamar desde un hilo."""
-    cfg = store.effective()
+    cfg = cfg or store.effective()
     cands = candidates(cfg)
     if not cands:
         raise VoiceUnavailable(

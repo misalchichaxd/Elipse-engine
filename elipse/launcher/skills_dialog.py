@@ -98,6 +98,7 @@ class SkillsDialog(Page):
         Pill(bar, "Archivo .md / .zip…", self._install_file, kind="tonal", height=38).pack(side="left", padx=(8, 0))
         Pill(bar, "Carpeta…", self._install_dir, kind="tonal", height=38).pack(side="left", padx=(8, 0))
         Pill(bar, "Recargar", self.refresh, kind="ghost", height=38).pack(side="right")
+        Pill(bar, "Adaptar para 4B…", self._open_compiler, kind="tonal", height=38).pack(side="right", padx=(0, 8))
 
         # --- lista
         box = tk.Frame(self, bg=C["bg"])
@@ -160,6 +161,12 @@ class SkillsDialog(Page):
         paned.add(bottom, minsize=150, stretch="always")
         self._set_text(self.result, "Escribe un mensaje de ejemplo y pulsa «Probar»: verás qué skill se activaría, "
                                     "con qué puntaje y el texto exacto que se le agregaría al modelo.")
+
+    def _open_compiler(self):
+        from .skillc_dialog import SkillCompilerDialog
+        sk = self._selected()
+        self.app._single("skillc", lambda: SkillCompilerDialog(
+            self.app, select=(sk or {}).get("name"), on_changed=self._changed))
 
     def _text(self, parent, font, height, pady=0):
         frame = tk.Frame(parent, bg=C["bg"])

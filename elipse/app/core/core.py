@@ -53,6 +53,7 @@ from app.core import vision
 from app.core import skills
 from app.core.providers import Provider
 from app.core.safety import create_pending_action, is_risky
+from app.core.profiles import DEFAULT, Capabilities
 from app.core.tools import execute_tool, get_tools_schema, get_tools_schema_compact, verify_tool_result
 
 import logging
@@ -100,23 +101,32 @@ def _preview(output) -> str:
 
 # ---- Acceso a historial, log y memoria (lo que el Core lee/escribe de sí mismo) ----
 
-def save_message(role: str, content: str):
+def save_message(role: str, content: str, profile: str = "elipse", session: str = ""):
     conn = get_connection()
-    conn.execute("INSERT INTO messages (role, content) VALUES (?, ?)", (role, content))
+    conn.execute("INSERT INTO messages (role, content, profile, session) VALUES (?, ?, ?, ?)",
+                 (role, content, profile, session))
     conn.commit()
     conn.close()
 
 
-def get_recent_messages(limit: int = HISTORY_LIMIT):
+def get_recent_messages(limit: int = HISTORY_LIMIT, profile: str = "elipse", session: str = ""):
+    # 'elipse' ve solo SU hilo (las filas de antes son todas 'elipse'); los demás perfiles, el de su sesión.
     conn = get_connection()
-    rows = conn.execute(
-        "SELECT role, content FROM messages ORDER BY id DESC LIMIT ?", (limit,)
-    ).fetchall()
+    if profile == "elipse":
+        rows = conn.execute(
+            "SELECT role, content FROM messages WHERE profile = 'elipse' ORDER BY id DESC LIMIT ?", (limit,)
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT role, content FROM messages WHERE profile = ? AND session = ? ORDER BY id DESC LIMIT ?",
+            (profile, session, limit),
+        ).fetchall()
     conn.close()
     return list(reversed([dict(r) for r in rows]))
 
 
-def log_turn_metadata(message: str, provider: str, reason: str, duration: float):
+def log_turn_metadata(message: str, provider: str, reason: str, duration: float,
+                      profile: str = "elipse", actor: str = "", tools=None, status: str | None = None):
     """
     Sigue escribiendo en la tabla 'router_log' (mismo nombre de tabla y de
     columnas que antes, para no romper /v1/router-log ni el schema de la
@@ -125,8 +135,10 @@ def log_turn_metadata(message: str, provider: str, reason: str, duration: float)
     """
     conn = get_connection()
     conn.execute(
-        "INSERT INTO router_log (message, provider_chosen, reason, duration_seconds) VALUES (?, ?, ?, ?)",
-        (message, provider, reason, duration),
+        "INSERT INTO router_log (message, provider_chosen, reason, duration_seconds, profile, actor, tools, status) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (message, provider, reason, duration, profile, actor,
+         json.dumps(list(tools), ensure_ascii=False) if tools is not None else None, status),
     )
     conn.commit()
     conn.close()
@@ -204,13 +216,17 @@ def _fit_to_context(conversation: list, tools_schema: Optional[list], num_ctx: i
                 before, after, limit, num_ctx)
 
 
-def build_memory_context(message: str, k: Optional[int] = None, max_chars: Optional[int] = None) -> str:
+def build_memory_context(message: str, k: Optional[int] = None, max_chars: Optional[int] = None,
+                         profile: str = "elipse", max_distance: Optional[float] = None) -> str:
     """
     RAG mínimo: busca en la memoria semántica algo relacionado con el mensaje
     actual y lo devuelve como texto para inyectar como contexto adicional.
     Si no hay nada relevante (o la memoria está vacía), devuelve "".
     """
-    hits = memory.search_memory(message, n_results=k or settings.memory_retrieval_k)
+    kw = {} if profile == "elipse" else {"profile": profile}
+    hits = memory.search_memory(message, n_results=k or settings.memory_retrieval_k, **kw)
+    if max_distance is not None:   # solo perfiles ≠ 'elipse': un recuerdo demasiado lejano no se inyecta
+        hits = [h for h in hits if h["distance"] <= max_distance]
     if not hits:
         return ""
 
@@ -231,15 +247,17 @@ _TRIVIAL_MSG = re.compile(
     r"s[ií]|no|dale|perfecto|genial|bien|entiendo|claro)\W*$", re.I)
 
 
-def _memory_for_turn(message: str, compact: bool) -> str:
+def _memory_for_turn(message: str, compact: bool, profile=DEFAULT) -> str:
     """Memoria semántica para este turno, omitida cuando no puede aportar valor."""
     text = (message or "").strip()
     if message.startswith("Archivo adjunto:") or len(text) < 8 or _TRIVIAL_MSG.match(text):
         return ""
     try:
+        kw = {} if profile.is_default else {
+            "profile": profile.name, "max_distance": Capabilities(profile).memory().get("max_distance")}
         if compact:
-            return build_memory_context(message, settings.ollama_memory_k, settings.ollama_memory_hit_chars)
-        return build_memory_context(message)
+            return build_memory_context(message, settings.ollama_memory_k, settings.ollama_memory_hit_chars, **kw)
+        return build_memory_context(message, **kw)
     except Exception:
         log.exception("memoria semántica falló; sigo sin ella")
         return ""
@@ -307,7 +325,7 @@ REQUIRED_TOOLS = [
 ]
 
 
-def _missing_required_tools(message: str, tools_called: list[str], has_visual: bool = False) -> list[dict]:
+def _missing_required_tools(message: str, tools_called: list[str], has_visual: bool = False, caps=None) -> list[dict]:
     """
     Reglas de REQUIRED_TOOLS cuyo patrón matchea el MENSAJE ORIGINAL del
     usuario (no la conversación entera, para no dispararse por algo que
@@ -321,6 +339,7 @@ def _missing_required_tools(message: str, tools_called: list[str], has_visual: b
         and not (is_doc and rule["name"] == "write_code")  # un informe no es código
         # Con un adjunto visual, "esta foto"/"imagen" habla del adjunto, no pide buscar imágenes en internet.
         and not (has_visual and rule["name"] == "search_images")
+        and (caps is None or caps.tool_allowed(rule["name"]))   # no empujar lo que el perfil no tiene
     ]
 
 
@@ -342,7 +361,8 @@ class ElipseCore:
         """
         self.provider = provider
 
-    def run(self, message: str, emit: Optional[EmitFn] = None) -> tuple[str, dict]:
+    def run(self, message: str, emit: Optional[EmitFn] = None, profile=DEFAULT,
+            session: str = "", actor: str = "") -> tuple[str, dict]:
         """
         Corre el Agent Loop para 'message'. Nunca lanza excepción hacia afuera.
 
@@ -352,7 +372,7 @@ class ElipseCore:
         """
         emit = emit or (lambda event: None)
         try:
-            return self._run(message, emit)
+            return self._run(message, emit, profile, session, actor)
         except Exception as e:
             return "error", {
                 "reply": f"Error interno: {e}",
@@ -361,11 +381,23 @@ class ElipseCore:
                 "used_tools": False,
             }
 
-    def _run(self, message: str, emit: EmitFn) -> tuple[str, dict]:
+    def _run(self, message: str, emit: EmitFn, profile=DEFAULT, session: str = "", actor: str = "") -> tuple[str, dict]:
         # --- analizar ---
         emit({"type": "progreso", "mensaje": "Analizando tu mensaje..."})
         compact = _is_local_provider(self.provider) and settings.ollama_compact_prompt
-        history = get_recent_messages()
+        # El perfil llega por CÓDIGO (R4/R13) y manda sobre todo lo demás del turno.
+        caps = Capabilities(profile)
+        pname = profile.name
+        pk = {} if caps.is_default else {"profile": profile}                       # kwargs solo para perfiles ≠ 'elipse'
+        sk = {} if caps.is_default else {"profile": pname, "session": session}
+        if caps.is_default:
+            session = actor = ""        # una llave admin no usa sesión/actor
+            history = get_recent_messages()
+            max_rounds = MAX_TOOL_ROUNDS
+        else:
+            lim = caps.limits()
+            history = get_recent_messages(lim["history_limit"], pname, session)
+            max_rounds = lim["rounds"]
 
         provider = self.provider
         start = time.time()
@@ -373,7 +405,8 @@ class ElipseCore:
         # --- Visión: el CÓDIGO mira los adjuntos visuales antes de que el modelo principal piense ---
         # Si hay imagen, la describe el rol "vision" y el texto se suma al mensaje; el modelo
         # principal (que no ve) razona sobre esa descripción. Ver vision.py.
-        vision_block, vision_history = vision.describe_attachments_ex(message, emit)
+        vision_block, vision_history = (vision.describe_attachments_ex(message, emit)
+                                        if caps.vision_allowed() else ("", ""))
 
         # --- Pipeline por plan (Fase 7) ---
         # Antes de meter al orquestador en el Agent Loop ronda a ronda, se le pide
@@ -387,13 +420,14 @@ class ElipseCore:
         # Antes del pipeline: «sigue/continúa/...» retoma lo que quedó cortado, y un mensaje que es solo
         # puntuación («...») se contesta sin despertar al orquestador (continuation.py).
         try:
-            pipeline_outcome = continuation.handle_turn(provider, message, emit)
+            pipeline_outcome = (continuation.handle_turn(provider, message, emit)
+                                if caps.continuation_allowed() else None)
         except Exception:
             log.exception("continuation.handle_turn falló")
             pipeline_outcome = None
         # Con imagen se salta el pipeline: su planificador solo ve el texto del pedido y podría
         # planear una búsqueda de imágenes en internet en vez de usar la que adjuntó el usuario.
-        if pipeline_outcome is None and not vision_block:
+        if pipeline_outcome is None and not vision_block and caps.is_default:
             try:
                 pipeline_outcome = pipeline.try_run(provider, message, history, emit)
             except Exception as e:
@@ -430,19 +464,20 @@ class ElipseCore:
             return "completado", final
 
         # Solo si el pipeline no resolvió el turno se necesita construir este contexto.
-        system_prompt = build_system_prompt(compact=compact)
+        system_prompt = build_system_prompt(compact=compact, **pk)
         emit({"type": "progreso", "mensaje": "Buscando contexto relevante en memoria..."})
-        memory_context = _memory_for_turn(message, compact)
+        memory_context = _memory_for_turn(message, compact, **pk)
 
         if compact:
             # Modelo local: solo las tools que este pedido necesita, con descripciones recortadas.
             forced = tuple(r["name"] for r in REQUIRED_TOOLS
-                           if r["trigger"].search(message) and not (vision_block and r["name"] == "search_images"))
+                           if r["trigger"].search(message) and not (vision_block and r["name"] == "search_images")
+                           and caps.tool_allowed(r["name"]))
             has_code = any("```" in (m.get("content") or "") for m in history[-2:])
             tools_schema = get_tools_schema_compact(
-                message, max_tools=settings.ollama_max_tools, extra=forced, history_has_code=has_code)
+                message, max_tools=settings.ollama_max_tools, extra=forced, history_has_code=has_code, **pk)
         else:
-            tools_schema = get_tools_schema()  # una sola vez por corrida: catálogo estable durante el loop
+            tools_schema = get_tools_schema(**pk)  # una sola vez por corrida: catálogo estable durante el loop
 
         if vision_block and "busca" not in message.lower():
             # El usuario ya trajo su imagen: ofrecer search_images solo invita a buscar otra en internet.
@@ -453,7 +488,7 @@ class ElipseCore:
         message_for_model = f"{message}\n\n{vision_block}" if vision_block else message
         # Skills: las elige el CÓDIGO (triggers), van al final del mensaje como la memoria (así el
         # system prompt no cambia y la KV cache de Ollama se reutiliza) y NO se guardan en el historial.
-        skills_block, skills_used = skills.render_for(message, "chat", compact)
+        skills_block, skills_used = skills.render_for(message, "chat", compact) if caps.is_default else ("", [])
         if skills_block:
             emit({"type": "progreso", "mensaje": f"Skill activa: {', '.join(skills_used)}"})
             message_for_model = f"{message_for_model}\n\n{skills_block}"
@@ -466,7 +501,7 @@ class ElipseCore:
         # (en el historial va la versión corta: el texto OCR completo queda en el caché y se
         # recupera con read_image_text, así el historial no se llena de texto de capturas)
         save_message("user", message if (vision.FAIL_MARK in (vision_block or "") or not vision_history)
-                     else f"{message}\n\n{vision_history}")
+                     else f"{message}\n\n{vision_history}", **sk)
 
         conversation = [{"role": "system", "content": system_prompt}]
         conversation.extend(
@@ -507,7 +542,7 @@ class ElipseCore:
                 # vuelve a evaluar el contenido de la respuesta, solo si faltó
                 # llamar algo puntual — y solo insiste MAX_FORCED_NUDGES veces
                 # para no loopear si el modelo se niega.
-                missing = _missing_required_tools(message, tools_called, has_visual=bool(vision_block))
+                missing = _missing_required_tools(message, tools_called, has_visual=bool(vision_block), caps=caps)
                 if missing and nudges_used < MAX_FORCED_NUDGES:
                     nudges_used += 1
                     emit({
@@ -543,10 +578,10 @@ class ElipseCore:
                 "pasos": [{"tool": c.name, "arguments": c.arguments} for c in result.tool_calls],
             })
 
-            pending, failures = self._execute_calls(result.tool_calls, conversation, iteration, emit, seen_calls)
+            pending, failures = self._execute_calls(result.tool_calls, conversation, iteration, emit, seen_calls, profile, session, actor)
 
             if pending:
-                return self._await_confirmation(message, provider, tools_called, start, pending)
+                return self._await_confirmation(message, provider, tools_called, start, pending, profile, session, actor)
 
             if failures:
                 emit({"type": "progreso", "mensaje": "La verificación encontró problemas, avisando al modelo..."})
@@ -559,7 +594,7 @@ class ElipseCore:
                     ),
                 })
 
-            if tool_rounds >= MAX_TOOL_ROUNDS:
+            if tool_rounds >= max_rounds:
                 # Se acabaron las rondas de tools permitidas: no le preguntamos
                 # de nuevo si quiere seguir llamando algo, vamos directo a la
                 # pasada final salvavidas de abajo (mismo comportamiento que
@@ -583,11 +618,12 @@ class ElipseCore:
             truncated = final_result.truncated
 
         duration = time.time() - start
-        save_message("assistant", reply)
+        save_message("assistant", reply, **sk)
         can_continue = False
         if truncated:
-            can_continue = continuation.remember("code" if "```" in reply else "text", reply, message)
-        else:
+            if caps.continuation_allowed():
+                can_continue = continuation.remember("code" if "```" in reply else "text", reply, message)
+        elif caps.is_default:
             pipeline._persist_code(reply)   # el código que se mostró queda como "el último" para editarlo después
 
         reason = (
@@ -596,7 +632,8 @@ class ElipseCore:
         )
         if nudges_used:
             reason += f" (con {nudges_used} empujón/es por tool obligatoria faltante)"
-        log_turn_metadata(message, provider.name, reason, duration)
+        log_turn_metadata(message, provider.name, reason, duration,
+                          profile=pname, actor=actor, tools=tools_called, status="ok")
 
         final = {
             "reply": reply,
@@ -611,7 +648,8 @@ class ElipseCore:
             final["prompt_tokens"] = peak_prompt_tokens
         return "completado", final
 
-    def _execute_calls(self, tool_calls, conversation, iteration, emit, seen_calls):
+    def _execute_calls(self, tool_calls, conversation, iteration, emit, seen_calls, profile=DEFAULT,
+                       session: str = "", actor: str = ""):
         """
         Ejecuta cada llamada (salvo las riesgosas, que quedan pendientes de
         confirmación humana) y las verifica con evidencia directa.
@@ -665,9 +703,12 @@ class ElipseCore:
 
             emit({"type": "progreso", "mensaje": f"Ejecutando herramienta: {call.name}..."})
 
-            risky, detail = is_risky(call.name, call.arguments)
+            risky, detail = (is_risky(call.name, call.arguments) if profile.is_default
+                             else is_risky(call.name, call.arguments, profile))
             if risky:
-                action_id = create_pending_action(call.name, call.arguments, detail)
+                action_id = (create_pending_action(call.name, call.arguments, detail) if profile.is_default
+                             else create_pending_action(call.name, call.arguments, detail, profile.name,
+                                                        ctx={"actor": actor, "session": session}))
                 pending.append({"id": action_id, "tool": call.name, "detail": detail})
                 conversation.append({
                     "role": "tool",
@@ -680,7 +721,8 @@ class ElipseCore:
                 })
                 continue
 
-            output = execute_tool(call.name, call.arguments)
+            output = (execute_tool(call.name, call.arguments) if profile.is_default
+                      else execute_tool(call.name, call.arguments, profile, actor, session))
             seen_calls[cache_key] = output
             conversation.append({
                 "role": "tool",
@@ -701,18 +743,20 @@ class ElipseCore:
 
         return pending, failures
 
-    def _await_confirmation(self, message, provider, tools_called, start, pending) -> tuple[str, dict]:
+    def _await_confirmation(self, message, provider, tools_called, start, pending,
+                            profile=DEFAULT, session: str = "", actor: str = "") -> tuple[str, dict]:
         reply = (
             "Esta acción necesita tu confirmación antes de ejecutarse. "
             "Usa POST /v1/confirm-action/{id} con {\"approved\": true} para aprobarla, "
             "o {\"approved\": false} para rechazarla."
         )
-        save_message("assistant", reply)
+        save_message("assistant", reply, **({} if profile.is_default else {"profile": profile.name, "session": session}))
         reason = (
             f"orquestador encadenó: {' -> '.join(tools_called)} (pausado por confirmación)"
             if tools_called else "pausado por confirmación"
         )
-        log_turn_metadata(message, provider.name, reason, time.time() - start)
+        log_turn_metadata(message, provider.name, reason, time.time() - start,
+                          profile=profile.name, actor=actor, tools=tools_called, status="pendiente")
 
         return "esperando_confirmacion", {
             "reply": reply,

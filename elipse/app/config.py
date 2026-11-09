@@ -133,6 +133,19 @@ class Settings(BaseSettings):
     skills_max_per_turn_compact: int = 1      # ídem con Ollama: el contexto es oro
     skills_budget_chars: int = 3500           # tope de caracteres de skills por turno
     skills_budget_chars_compact: int = 700
+    skills_profile: str = "auto"              # auto | tiny | small | large (override del tamaño detectado)
+    skills_steps_enabled: bool = True          # ejecutar skills por pasos si hay paquete aprobado
+    skills_steps_max_calls: int = 14           # tope de llamadas por ejecución (el perfil small usa su propio tope si no lo defines)
+    # Compilador de skills: "" = usa el modelo general (calidad menor si es un 4B)
+    skillc_provider: str = ""                 # gemini | anthropic | openai | ollama
+    skillc_ollama_model: str = ""
+    skillc_anthropic_api_key: str = ""
+    skillc_anthropic_model: str = ""
+    skillc_openai_api_key: str = ""
+    skillc_openai_base_url: str = ""
+    skillc_openai_model: str = ""
+    skillc_gemini_api_key: str = ""
+    skillc_gemini_model: str = ""
 
     # --- Fase 4: memoria semántica (Chroma) ---
     chroma_dir: str = "chroma_data"

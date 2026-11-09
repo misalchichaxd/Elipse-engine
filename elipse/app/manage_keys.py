@@ -3,8 +3,12 @@ CLI para administrar API keys de ELIPSE (Fase 5).
 
 Uso (con el venv activado, desde la raíz del proyecto):
     python -m app.manage_keys create telefono
+    python -m app.manage_keys create rbe-django --profile rbe --caps caps_rbe.json
     python -m app.manage_keys list
     python -m app.manage_keys revoke 3
+
+Sin --profile la llave es ADMIN (perfil 'elipse', sin techo), como siempre. Con --profile
+hace falta --caps (archivo JSON con el techo de permisos del perfil).
 
 Con --json (para consumo automático, ej. el panel de control), va SIEMPRE
 justo después de "app.manage_keys" y antes del subcomando:
@@ -24,6 +28,14 @@ from app.core.db import init_db
 from app.core.auth import create_key, list_keys, revoke_key
 
 
+def _fail(args, message: str, code: int = 2):
+    if args.json:
+        print(json.dumps({"error": message}))
+    else:
+        print(f"Error: {message}")
+    sys.exit(code)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Administra API keys de ELIPSE.")
     parser.add_argument("--json", action="store_true", help="Salida en JSON para consumo automático.")
@@ -31,6 +43,8 @@ def main():
 
     p_create = sub.add_parser("create", help="Genera una nueva API key.")
     p_create.add_argument("name", help="Nombre del dispositivo/cliente, ej. 'telefono'")
+    p_create.add_argument("--profile", default="elipse", help="Perfil de la llave (default: elipse = llave admin).")
+    p_create.add_argument("--caps", help="Archivo JSON con el techo de permisos (obligatorio si --profile no es elipse).")
 
     sub.add_parser("list", help="Lista las API keys (sin mostrar el valor real).")
 
@@ -41,12 +55,23 @@ def main():
     init_db()  # por si es la primera vez que se corre y la tabla no existe aún
 
     if args.command == "create":
-        raw_key = create_key(args.name)
+        caps = None
+        if args.caps:
+            try:
+                with open(args.caps, encoding="utf-8") as f:
+                    caps = json.load(f)
+            except (OSError, ValueError) as e:
+                _fail(args, f"No pude leer --caps ({e}).")
+        try:
+            raw_key = create_key(args.name, profile=args.profile, caps=caps)
+        except ValueError as e:
+            _fail(args, str(e))
         if args.json:
-            print(json.dumps({"api_key": raw_key}))
+            print(json.dumps({"api_key": raw_key, "profile": args.profile}))
         else:
             print("Llave creada. Guárdala ahora — no se puede volver a ver:\n")
             print(f"  {raw_key}\n")
+            print(f"Perfil: {args.profile}")
             print(f"Úsala como header: Authorization: Bearer {raw_key}")
 
     elif args.command == "list":
@@ -58,7 +83,8 @@ def main():
         else:
             for k in keys:
                 estado = "REVOCADA" if k["revoked"] else "activa"
-                print(f"[{k['id']}] {k['name']} — {estado} — creada {k['created_at']} — último uso: {k['last_used_at'] or 'nunca'}")
+                tipo = "admin" if (k["profile"] == "elipse" and k["caps"] is None) else f"perfil {k['profile']}"
+                print(f"[{k['id']}] {k['name']} — {estado} — {tipo} — creada {k['created_at']} — último uso: {k['last_used_at'] or 'nunca'}")
 
     elif args.command == "revoke":
         ok = revoke_key(args.key_id)

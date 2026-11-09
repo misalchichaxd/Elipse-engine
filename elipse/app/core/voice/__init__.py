@@ -11,24 +11,34 @@ La voz nunca bloquea al agente: todo esto corre DESPUÉS de que la respuesta exi
 
 from app.core.voice import filter as _filter
 from app.core.voice import router, store
-from app.core.voice.router import VoiceUnavailable, open_stream, warm  # noqa: F401
+from app.core.voice.router import VoiceUnavailable, warm  # noqa: F401
 
 
-def build_text(text: str, force: bool = True) -> str:
+def open_stream(text: str, profile=None):
+    """Audio de `text` con la voz de `profile` (None = la de siempre)."""
+    cfg = store.effective(profile) if profile is not None and not profile.is_default else None
+    return router.open_stream(text, cfg)
+
+
+def build_text(text: str, force: bool = True, profile=None) -> str:
     """Texto hablable de `text`, o la frase fija si no queda nada (solo código/documento)."""
-    cfg = store.effective()
+    cfg = store.effective(profile)
     spoken = _filter.analyze(text, cfg["max_chars"])["spoken"]
     return spoken or (cfg["fallback"] if force else "")
 
 
-def plan_for_final(status: str, reply: str, speak: bool | None = None) -> tuple[dict | None, str | None]:
+def plan_for_final(status: str, reply: str, speak: bool | None = None, profile=None) -> tuple[dict | None, str | None]:
     """
     Decide si la respuesta final se habla. Prioridad: speak por mensaje > interruptor global > modo.
     Nunca se habla: tareas no completadas (canceladas, errores, esperando confirmación) ni respuestas vacías.
     """
     if status != "completado" or not (reply or "").strip() or speak is False:
         return None, None
-    cfg = store.effective()
+    if profile is not None and not profile.is_default:
+        from app.core.profiles import Capabilities
+        if not Capabilities(profile).voice_allowed():     # el techo de la llave manda, incluso con speak=True
+            return None, None
+    cfg = store.effective(profile)
     if speak is None and (not cfg["enabled"] or cfg["mode"] in ("off", "manual")):
         return None, None
 

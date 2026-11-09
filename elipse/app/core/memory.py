@@ -11,57 +11,81 @@ from app.config import settings
 CHROMA_DIR = (Path(__file__).parent.parent.parent / settings.chroma_dir).resolve()
 CHROMA_DIR.mkdir(parents=True, exist_ok=True)
 
+DEFAULT_PROFILE = "elipse"
+
 _client = None
-_collection = None
+_embedding_fn = None
+_collections: dict = {}      # nombre de colección -> colección (singleton perezoso por perfil)
 _lock = threading.Lock()
 
 
-def _get_collection():
+def _collection_name(profile: str = DEFAULT_PROFILE) -> str:
+    """
+    'elipse' usa la colección de siempre, sin tocarla (R8). Cualquier otro perfil usa
+    '<colección>__<perfil>'. Chroma exige empezar y terminar en alfanumérico; los nombres de perfil
+    pueden terminar en '_' o '-', así que en ese caso se añade '.z' (un perfil nunca lleva '.', no hay choques).
+    """
+    if not profile or profile == DEFAULT_PROFILE:
+        return settings.chroma_collection
+    name = f"{settings.chroma_collection}__{profile}"
+    return name if name[-1].isalnum() else name + ".z"
+
+
+def _get_collection(profile: str = DEFAULT_PROFILE):
     """
     Cliente y colección de Chroma como singleton perezoso: se inicializan la
     primera vez que hacen falta (no al importar el módulo), así el proceso no
     carga el modelo de embeddings si nunca se usa memoria semántica en esa corrida.
+    El cliente y el modelo de embeddings son UNO solo; lo que cambia por perfil es la colección.
     """
-    global _client, _collection
-    if _collection is not None:
-        return _collection
+    global _client, _embedding_fn
+    name = _collection_name(profile)
+    col = _collections.get(name)
+    if col is not None:
+        return col
 
     with _lock:
-        if _collection is None:
-            _client = chromadb.PersistentClient(path=str(CHROMA_DIR))
-            embedding_fn = embedding_functions.DefaultEmbeddingFunction()
-            _collection = _client.get_or_create_collection(
-                name=settings.chroma_collection,
-                embedding_function=embedding_fn,
+        col = _collections.get(name)
+        if col is None:
+            if _client is None:
+                _client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+                _embedding_fn = embedding_functions.DefaultEmbeddingFunction()
+            col = _client.get_or_create_collection(
+                name=name,
+                embedding_function=_embedding_fn,
                 metadata={"hnsw:space": "cosine"},
             )
-    return _collection
+            _collections[name] = col
+    return col
 
 
-def add_memory(content: str, metadata: dict | None = None, memory_id: str | None = None) -> str:
+def add_memory(content: str, metadata: dict | None = None, memory_id: str | None = None,
+               profile: str = DEFAULT_PROFILE) -> str:
     """
     Guarda un texto en la memoria semántica. Debe ser idealmente un resumen
     destilado, no texto crudo (ver plan_desarrollo.md, decisión de diseño #5).
     Devuelve el id con el que quedó guardado.
     """
-    collection = _get_collection()
+    collection = _get_collection(profile)
     memory_id = memory_id or uuid.uuid4().hex
 
     meta = {"created_at": time.time()}
     if metadata:
         meta.update({k: v for k, v in metadata.items() if v is not None})
+    if profile != DEFAULT_PROFILE:
+        meta["profile"] = profile      # solo informativo: el aislamiento real es la colección
 
     collection.add(ids=[memory_id], documents=[content], metadatas=[meta])
     return memory_id
 
 
-def search_memory(query: str, n_results: int = 4, where: dict | None = None):
+def search_memory(query: str, n_results: int = 4, where: dict | None = None, profile: str = DEFAULT_PROFILE):
     """
     Busca por similitud semántica (significado), no por palabras exactas.
     Devuelve lista de dicts: {id, content, metadata, distance}.
     'distance' es distancia coseno: más BAJO = más parecido.
     """
-    collection = _get_collection()
+    collection = _get_collection(profile)
     total = collection.count()
     if total == 0:
         return []
@@ -80,15 +104,16 @@ def search_memory(query: str, n_results: int = 4, where: dict | None = None):
     ]
 
 
-def delete_memory(memory_id: str):
-    _get_collection().delete(ids=[memory_id])
+def delete_memory(memory_id: str, profile: str = DEFAULT_PROFILE):
+    _get_collection(profile).delete(ids=[memory_id])
 
 
-def count_memories() -> int:
-    return _get_collection().count()
+def count_memories(profile: str = DEFAULT_PROFILE) -> int:
+    return _get_collection(profile).count()
 
 
-def enforce_retention_policy(max_items: int | None = None, prunable_types: list | None = None):
+def enforce_retention_policy(max_items: int | None = None, prunable_types: list | None = None,
+                             profile: str = DEFAULT_PROFILE):
     """
     Política de retención: si hay más de 'max_items' recuerdos guardados en total,
     borra los MÁS VIEJOS (por 'created_at') hasta volver al límite — pero SOLO
@@ -103,13 +128,14 @@ def enforce_retention_policy(max_items: int | None = None, prunable_types: list 
     se pueda y se informa en 'limit_reached': el resto queda por encima del
     límite hasta que se libere espacio manualmente.
 
+    Con 'profile' distinto de 'elipse' opera SOLO sobre la colección de ese perfil: nunca toca la de otro.
     Barato de correr después de cada guardado: solo trae ids+metadatas,
     nunca los vectores completos, así que es rápido incluso con miles de items.
     """
     max_items = max_items or settings.memory_max_items
     prunable_types = set(prunable_types if prunable_types is not None else settings.memory_prunable_types)
 
-    collection = _get_collection()
+    collection = _get_collection(profile)
     total = collection.count()
     if total <= max_items:
         return {"deleted": 0, "total_before": total, "total_after": total, "within_limit": True}
@@ -139,11 +165,20 @@ def enforce_retention_policy(max_items: int | None = None, prunable_types: list 
     }
 
 
-def reset_memory():
-    """Borra TODA la memoria semántica. Uso manual/depuración, el agente nunca la llama."""
-    global _client, _collection
+def reset_memory(profile: str = DEFAULT_PROFILE):
+    """
+    Borra TODA la memoria semántica de un perfil. Uso manual/depuración, el agente nunca la llama.
+    'elipse' la recrea vacía, como siempre; otro perfil solo se borra (se recrea sola al volver a usarse).
+    """
+    global _client
+    name = _collection_name(profile)
     with _lock:
-        if _client is not None:
-            _client.delete_collection(settings.chroma_collection)
-        _collection = None
-    _get_collection()
+        if _client is None:
+            _client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+        try:
+            _client.delete_collection(name)
+        except Exception:
+            pass                       # no existía: nada que borrar
+        _collections.pop(name, None)
+    if profile == DEFAULT_PROFILE:
+        _get_collection(profile)

@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "elipse-sdk"
+version = "0.1.0"
+description = "SDK de anfitrión para ELIPSE: declara un perfil, registra tools y verifica el callback firmado."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+client = ["httpx>=0.24"]
+stream = ["httpx>=0.24", "websockets>=12"]
+
+[tool.setuptools]
+packages = ["elipse_sdk"]

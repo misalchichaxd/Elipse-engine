@@ -12,7 +12,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.config import settings
-from app.core.auth import create_key, list_keys, require_api_key, require_api_key_ws, revoke_key
+from app.core.auth import (create_key, list_keys, require_api_key, require_api_key_ws, require_principal,
+                           require_principal_ws, revoke_key)
+from app.core.profiles import Capabilities, Principal
 from app.core.db import get_connection, init_db
 from app.core.seed_personality import seed
 from app.core.safety import list_pending_actions, resolve_pending_action
@@ -25,6 +27,8 @@ from app.core import mcp_client, memory
 from app.core import skills
 from app.core import voice
 from app.core.voice.api import router as voice_router
+from app.core.profiles_api import router as profiles_router
+
 from app.core.workspace_api import router as workspace_router
 from fastapi.responses import FileResponse
 from app.core.tools import _resolve_safe_path, WORKSPACE_ROOT
@@ -59,6 +63,7 @@ seed()
 
 app.include_router(workspace_router)   # /v1/workspace/*: explorar, descargar y borrar archivos
 app.include_router(voice_router)       # /v1/voice/*
+app.include_router(profiles_router)
 
 
 # ---- Adjuntos de texto/código en el chat ----
@@ -84,6 +89,8 @@ class ChatRequest(BaseModel):
     message: str
     attachments: list[Attachment] = []
     speak: bool | None = None  # True/False fuerza hablar o callar este mensaje; None = según interruptor y modo
+    session: str | None = None  # solo llaves de anfitrión: separa el hilo de cada usuario/sesión del sistema externo
+    actor: str | None = None    # solo llaves de anfitrión: quién pregunta (se guarda en el log; NUNCA va al modelo)
 
 
 class MemoryRequest(BaseModel):
@@ -187,11 +194,43 @@ def _build_message_with_attachments(message: str, attachments: list[Attachment])
     header = "\n\n".join(notes)
     return f"{header}\n\n{message}".strip()
 
-@app.post("/v1/chat", dependencies=[Depends(require_api_key)])
-def chat(request: ChatRequest):
+def _clean_tag(value: str | None, field: str) -> str:
+    """session/actor: máx. 64 caracteres, sin saltos de línea ni caracteres de control."""
+    value = (value or "").strip()
+    if len(value) > 64 or any(ord(c) < 32 or ord(c) == 127 for c in value):
+        raise HTTPException(status_code=422, detail=f"'{field}' inválido (máx. 64 caracteres, sin saltos de línea).")
+    return value
+
+
+def _owns(task: dict, principal: Principal) -> bool:
+    """Una tarea es de su perfil: la llave admin ve todas; las demás, solo las suyas (E11)."""
+    return principal.is_admin or task.get("profile", "elipse") == principal.profile.name
+
+
+def _task_or_404(task_id: str, principal: Principal):
+    task = get_task(task_id)
+    if task is None or not _owns(task, principal):
+        if principal.is_admin and task is None:
+            return None                                  # admin: respuesta de siempre ("no existe")
+        raise HTTPException(status_code=404, detail="No existe una tarea con ese id.")
+    return task
+
+
+@app.post("/v1/chat")
+def chat(request: ChatRequest, principal: Principal = Depends(require_principal)):
+    profile = principal.profile
+    caps = Capabilities(profile)
+    if not principal.is_admin:
+        if not profile.synced or not str(profile.spec.get("role") or "").strip():
+            raise HTTPException(status_code=409, detail=f"El perfil '{profile.name}' aún no está listo: sincroniza su spec con rol (PUT /v1/profiles/{profile.name}).")
+        if request.attachments and not caps.attachments_allowed():
+            raise HTTPException(status_code=403, detail="Este perfil no admite adjuntos.")
+    session = "" if principal.is_admin else _clean_tag(request.session, "session")
+    actor = "" if principal.is_admin else _clean_tag(request.actor, "actor")
     final_message = _build_message_with_attachments(request.message, request.attachments)
-    task_id = create_task()
-    threading.Thread(target=run_agent_task, args=(task_id, final_message, request.speak), daemon=True).start()
+    task_id = create_task(profile, session, actor)
+    threading.Thread(target=run_agent_task, args=(task_id, final_message, request.speak, profile, session, actor),
+                     daemon=True).start()
 
     return {
         "task_id": task_id,
@@ -201,16 +240,17 @@ def chat(request: ChatRequest):
     }
 
 
-@app.get("/v1/task/{task_id}", dependencies=[Depends(require_api_key)])
-def task_status(task_id: str):
-    task = get_task(task_id)
+@app.get("/v1/task/{task_id}")
+def task_status(task_id: str, principal: Principal = Depends(require_principal)):
+    task = _task_or_404(task_id, principal)
     if not task:
         return {"status": "error", "detail": "No existe una tarea con ese id."}
     return {"status": task["status"], "result": task["result"]}
 
 
-@app.post("/v1/task/{task_id}/cancel", dependencies=[Depends(require_api_key)])
-def cancel_task_endpoint(task_id: str):
+@app.post("/v1/task/{task_id}/cancel")
+def cancel_task_endpoint(task_id: str, principal: Principal = Depends(require_principal)):
+    _task_or_404(task_id, principal)
     return {"status": "cancelando" if cancel_task(task_id) else "no_activa"}
 
 
@@ -220,11 +260,11 @@ WS_POLL_SECONDS = 0.03
 
 @app.websocket("/v1/ws/{task_id}")
 async def ws_task(websocket: WebSocket, task_id: str):
-    await require_api_key_ws(websocket)
+    principal = await require_principal_ws(websocket)
     await websocket.accept()
 
     task = get_task(task_id)
-    if not task:
+    if not task or not _owns(task, principal):
         await websocket.send_json({"type": "error", "mensaje": "No existe una tarea con ese id."})
         await websocket.close()
         return
@@ -298,14 +338,17 @@ def router_log():
     return {"logs": [dict(l) for l in logs]}
 
 
-@app.get("/v1/pending-actions", dependencies=[Depends(require_api_key)])
-def pending_actions():
-    return {"actions": list_pending_actions()}
+@app.get("/v1/pending-actions")
+def pending_actions(principal: Principal = Depends(require_principal)):
+    return {"actions": list_pending_actions(None if principal.is_admin else principal.profile.name)}
 
 
-@app.post("/v1/confirm-action/{action_id}", dependencies=[Depends(require_api_key)])
-def confirm_action(action_id: str, request: ConfirmActionRequest):
-    return resolve_pending_action(action_id, request.approved)
+@app.post("/v1/confirm-action/{action_id}")
+def confirm_action(action_id: str, request: ConfirmActionRequest, principal: Principal = Depends(require_principal)):
+    res = resolve_pending_action(action_id, request.approved, principal.profile)
+    if not principal.is_admin and res.get("status") == "error" and "No existe" in str(res.get("detail", "")):
+        raise HTTPException(status_code=404, detail=res["detail"])     # ajena = inexistente (no filtrar existencia)
+    return res
 
 
 @app.get("/v1/tools", dependencies=[Depends(require_api_key)])

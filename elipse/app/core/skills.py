@@ -364,6 +364,15 @@ def select(message: str, scope: str = "chat", compact: bool = False) -> list:
     return chosen
 
 
+def _compiled_rules(sk, limit: int) -> str:
+    """Checklist del paquete compilado y APROBADO (skillc.py) para modelos chicos; '' si no hay."""
+    try:
+        from app.core import skillc
+        return skillc.rules_text(sk, limit)
+    except Exception:
+        return ""
+
+
 def render_for(message: str, scope: str = "chat", compact: bool = False) -> tuple:
     """(texto_a_inyectar, [nombres]). Texto vacío si ninguna skill corresponde."""
     try:
@@ -379,7 +388,7 @@ def render_for(message: str, scope: str = "chat", compact: bool = False) -> tupl
     blocks = []
     for sk, _ in chosen:
         if compact:
-            text = sk.compact or f"{sk.description}\n{sk.body}"
+            text = _compiled_rules(sk, per_skill) or sk.compact or f"{sk.description}\n{sk.body}"
         else:
             text = sk.body
         blocks.append(

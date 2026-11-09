@@ -19,6 +19,9 @@ from app.core.codegen import run_code_generation
 from app.core.documents import generate_document
 from app.core.research import run_research_pipeline
 from app.core import gallery, vision
+from app.core.profiles import DEFAULT, PROFILE_ARG_KEYS, PROFILE_AWARE_TOOLS, Capabilities
+from app.core import profiles as _profiles
+from app.core import callback as host_callback
 
 # ---- Carpeta restringida: nada fuera de acá se puede tocar ----
 
@@ -718,19 +721,32 @@ def run_python(code: str):
     return output
 
 
-def remember(content: str, topic: str = ""):
+def remember(content: str, topic: str = "", profile: str = "elipse"):
+    # `profile` lo inyecta execute_tool por código (R13): el modelo nunca lo elige.
     if not content or not content.strip():
         return "Error: no se proporcionó contenido para recordar."
     metadata = {"type": "manual", "topic": topic} if topic else {"type": "manual"}
-    memory_id = memory.add_memory(content.strip(), metadata=metadata)
-    memory.enforce_retention_policy()
+    if profile == "elipse":
+        memory_id = memory.add_memory(content.strip(), metadata=metadata)
+        memory.enforce_retention_policy()
+    else:
+        memory_id = memory.add_memory(content.strip(), metadata=metadata, profile=profile)
+        # En un perfil toda su memoria es podable (si no, "manual" nunca se borraría y el tope no serviría).
+        memory.enforce_retention_policy(max_items=_profiles.memory_settings(profile)["max_items"],
+                                        prunable_types=["manual", "research"], profile=profile)
     return f"Guardado en memoria semántica (id: {memory_id})."
 
 
-def recall(query: str, n_results: int = 4):
+def recall(query: str, n_results: int = 4, profile: str = "elipse"):
     if not query or not query.strip():
         return "Error: la búsqueda en memoria no puede estar vacía."
-    results = memory.search_memory(query.strip(), n_results=n_results)
+    if profile == "elipse":
+        results = memory.search_memory(query.strip(), n_results=n_results)
+    else:
+        results = memory.search_memory(query.strip(), n_results=n_results, profile=profile)
+        max_dist = _profiles.memory_settings(profile)["max_distance"]
+        if max_dist is not None:
+            results = [r for r in results if r["distance"] <= max_dist]
     if not results:
         return "No hay nada relevante en la memoria semántica todavía."
     lines = ["[Resultados de memoria semántica — más relevante primero]"]
@@ -1044,13 +1060,15 @@ TOOL_FUNCTIONS = {
 }
 
 
-def get_tools_schema() -> list:
+def get_tools_schema(profile=DEFAULT) -> list:
     """
     Catálogo COMPLETO que ve el modelo: herramientas propias + las que aporten los
     servidores MCP conectados (ver mcp_client.py). Se recalcula en cada uso porque
     los servidores MCP se conectan después de importar este módulo.
+    Con un perfil ≠ 'elipse' (E1): solo lo permitido (spec ∩ caps) + las tools del anfitrión.
     """
-    return TOOLS_SCHEMA + mcp_client.manager.tool_schemas()
+    schema = TOOLS_SCHEMA + mcp_client.manager.tool_schemas()
+    return schema if profile.is_default else Capabilities(profile).filter_schema(schema)
 
 
 # ---- Catálogo compacto para modelos locales (contexto chico) ----
@@ -1086,10 +1104,13 @@ _TOOL_TRIGGERS = {
 
 
 def select_tools_for_message(message: str, schema: list, max_tools: int = 8,
-                             extra: tuple = (), history_has_code: bool = False) -> list:
+                             extra: tuple = (), history_has_code: bool = False, profile=DEFAULT) -> list:
     """Subconjunto del catálogo para este turno: tools base + las que el mensaje sugiere
     (+ las que pida `extra`, p. ej. las de REQUIRED_TOOLS). Las de MCP entran solo si el
     mensaje las nombra o si todavía sobra lugar bajo `max_tools`. Conserva el orden original."""
+    caps = Capabilities(profile)
+    if not caps.is_default:
+        schema = caps.filter_schema(schema)   # E2: filtrar ANTES de recortar a max_tools
     low = (message or "").lower()
     wanted = set(_CORE_TOOLS) | set(extra)
     for name, words in _TOOL_TRIGGERS.items():
@@ -1106,6 +1127,8 @@ def select_tools_for_message(message: str, schema: list, max_tools: int = 8,
         if name in TOOL_FUNCTIONS:
             if name in wanted:
                 chosen.append(tool)
+        elif caps.is_host_tool(name):
+            chosen.append(tool)               # las del anfitrión (ya filtradas) entran siempre
         else:
             mcp.append((name, tool))
     for name, tool in mcp:
@@ -1138,12 +1161,27 @@ def compact_tool_schema(tool: dict, desc_chars: int = 150, param_chars: int = 80
 
 
 def get_tools_schema_compact(message: str, max_tools: int = 8, extra: tuple = (),
-                             history_has_code: bool = False) -> list:
-    chosen = select_tools_for_message(message, get_tools_schema(), max_tools, tuple(extra), history_has_code)
+                             history_has_code: bool = False, profile=DEFAULT) -> list:
+    chosen = select_tools_for_message(message, get_tools_schema(profile), max_tools, tuple(extra),
+                                      history_has_code, profile)
     return [compact_tool_schema(t) for t in chosen]
 
 
-def execute_tool(name: str, arguments: dict):
+def execute_tool(name: str, arguments: dict, profile=DEFAULT, actor: str = "", session: str = ""):
+    caps = Capabilities(profile)
+    if not caps.is_default:
+        # E3: compuerta final. El perfil llega por código (R13): cualquier 'profile/actor/session'
+        # que el modelo mande en los argumentos se descarta.
+        if not caps.tool_allowed(name):
+            return f"Error: herramienta '{name}' no habilitada en este perfil."
+        arguments = {k: v for k, v in (arguments or {}).items() if k not in PROFILE_ARG_KEYS}
+        if caps.is_host_tool(name):
+            # Fase 4: callback HMAC. actor/session vienen del llamador autenticado, nunca de `arguments`.
+            return host_callback.call_host_tool(profile, name, arguments, actor, session)
+    if name in PROFILE_AWARE_TOOLS:
+        # El perfil entra POR CÓDIGO (R13), también para 'elipse': el modelo no puede escribir en la memoria de otro.
+        arguments = {k: v for k, v in (arguments or {}).items() if k not in PROFILE_ARG_KEYS}
+        arguments["profile"] = profile.name
     if name in TOOL_FUNCTIONS:
         func = TOOL_FUNCTIONS[name]
         # Modelos chicos a veces devuelven el ESQUEMA del parámetro en vez de un valor

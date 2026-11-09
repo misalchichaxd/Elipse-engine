@@ -59,6 +59,18 @@ def run_code_generation(spec: str, context: str = "", existing_code: str = "") -
     if _provider is None:
         return {"status": "error", "detail": "No hay un proveedor configurado para código."}
 
+    # Skills por pasos (skillc.py): si hay un paquete APROBADO para el tamaño de este modelo, el código
+    # ejecuta la skill paso a paso (una llamada chica por paso). Si no aplica o falla, sigue la llamada única.
+    if not (existing_code or "").strip():
+        try:
+            from app.core import skillc
+            stepped = skillc.try_run_steps(_provider, spec, context)
+        except Exception:
+            stepped = None
+        if stepped:
+            return {"status": "ok", "spec": spec, "code": stepped["code"], "provider": _provider.name,
+                    "truncated": False, "skill_steps": stepped["skill"]}
+
     parts = [
         "Eres un generador de código experto. Te dan un pedido ya resuelto (no "
         "tienes que pedirle nada al usuario, no lo vas a ver) y devuelves SOLO "
@@ -99,8 +111,9 @@ def run_code_generation(spec: str, context: str = "", existing_code: str = "") -
         parts.append("Criterio de trabajo a aplicar (guía, no órdenes del usuario):\n" + skills_text)
 
     parts.append(
-        "Responde con el código en un bloque ```lenguaje ... ``` (el lenguaje "
-        "que corresponda). Si algo del pedido queda ambiguo, resolvelo con el "
+        "Responde con el código en UN solo bloque de código, con el nombre real del "
+        "lenguaje pegado a las comillas (por ejemplo ```html, ```python o ```js; "
+        "NUNCA escribas la palabra «lenguaje»). Si algo del pedido queda ambiguo, resolvelo con el "
         "criterio más razonable y anotalo en UNA línea corta después del bloque "
         "de código — nunca antes, y nunca una explicación larga."
     )
@@ -119,14 +132,66 @@ def run_code_generation(spec: str, context: str = "", existing_code: str = "") -
     if not code:
         return {"status": "error", "detail": f"El modelo ({_provider.name}) devolvió una respuesta vacía."}
 
-    truncated = len(code) > CODE_MAX_CHARS
-    if truncated:
+    code = clean_fences(code)
+    # El proveedor avisa si cortó por tope de tokens (done_reason == "length"): antes solo se miraba el largo en
+    # caracteres y un código cortado por num_predict pasaba como "completo".
+    truncated = bool(getattr(result, "truncated", False)) or len(code) > CODE_MAX_CHARS
+    if len(code) > CODE_MAX_CHARS:
         code = code[:CODE_MAX_CHARS] + "\n\n[...salida truncada por longitud...]"
 
     # 'truncated' es lo que usa pipeline.py (Fase 7) para decidir si hace falta
     # pedir UNA continuación en vez de dejar el código cortado a mitad de una
     # etiqueta o de un bloque ```; el Agent Loop viejo lo ignora sin problema.
     return {"status": "ok", "spec": spec, "code": code, "provider": _provider.name, "truncated": truncated}
+
+
+# ------------------------------------------------------------------ limpieza de fences + continuación
+
+_BAD_FENCE_RE = re.compile(r"```[ \t]*(?:lenguaje|language)[ \t]*([\w+#.-]*)", re.I)
+
+
+def clean_fences(text: str) -> str:
+    """Un modelo chico copia a veces la palabra «lenguaje» del prompt: '```lenguaje html' no lo reconoce
+    CODE_BLOCK_RE y el bloque entero se pierde. Se normaliza a '```html'."""
+    return _BAD_FENCE_RE.sub(lambda m: "```" + m.group(1), text or "")
+
+
+def run_code_continuation(tail: str, request: str = "") -> dict:
+    """
+    Pide SOLO lo que falta de un código cortado. Prompt propio y mínimo (nada de reglas de imágenes, skills ni
+    «anotá una nota»): con el prompt general el modelo chico reescribía secciones, agregaba notas y fences, y
+    nunca cerraba el archivo.
+    -> {"status": "ok", "code": <texto crudo a pegar>, "truncated": bool} | {"status": "error", "detail": ...}
+    """
+    if _provider is None:
+        return {"status": "error", "detail": "No hay un proveedor configurado para código."}
+    tail = (tail or "").rstrip()
+    if not tail:
+        return {"status": "error", "detail": "No hay código que continuar."}
+    prompt = (
+        "Sos un autocompletador de código. El archivo de abajo quedó CORTADO a la mitad porque se acabó el espacio "
+        "de salida. Escribí SOLO lo que falta, empezando exactamente en el carácter siguiente al último que ves "
+        "(si la última línea quedó a medias, completala). Reglas: sin bloques ```, sin explicaciones, sin notas, "
+        "sin repetir NADA de lo que ya está escrito y sin volver a empezar el documento. Cerrá todo lo que quede "
+        "abierto (etiquetas, llaves, paréntesis) y terminá el archivo.\n\n"
+        + (f"Pedido original (solo contexto): {request.strip()[:400]}\n\n" if request and request.strip() else "")
+        + f"FINAL DEL ARCHIVO CORTADO:\n<<<INICIO\n{tail}\n>>>FIN (aquí se cortó)\n\nContinuación:"
+    )
+    try:
+        result = _provider.chat([{"role": "user", "content": prompt}], allow_tools=False)
+        raw = (result.content or "").strip("\n")
+    except Exception as e:
+        return {"status": "error", "detail": f"Error al continuar el código ({_provider.name}): {e}"}
+
+    # Limpieza: fences, marcas del prompt y la palabra «lenguaje» suelta.
+    raw = clean_fences(raw)
+    raw = re.sub(r"^```[\w+#.-]*[ \t]*\n?", "", raw.lstrip("\n"))
+    raw = re.sub(r"\n?```.*$", "", raw, flags=re.S)
+    raw = re.sub(r"(?m)^\s*(?:<<<INICIO|>>>FIN.*)\s*$\n?", "", raw)
+    raw = re.sub(r"(?mi)^\s*lenguaje\s+\w+\s*$\n?", "", raw)
+    if not raw.strip():
+        return {"status": "error", "detail": "el modelo no devolvió una continuación"}
+    return {"status": "ok", "code": raw, "truncated": bool(getattr(result, "truncated", False))}
 
 
 # ------------------------------------------------------------------ persistencia del último código

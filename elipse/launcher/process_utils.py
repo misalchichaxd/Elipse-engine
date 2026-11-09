@@ -195,8 +195,26 @@ def kill_ollama():
     kill_port(OLLAMA_PORT)
 
 
+def _ollama_env():
+    """En Linux, la instalación oficial guarda los modelos en /usr/share/ollama/.ollama/models (usuario «ollama»).
+    Un `ollama serve` lanzado con TU usuario mira ~/.ollama/models, que suele estar vacío: de ahí el 404
+    «model not found». Si los modelos solo están en la carpeta del sistema, se apunta a ella (lectura)."""
+    env = os.environ.copy()
+    if IS_WIN or env.get("OLLAMA_MODELS"):
+        return env
+    mine = Path.home() / ".ollama" / "models" / "manifests"
+    system = Path("/usr/share/ollama/.ollama/models")
+    try:
+        if not (mine.exists() and any(mine.iterdir())) and (system / "manifests").exists() and os.access(system, os.R_OK):
+            env["OLLAMA_MODELS"] = str(system)
+    except OSError:
+        pass
+    return env
+
+
 def launch_ollama(logf):
-    return subprocess.Popen([find_ollama() or "ollama", "serve"], stdout=logf, stderr=subprocess.STDOUT, creationflags=FLAGS)
+    return subprocess.Popen([find_ollama() or "ollama", "serve"], stdout=logf, stderr=subprocess.STDOUT,
+                            creationflags=FLAGS, env=_ollama_env())
 
 
 def launch_elipse(logf):
@@ -220,10 +238,33 @@ def run_keys(args):
         tail = (r.stderr.strip().splitlines() or r.stdout.strip().splitlines() or ["Sin salida del comando."])[-1]
         raise RuntimeError(tail)
 
+def run_profiles(args, timeout=30):
+    """python -m app.manage_profiles --json <args>. Devuelve el dict JSON (con "error" si falló: es válido)."""
+    r = subprocess.run([find_python(), "-m", "app.manage_profiles", "--json"] + args, cwd=ROOT,
+                       capture_output=True, text=True, encoding="utf-8", errors="replace",
+                       timeout=timeout, creationflags=FLAGS)
+    try:
+        return json.loads(r.stdout.strip().splitlines()[-1])
+    except Exception:
+        tail = (r.stderr.strip().splitlines() or r.stdout.strip().splitlines() or ["Sin salida del comando."])[-1]
+        raise RuntimeError(tail)
+
 
 def run_skills(args, timeout=30):
     """python -m app.core.skills --json <args>. Devuelve el dict JSON (puede traer status "error": es válido)."""
     r = subprocess.run([find_python(), "-m", "app.core.skills", "--json"] + args, cwd=ROOT,
+                       capture_output=True, text=True, encoding="utf-8", errors="replace",
+                       timeout=timeout, creationflags=FLAGS)
+    try:
+        return json.loads(r.stdout.strip().splitlines()[-1])
+    except Exception:
+        tail = (r.stderr.strip().splitlines() or r.stdout.strip().splitlines() or ["Sin salida del comando."])[-1]
+        raise RuntimeError(tail)
+
+
+def run_skillc(args, timeout=60):
+    """python -m app.core.skillc --json <args>. Proceso aparte: compilar/probar puede tardar minutos."""
+    r = subprocess.run([find_python(), "-m", "app.core.skillc", "--json"] + args, cwd=ROOT,
                        capture_output=True, text=True, encoding="utf-8", errors="replace",
                        timeout=timeout, creationflags=FLAGS)
     try:

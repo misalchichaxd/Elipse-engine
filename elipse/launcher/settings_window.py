@@ -18,6 +18,7 @@ from .theme import C, FB, FBB, FDS, FMONO, FT
 from .uiqueue import ui
 from .voice_dialog import VoiceDialog, voice_summary
 from .widgets import Pill, Surface, lbl
+from .profiles_dialog import ProfilesDialog, profiles_summary
 
 
 class Settings(Page):
@@ -89,6 +90,7 @@ class Settings(Page):
             self._build_role_row(self.role_rows_box, prefix, label)
         self._build_voice_row(self.role_rows_box)
         self._build_skills_row(self.role_rows_box)
+        self._build_profiles_row(self.role_rows_box)
     def _build_role_row(self, parent, prefix, label):
         card = Surface(parent, pad=16)
         card.pack(fill="x", pady=(0, 10))
@@ -127,6 +129,19 @@ class Settings(Page):
         Pill(row, "Administrar", lambda: self.app._single("skills", lambda: SkillsDialog(self.app, on_changed=self._refresh_rows)),
              kind="tonal", height=38).pack(side="right")
 
+
+
+    def _build_profiles_row(self, parent):
+        card = Surface(parent, pad=16)
+        card.pack(fill="x", pady=(0, 10))
+        row = tk.Frame(card.inner, bg=C["card"])
+        row.pack(fill="x")
+        left = tk.Frame(row, bg=C["card"])
+        left.pack(side="left", fill="x", expand=True)
+        tk.Label(left, text="Perfiles", font=FBB, fg=C["text"], bg=C["card"]).pack(anchor="w")
+        lbl(left, profiles_summary(), wrap=520).pack(anchor="w", pady=(2, 0))
+        Pill(row, "Administrar", lambda: self.app._single("profiles", lambda: ProfilesDialog(self.app, on_changed=self._refresh_rows)),
+             kind="tonal", height=38).pack(side="right")
     def _refresh_rows(self):
         if self.winfo_exists():   # el diálogo de skills puede seguir abierto con Ajustes ya cerrado
             self._render_role_rows()

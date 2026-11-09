@@ -28,7 +28,8 @@ from typing import Callable, Optional
 
 from app.config import settings
 from app.core import typos
-from app.core.codegen import load_last_code, run_code_generation, run_code_patch, save_last_code
+from app.core.codegen import (load_last_code, run_code_continuation, run_code_generation, run_code_patch,
+                              save_last_code)
 from app.core.providers import strip_think_blocks
 from app.core.research import run_research_pipeline
 from app.core.tools import search_images, verify_tool_result
@@ -912,35 +913,93 @@ def looks_truncated(text: str, flag: bool) -> bool:
     return False
 
 
+def _line_overlap(head: str, cont: str) -> str:
+    """Si el modelo repitió las últimas LÍNEAS de head al empezar, se las quita a cont (hasta 40 líneas)."""
+    hl, cl = head.rstrip().split("\n"), cont.split("\n")
+    for n in range(min(40, len(hl), len(cl)), 0, -1):
+        a = [x.strip() for x in hl[-n:]]
+        if a == [x.strip() for x in cl[:n]] and sum(len(x) for x in a) >= 12:
+            return "\n".join(cl[n:])
+    return cont
+
+
+def _cut_loop(head: str, cont: str) -> str:
+    """Si la continuación empieza a repetir un tramo que head YA tiene (4 líneas seguidas, >=120 caracteres,
+    el modelo volvió a escribir secciones anteriores), se corta ahí: lo que sigue es un bucle, no contenido nuevo."""
+    head_norm = "\n".join(x.strip() for x in head.split("\n") if x.strip())
+    lines = [x for x in cont.split("\n")]
+    ne = [(i, x.strip()) for i, x in enumerate(lines) if x.strip()]
+    for k in range(len(ne) - 3):
+        window = "\n".join(t for _, t in ne[k:k + 4])
+        if len(window) >= 120 and window in head_norm:
+            return "\n".join(lines[:ne[k][0]])
+    return cont
+
+
 def _merge_continuation(head: str, cont: str) -> str:
     if head.endswith("\n"):
         cont = cont.lstrip("\n")
     for k in range(min(len(head), len(cont), 400), 19, -1):  # quita el solapamiento si el modelo repitió el final
         if head.endswith(cont[:k]):
             return head + cont[k:]
+    cont = _cut_loop(head, _line_overlap(head, cont))
     return head + cont
 
 
-def continue_code(text: str) -> tuple[str, bool]:
-    """Pide UNA sola continuación y la pega. Devuelve (texto, se_pudo)."""
+_HTML_VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source",
+              "track", "wbr", "!doctype"}
+
+
+def auto_close_html(code: str) -> str:
+    """Último recurso cuando el modelo no logra cerrar el documento: quita una etiqueta cortada al final y
+    agrega los cierres que falten (</div></section></body></html>). Solo para páginas completas."""
+    if not re.match(r"\s*(<!doctype html|<html)", code or "", re.I) or "</html>" in code.lower():
+        return code
+    code = re.sub(r"<[^<>]*$", "", code.rstrip())
+    scan = re.sub(r"<!--.*?-->|<script\b.*?</script>|<style\b.*?</style>", "", code, flags=re.S | re.I)
+    stack: list[str] = []
+    for m in re.finditer(r"<(/?)([a-zA-Z][a-zA-Z0-9-]*)\b[^<>]*?(/?)>", scan):
+        closing, name, selfclose = m.group(1), m.group(2).lower(), m.group(3)
+        if name in _HTML_VOID or selfclose:
+            continue
+        if not closing:
+            stack.append(name)
+        elif name in stack:
+            while stack and stack.pop() != name:
+                pass
+    return code + "\n" + "".join(f"</{n}>" for n in reversed(stack)) + "\n"
+
+
+MAX_CONTINUATION_ROUNDS = 2
+
+
+def continue_code(text: str, request: str = "") -> tuple[str, bool]:
+    """Pide hasta MAX_CONTINUATION_ROUNDS continuaciones, las pega y, si el documento HTML sigue sin cerrar,
+    lo cierra por código. Devuelve (texto, se_pudo)."""
     text = text.replace(TRUNC_MARKER, "").rstrip()
     if text.count("```") % 2 == 1:
         text += "\n```"
     main = _longest_block(text)
     if not main:
         return text, False
-    res = run_code_generation(
-        "CONTINUACIÓN: el código cuyo final se muestra abajo se cortó por límite de longitud. "
-        "Devolvé SOLO lo que falta, empezando exactamente donde termina ese final. No repitas nada "
-        "de lo anterior, no expliques nada y cerrá todas las etiquetas y llaves que queden abiertas.",
-        context="", existing_code=main[-CONTINUATION_TAIL_CHARS:])
-    if res.get("status") != "ok":
+    merged = main.rstrip()
+    if re.match(r"\s*<", merged):                    # marcado cortado dentro de una etiqueta («</»): se quita el
+        merged = re.sub(r"<[^<>]*$", "", merged).rstrip() + "\n"   # fragmento y el modelo la reescribe completa
+    progressed = False
+    for _ in range(MAX_CONTINUATION_ROUNDS):
+        res = run_code_continuation(merged[-CONTINUATION_TAIL_CHARS:], request)
+        if res.get("status") != "ok":
+            break
+        new = _merge_continuation(merged, res["code"])
+        if new.strip() == merged.strip():
+            break                                   # el modelo no aportó nada nuevo: no insistir
+        merged, progressed = new.rstrip(), True
+        if not looks_truncated(f"```\n{merged}\n```", bool(res.get("truncated"))):
+            break
+    if not progressed:
         return text, False
-    cont = _longest_block(res["code"]) or res["code"].strip()
-    if not cont.strip():
-        return text, False
-    merged = _merge_continuation(main, cont)
-    return text.replace(main, merged, 1), True
+    merged = auto_close_html(merged)
+    return text.replace(main, merged.rstrip() + "\n", 1), True
 
 
 def _step_code(state: dict, emit: EmitFn) -> dict:
@@ -983,7 +1042,7 @@ def _step_code(state: dict, emit: EmitFn) -> dict:
     truncated = False
     if not patches_applied and looks_truncated(text, result.get("truncated", False)):
         emit({"type": "progreso", "mensaje": "El código llegó cortado, pidiendo la continuación..."})
-        text, done = continue_code(text)
+        text, done = continue_code(text, state["message"])
         if not done or looks_truncated(text, False):
             truncated = True
             warnings.append("El código puede estar incompleto (se cortó por longitud y no se pudo completar).")

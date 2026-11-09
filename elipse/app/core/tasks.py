@@ -15,6 +15,7 @@ from typing import Optional
 
 from app.core import codegen, research, vision, voice
 from app.core.core import ElipseCore
+from app.core.profiles import DEFAULT, Capabilities
 from app.core.providers import build_role_provider
 
 
@@ -74,7 +75,7 @@ class TaskCancelled(BaseException):
 _TASK_TTL = 3600  # 1 hora
 
 
-def create_task() -> str:
+def create_task(profile=DEFAULT, session: str = "", actor: str = "") -> str:
     now = time.time()
     for tid in [t for t, v in _tasks.items() if v["status"] != "en_progreso" and now - v.get("created", now) > _TASK_TTL]:
         _tasks.pop(tid, None)
@@ -85,6 +86,9 @@ def create_task() -> str:
         "queue": queue.Queue(),
         "cancel": threading.Event(),
         "created": now,
+        "profile": profile.name,      # dueño de la tarea: solo su perfil (o un admin) la ve (E11)
+        "session": session,
+        "actor": actor,
     }
     return task_id
 
@@ -113,12 +117,17 @@ def _emit(task_id: str, event: dict):
 _gpu_slot = threading.Semaphore(1)
 
 
-def _acquire_slot(task_id: str) -> bool:
-    """Espera su turno respetando la cancelación. False = cancelada mientras esperaba."""
+def _acquire_slot(task_id: str, queue_timeout: float | None = None) -> bool:
+    """Espera su turno respetando la cancelación. False = cancelada (o, con queue_timeout, vencida) en la cola.
+    `queue_timeout` solo lo usan los perfiles ≠ 'elipse' (E14); 'elipse' espera como siempre."""
     task = _tasks[task_id]
     announced = False
+    deadline = time.monotonic() + queue_timeout if queue_timeout else None
     while not _gpu_slot.acquire(timeout=0.5):
         if task["cancel"].is_set():
+            return False
+        if deadline is not None and time.monotonic() >= deadline:
+            task["queue_timeout"] = True
             return False
         if not announced:
             announced = True
@@ -134,13 +143,26 @@ def _cancelled_in_queue(task_id: str):
     _emit(task_id, {"type": "final", "data": final})
 
 
-def run_agent_task(task_id: str, message: str, speak: bool | None = None):
+def _busy_in_queue(task_id: str):
+    final = {"reply": "El motor está ocupado ahora mismo; intenta de nuevo en un momento.", "provider": None,
+             "reason": "tiempo de espera en la cola agotado", "used_tools": False}
+    _tasks[task_id]["status"] = "error"
+    _tasks[task_id]["result"] = final
+    _emit(task_id, {"type": "final", "data": final})
+
+
+def run_agent_task(task_id: str, message: str, speak: bool | None = None,
+                   profile=DEFAULT, session: str = "", actor: str = ""):
     """Entrada pública: espera su turno de GPU y corre la tarea."""
-    if not _acquire_slot(task_id):
-        _cancelled_in_queue(task_id)
+    qt = None if profile.is_default else Capabilities(profile).limits()["queue_timeout_s"]
+    if not _acquire_slot(task_id, qt):
+        if _tasks[task_id].get("queue_timeout"):
+            _busy_in_queue(task_id)
+        else:
+            _cancelled_in_queue(task_id)
         return
     try:
-        _run_agent_task_locked(task_id, message, speak)
+        _run_agent_task_locked(task_id, message, speak, profile, session, actor)
     finally:
         _gpu_slot.release()
 
@@ -156,7 +178,8 @@ def run_research_task(task_id: str, topic: str):
         _gpu_slot.release()
 
 
-def _run_agent_task_locked(task_id: str, message: str, speak: bool | None = None):
+def _run_agent_task_locked(task_id: str, message: str, speak: bool | None = None,
+                           profile=DEFAULT, session: str = "", actor: str = ""):
     """
     Corre el Core para 'message' dentro de una tarea. Diseñada para correr en un
     hilo aparte (ver main.py) — nunca bloquea el servidor principal.
@@ -175,7 +198,8 @@ def _run_agent_task_locked(task_id: str, message: str, speak: bool | None = None
         _emit(task_id, event)
 
     try:
-        status, final = _core.run(message, emit=emit)
+        status, final = (_core.run(message, emit=emit) if profile.is_default
+                         else _core.run(message, emit=emit, profile=profile, session=session, actor=actor))
     except TaskCancelled:
         status = "cancelado"
         final = {
@@ -183,13 +207,15 @@ def _run_agent_task_locked(task_id: str, message: str, speak: bool | None = None
             "provider": None, "reason": "detenido por el usuario", "used_tools": False,
         }
         # Si quedó un mensaje del usuario sin respuesta, se cierra el par para no romper el historial.
-        recent = get_recent_messages(1)
+        sk = {} if profile.is_default else {"profile": profile.name, "session": session}
+        recent = get_recent_messages(1, *([] if profile.is_default else [profile.name, session]))
         if recent and recent[-1]["role"] == "user":
-            save_message("assistant", "(respuesta detenida por el usuario)")
+            save_message("assistant", "(respuesta detenida por el usuario)", **sk)
 
     # Voz: se decide DESPUÉS de que la respuesta existe y nunca puede romper al agente.
     try:
-        voice_block, voice_text = voice.plan_for_final(status, final.get("reply", ""), speak)
+        voice_block, voice_text = (voice.plan_for_final(status, final.get("reply", ""), speak) if profile.is_default
+                                   else voice.plan_for_final(status, final.get("reply", ""), speak, profile))
     except Exception:
         voice_block, voice_text = None, None
     if voice_block:

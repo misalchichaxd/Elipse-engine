@@ -1,0 +1,204 @@
+{
+  "version": 1,
+  "note": "Vectores del protocolo de callback de ELIPSE. Generados con app/core/callback.py (tráfico real capturado). El secreto es SOLO de prueba.",
+  "secret": "elipse-test-secret-0123456789abcdef",
+  "algorithm": "HMAC-SHA256",
+  "ts_epoch_example": 1793400000,
+  "positive": [
+    {
+      "name": "basico",
+      "profile": "rbe",
+      "tool": "viajes_del_dia",
+      "ts": 1793400000,
+      "path": "/elipse/tools/viajes_del_dia",
+      "body": "{\"call_id\":\"call00000000000000000000000000001\",\"tool\":\"viajes_del_dia\",\"args\":{\"fecha\":\"2026-10-29\"},\"actor\":\"admin:42\",\"session\":\"s1\"}",
+      "body_utf8_hex": "7b2263616c6c5f6964223a2263616c6c3030303030303030303030303030303030303030303030303030303031222c22746f6f6c223a227669616a65735f64656c5f646961222c2261726773223a7b226665636861223a22323032362d31302d3239227d2c226163746f72223a2261646d696e3a3432222c2273657373696f6e223a227331227d",
+      "body_sha256": "b71f325b34752ff0f5b6f56ea815e54cc63f536cb9b372ddf5fd6875ee41f94b",
+      "message": "1793400000.rbe.viajes_del_dia.b71f325b34752ff0f5b6f56ea815e54cc63f536cb9b372ddf5fd6875ee41f94b",
+      "signature": "2908a0e5ceacc6aa06e3ad266eb01c7231c7250abcf1e537ff214e5fb6569238",
+      "wire_inputs": {
+        "args": {
+          "fecha": "2026-10-29"
+        },
+        "actor": "admin:42",
+        "session": "s1",
+        "call_id": "call00000000000000000000000000001"
+      }
+    },
+    {
+      "name": "unicode_y_escapes",
+      "profile": "rbe",
+      "tool": "buscar_cliente",
+      "ts": 1793400000,
+      "path": "/elipse/tools/buscar_cliente",
+      "body": "{\"call_id\":\"call00000000000000000000000000002\",\"tool\":\"buscar_cliente\",\"args\":{\"nombre\":\"José Ñandú 🚌\",\"nota\":\"línea\\ncon salto y \\\"comillas\\\"\"},\"actor\":\"usuario:ñ7\",\"session\":\"sesión-é\"}",
+      "body_utf8_hex": "7b2263616c6c5f6964223a2263616c6c3030303030303030303030303030303030303030303030303030303032222c22746f6f6c223a226275736361725f636c69656e7465222c2261726773223a7b226e6f6d627265223a224a6f73c3a920c391616e64c3ba20f09f9a8c222c226e6f7461223a226cc3ad6e65615c6e636f6e2073616c746f2079205c22636f6d696c6c61735c22227d2c226163746f72223a227573756172696f3ac3b137222c2273657373696f6e223a2273657369c3b36e2dc3a9227d",
+      "body_sha256": "70826e95a7723f5c3d8ef2a1b3c91ec74ec7e6b98e0b0ad20982def6e99fefc5",
+      "message": "1793400000.rbe.buscar_cliente.70826e95a7723f5c3d8ef2a1b3c91ec74ec7e6b98e0b0ad20982def6e99fefc5",
+      "signature": "ce7448e7a54a492194d5ee8c2bbdb4433af36d9bc5e5fcb91c82cf1f5ebec705",
+      "wire_inputs": {
+        "args": {
+          "nombre": "José Ñandú 🚌",
+          "nota": "línea\ncon salto y \"comillas\""
+        },
+        "actor": "usuario:ñ7",
+        "session": "sesión-é",
+        "call_id": "call00000000000000000000000000002"
+      }
+    },
+    {
+      "name": "args_vacios",
+      "profile": "rbe",
+      "tool": "ping",
+      "ts": 1793400000,
+      "path": "/elipse/tools/ping",
+      "body": "{\"call_id\":\"call00000000000000000000000000003\",\"tool\":\"ping\",\"args\":{},\"actor\":\"\",\"session\":\"\"}",
+      "body_utf8_hex": "7b2263616c6c5f6964223a2263616c6c3030303030303030303030303030303030303030303030303030303033222c22746f6f6c223a2270696e67222c2261726773223a7b7d2c226163746f72223a22222c2273657373696f6e223a22227d",
+      "body_sha256": "a0244fe5ddd9dcf4553ba08c182ff28766b785e88919caed377bce9c049a9952",
+      "message": "1793400000.rbe.ping.a0244fe5ddd9dcf4553ba08c182ff28766b785e88919caed377bce9c049a9952",
+      "signature": "fc11d92f06c8e1132fd137cfc845b73533e11fee6b9904e4a47d7fc95c4d7153",
+      "wire_inputs": {
+        "args": {},
+        "actor": "",
+        "session": "",
+        "call_id": "call00000000000000000000000000003"
+      }
+    }
+  ],
+  "negative": [
+    {
+      "name": "cuerpo_alterado",
+      "why": "un solo cambio en el cuerpo",
+      "secret": "elipse-test-secret-0123456789abcdef",
+      "profile": "rbe",
+      "tool": "viajes_del_dia",
+      "ts": 1793400000,
+      "body": "{\"call_id\":\"call00000000000000000000000000001\",\"tool\":\"viajes_del_dia\",\"args\":{\"fecha\":\"2026-10-30\"},\"actor\":\"admin:42\",\"session\":\"s1\"}",
+      "signature": "2908a0e5ceacc6aa06e3ad266eb01c7231c7250abcf1e537ff214e5fb6569238",
+      "now": 1793400000
+    },
+    {
+      "name": "secreto_distinto",
+      "why": "otro secreto",
+      "secret": "elipse-test-secret-0123456789abcdefx",
+      "profile": "rbe",
+      "tool": "viajes_del_dia",
+      "ts": 1793400000,
+      "body": "{\"call_id\":\"call00000000000000000000000000001\",\"tool\":\"viajes_del_dia\",\"args\":{\"fecha\":\"2026-10-29\"},\"actor\":\"admin:42\",\"session\":\"s1\"}",
+      "signature": "2908a0e5ceacc6aa06e3ad266eb01c7231c7250abcf1e537ff214e5fb6569238",
+      "now": 1793400000
+    },
+    {
+      "name": "tool_distinta",
+      "why": "la tool firmada es otra",
+      "secret": "elipse-test-secret-0123456789abcdef",
+      "profile": "rbe",
+      "tool": "ping",
+      "ts": 1793400000,
+      "body": "{\"call_id\":\"call00000000000000000000000000001\",\"tool\":\"viajes_del_dia\",\"args\":{\"fecha\":\"2026-10-29\"},\"actor\":\"admin:42\",\"session\":\"s1\"}",
+      "signature": "2908a0e5ceacc6aa06e3ad266eb01c7231c7250abcf1e537ff214e5fb6569238",
+      "now": 1793400000
+    },
+    {
+      "name": "perfil_distinto",
+      "why": "el anfitrión usa otro perfil",
+      "secret": "elipse-test-secret-0123456789abcdef",
+      "profile": "otro",
+      "tool": "viajes_del_dia",
+      "ts": 1793400000,
+      "body": "{\"call_id\":\"call00000000000000000000000000001\",\"tool\":\"viajes_del_dia\",\"args\":{\"fecha\":\"2026-10-29\"},\"actor\":\"admin:42\",\"session\":\"s1\"}",
+      "signature": "2908a0e5ceacc6aa06e3ad266eb01c7231c7250abcf1e537ff214e5fb6569238",
+      "now": 1793400000
+    },
+    {
+      "name": "ts_distinto_en_header",
+      "why": "el timestamp forma parte de la firma",
+      "secret": "elipse-test-secret-0123456789abcdef",
+      "profile": "rbe",
+      "tool": "viajes_del_dia",
+      "ts": 1793400001,
+      "body": "{\"call_id\":\"call00000000000000000000000000001\",\"tool\":\"viajes_del_dia\",\"args\":{\"fecha\":\"2026-10-29\"},\"actor\":\"admin:42\",\"session\":\"s1\"}",
+      "signature": "2908a0e5ceacc6aa06e3ad266eb01c7231c7250abcf1e537ff214e5fb6569238",
+      "now": 1793400001
+    },
+    {
+      "name": "firma_en_mayusculas",
+      "why": "la firma es hex en minúsculas",
+      "secret": "elipse-test-secret-0123456789abcdef",
+      "profile": "rbe",
+      "tool": "viajes_del_dia",
+      "ts": 1793400000,
+      "body": "{\"call_id\":\"call00000000000000000000000000001\",\"tool\":\"viajes_del_dia\",\"args\":{\"fecha\":\"2026-10-29\"},\"actor\":\"admin:42\",\"session\":\"s1\"}",
+      "signature": "2908A0E5CEACC6AA06E3AD266EB01C7231C7250ABCF1E537FF214E5FB6569238",
+      "now": 1793400000
+    },
+    {
+      "name": "fuera_de_ventana_futuro",
+      "why": "|now-ts| = 61 s",
+      "secret": "elipse-test-secret-0123456789abcdef",
+      "profile": "rbe",
+      "tool": "viajes_del_dia",
+      "ts": 1793400000,
+      "body": "{\"call_id\":\"call00000000000000000000000000001\",\"tool\":\"viajes_del_dia\",\"args\":{\"fecha\":\"2026-10-29\"},\"actor\":\"admin:42\",\"session\":\"s1\"}",
+      "signature": "2908a0e5ceacc6aa06e3ad266eb01c7231c7250abcf1e537ff214e5fb6569238",
+      "now": 1793399939
+    },
+    {
+      "name": "fuera_de_ventana_pasado",
+      "why": "|now-ts| = 61 s",
+      "secret": "elipse-test-secret-0123456789abcdef",
+      "profile": "rbe",
+      "tool": "viajes_del_dia",
+      "ts": 1793400000,
+      "body": "{\"call_id\":\"call00000000000000000000000000001\",\"tool\":\"viajes_del_dia\",\"args\":{\"fecha\":\"2026-10-29\"},\"actor\":\"admin:42\",\"session\":\"s1\"}",
+      "signature": "2908a0e5ceacc6aa06e3ad266eb01c7231c7250abcf1e537ff214e5fb6569238",
+      "now": 1793400061
+    },
+    {
+      "name": "firma_vacia",
+      "why": "sin firma",
+      "secret": "elipse-test-secret-0123456789abcdef",
+      "profile": "rbe",
+      "tool": "viajes_del_dia",
+      "ts": 1793400000,
+      "body": "{\"call_id\":\"call00000000000000000000000000001\",\"tool\":\"viajes_del_dia\",\"args\":{\"fecha\":\"2026-10-29\"},\"actor\":\"admin:42\",\"session\":\"s1\"}",
+      "signature": "",
+      "now": 1793400000
+    },
+    {
+      "name": "ts_no_numerico",
+      "why": "timestamp inválido",
+      "secret": "elipse-test-secret-0123456789abcdef",
+      "profile": "rbe",
+      "tool": "viajes_del_dia",
+      "ts": "abc",
+      "body": "{\"call_id\":\"call00000000000000000000000000001\",\"tool\":\"viajes_del_dia\",\"args\":{\"fecha\":\"2026-10-29\"},\"actor\":\"admin:42\",\"session\":\"s1\"}",
+      "signature": "2908a0e5ceacc6aa06e3ad266eb01c7231c7250abcf1e537ff214e5fb6569238",
+      "now": 1793400000
+    }
+  ],
+  "edge_valid": [
+    {
+      "name": "limite_ventana_60s_pasado",
+      "secret": "elipse-test-secret-0123456789abcdef",
+      "profile": "rbe",
+      "tool": "viajes_del_dia",
+      "ts": 1793400000,
+      "body": "{\"call_id\":\"call00000000000000000000000000001\",\"tool\":\"viajes_del_dia\",\"args\":{\"fecha\":\"2026-10-29\"},\"actor\":\"admin:42\",\"session\":\"s1\"}",
+      "signature": "2908a0e5ceacc6aa06e3ad266eb01c7231c7250abcf1e537ff214e5fb6569238",
+      "now": 1793400060,
+      "valid": true
+    },
+    {
+      "name": "limite_ventana_60s_futuro",
+      "secret": "elipse-test-secret-0123456789abcdef",
+      "profile": "rbe",
+      "tool": "viajes_del_dia",
+      "ts": 1793400000,
+      "body": "{\"call_id\":\"call00000000000000000000000000001\",\"tool\":\"viajes_del_dia\",\"args\":{\"fecha\":\"2026-10-29\"},\"actor\":\"admin:42\",\"session\":\"s1\"}",
+      "signature": "2908a0e5ceacc6aa06e3ad266eb01c7231c7250abcf1e537ff214e5fb6569238",
+      "now": 1793399940,
+      "valid": true
+    }
+  ]
+}
