@@ -1,12 +1,12 @@
 # ELIPSE Engine — Estructura del proyecto
 
-> _Última actualización de este documento: 2026-10-29 (se agregó el apartado **Perfiles de anfitrión**: Fases 0–4 hechas —aislamiento por perfil y callback HMAC— y la lista de lo que falta)._
+> _Última actualización de este documento: 2026-11-09. Perfiles de anfitrión: Fases 0–4 hechas (aislamiento por perfil y callback HMAC) y **Fase 5 en marcha**: el protocolo del callback quedó escrito aparte del código (`docs/protocol/`) y el núcleo del SDK `elipse_sdk` está hecho y probado (`sdk/python/`). Faltan los adaptadores de framework, el comando de onboarding y migrar RBE. Suite: 124 tests._
 
 Este documento explica qué hace cada archivo dentro de `app/`, la carpeta que contiene el motor de ELIPSE. Está pensado para que cualquiera (incluido tu yo del futuro, o cualquier IA con la que sigas trabajando) entienda rápido cómo está armado el Core sin tener que leer todo el código de una.
 
-> **Fase actual del plan:** Fase 0 a 6 cerradas (multi-proveedor con 4 backends, orquestador único con tool-calling encadenado, seguridad, memoria semántica + research, generación de código como tool especializada, búsqueda de imágenes, adjuntos en el chat, streaming, MCP y autenticación multi-dispositivo). Después se sumaron, sin numerar: **pipeline por plan** (el código ejecuta la cadena de tools en vez de que el modelo chico la sostenga ronda a ronda), **documentos PDF/Word** con edición incremental, **continuación de respuestas cortadas**, API del **workspace** y **visión v2** (modelo de visión como rol propio + OCR en CPU + zoom por región + caché + galería de personajes que ELIPSE aprende). El viejo Model Router (clasificar el mensaje como "código" o "general" y mandar el turno entero a un proveedor u otro) quedó **deprecado y sin uso**: `core/router.py` y `core/topic_tag.py` ya no los importa nada (ver `core/ROUTER_DEPRECATED.txt`), se mantienen en el repo solo por si hace falta revisar el código viejo antes de borrarlos. Git sigue descartado a propósito, no se necesita por ahora. También sin numerar: la capa de **skills** (criterio reutilizable para tareas específicas, instalable como un simple `SKILL.md`; ver `core/skills.py`) y la **voz** (TTS opcional con proveedores intercambiables y failover; ver `core/voice/`). Lo que sigue pendiente y los límites conocidos están en la sección "Notas / cosas pendientes conocidas" al final.
+> **Fase actual del plan:** Fase 0 a 6 cerradas (multi-proveedor con 4 backends, orquestador único con tool-calling encadenado, seguridad, memoria semántica + research, generación de código como tool especializada, búsqueda de imágenes, adjuntos en el chat, streaming, MCP y autenticación multi-dispositivo). Después se sumaron, sin numerar: **pipeline por plan** (el código ejecuta la cadena de tools en vez de que el modelo chico la sostenga ronda a ronda), **documentos PDF/Word** con edición incremental, **continuación de respuestas cortadas**, API del **workspace** y **visión v2** (modelo de visión como rol propio + OCR en CPU + zoom por región + caché + galería de personajes que ELIPSE aprende). El viejo Model Router (clasificar el mensaje como "código" o "general" y mandar el turno entero a un proveedor u otro) quedó **deprecado y sin uso**: `core/router.py` y `core/topic_tag.py` ya no los importa nada (ver `core/ROUTER_DEPRECATED.txt`), se mantienen en el repo solo por si hace falta revisar el código viejo antes de borrarlos. El proyecto ya se versiona con **git** (el repositorio está en la carpeta padre, `Elipse-engine/`, y el motor vive en `elipse/`; ver «Control de versiones» al final). También sin numerar: la capa de **skills** (criterio reutilizable para tareas específicas, instalable como un simple `SKILL.md`; ver `core/skills.py`) y la **voz** (TTS opcional con proveedores intercambiables y failover; ver `core/voice/`). Lo que sigue pendiente y los límites conocidos están en la sección "Notas / cosas pendientes conocidas" al final.
 
-> **Perfiles (multi-anfitrión, p. ej. RBE):** Fases 0–4 hechas y con 74 tests; falta la Fase 5 (SDK + migrar RBE). Todo está en el apartado **«Perfiles de anfitrión»** (más abajo): qué hay, cómo se hizo y qué sigue.
+> **Perfiles (multi-anfitrión, p. ej. RBE):** Fases 0–4 hechas. Fase 5: protocolo v1 y núcleo del SDK hechos (124 tests en total); faltan los adaptadores Django/FastAPI, el comando de onboarding y migrar RBE. Todo está en el apartado **«Perfiles de anfitrión»** (más abajo): qué hay, cómo se hizo y qué sigue. El protocolo y el SDK tienen su propio apartado: **«Protocolo del callback y SDK `elipse_sdk`»**.
 
 ---
 
@@ -26,6 +26,17 @@ elipse/
 │   └── _pendiente.json          #   lo que quedó cortado para poder "continuar" (ver continuation.py)
 ├── logs/                        # Logs de Ollama, de ELIPSE Core y del panel (los genera elipse_control_panel.py)
 ├── elipse_control_panel.py      # Panel de control de escritorio (Tkinter): prender/apagar servicios, ajustes, llaves
+├── callback_demo.py             # Anfitrión de juguete para probar el callback firmado sin Django (ver «Prueba de extremo a extremo»)
+├── tests/                       # Suite de pytest (124 tests; se corre desde esta carpeta: pytest tests -v)
+├── docs/
+│   └── protocol/                # Protocolo del callback v1, escrito aparte del código
+│       ├── PROTOCOL.md          #   la especificación (firma, headers, cuerpo, respuestas, seguridad, versionado)
+│       ├── vectors.json         #   15 vectores de prueba (3 positivos, 10 negativos, 2 de borde), generados con el motor real
+│       └── ref/                 #   verificadores de referencia independientes (Python y Node) + run_vectors.py
+├── sdk/
+│   └── python/                  # SDK de anfitrión (núcleo, sin frameworks; ver «Protocolo del callback y SDK elipse_sdk»)
+│       ├── pyproject.toml
+│       └── elipse_sdk/          #   __init__.py, signing.py, schema.py, registry.py, client.py
 └── app/
     ├── __init__.py
     ├── main.py                  # Punto de entrada: define la API, adjuntos del chat (texto e imágenes), y conecta todo
@@ -443,7 +454,11 @@ ELIPSE es un solo motor con un solo dueño. Un **perfil** deja que un sistema ex
 | 2 | Capacidades y gestión: `profiles.py`, `/v1/profiles`, `manage_profiles.py`, pantalla **Perfiles** del launcher, tools filtradas por perfil | ✅ |
 | 3 | Aislamiento: chat para llaves de anfitrión; el perfil viaja por código hasta `execute_tool`; historial, memoria, prompt, voz y poda por perfil | ✅ |
 | 4 | Callback HMAC al anfitrión, `confirm_for`, `actor`/`session` en acciones pendientes, prompt de perfiles limpio (sin creador, con fecha) | ✅ probado de punta a punta con `callback_demo.py` y el modelo local |
-| 5 | SDK `elipse_sdk`, helper de Django y migración de los intents de RBE a tools | ⏳ ver "Lo que falta" |
+| 5a | Protocolo v1 escrito aparte del código (`docs/protocol/`) con 15 vectores, verificadores de referencia en Python y Node y un test que ata el manual al motor | ✅ |
+| 5b | Núcleo de `elipse_sdk` (`sdk/python/`): firma, esquema desde type hints, registro de `@tool`, despacho del callback, cliente (`sync`, `chat`, `stream`, confirmaciones) | ✅ 46 tests; `stream()` sin test |
+| 5c | Adaptadores finos: Django primero, luego FastAPI (y Flask/WSGI) | ⏳ |
+| 5d | Comando de onboarding (`manage_profiles onboard`) que crea perfil, callback y llave y imprime el bloque de configuración | ⏳ |
+| 5e | Migrar RBE: intents → tools deterministas, SQL libre apagado por defecto, `INFO_RBE` a la memoria del perfil | ⏳ necesita `taquilla/elipse_views.py`, `elipse.html` y los intents |
 
 ### Modelo en una página
 
@@ -491,7 +506,8 @@ Las tools que corren dentro del sistema del anfitrión se declaran en `spec.tool
 - Headers: `X-Elipse-Ts` (epoch s) y `X-Elipse-Sig` = `hex(HMAC_SHA256(secreto, f"{ts}.{perfil}.{tool}.{sha256_hex(body)}"))`.
 - Body JSON: `{"call_id","tool","args","actor","session"}`. Respuesta: `{"ok":true,"result":<json>}` o `{"ok":false,"error":"texto corto"}`.
 - **`actor` y `session` salen de la petición autenticada, jamás de los argumentos del modelo.** Sin redirects, sin proxies del entorno, timeout total = `limits.tool_timeout_s`, respuesta acotada (`mcp_max_output_chars`, truncada con marcador), argumentos ≤ 32 KB. Todo error vuelve como texto `"Error: ..."` **sin** URL ni secreto; nunca lanza.
-- `callback.verify_request(secret, profile, tool, body, ts, sig)` es el lado del anfitrión (ventana de 60 s, comparación en tiempo constante). **El SDK de la Fase 5 debe llevar una copia exacta.**
+- `callback.verify_request(secret, profile, tool, body, ts, sig)` es el lado del anfitrión (ventana de 60 s, comparación en tiempo constante). El SDK (`elipse_sdk.signing`) lleva su propia implementación, verificada contra los mismos vectores. ⚠️ Una diferencia conocida: el protocolo y el SDK exigen que `ts` sea un entero canónico (solo dígitos), pero esta función hace `int(ts)` y acepta cosas como `"+123"` o `" 123"`. No es un hueco (la firma se calcula sobre el número ya normalizado), pero conviene unificarlo con la regex estricta (ver «Lo que falta»).
+- La especificación completa del formato (headers, cuerpo, tabla de respuestas, checklist del anfitrión) está en `docs/protocol/PROTOCOL.md`; este apartado resume lo que hace el motor.
 - **Acciones pendientes** (tool con riesgo que pide confirmación): se guardan envueltas `{"v":2,"args":…,"ctx":{"actor","session"}}` para perfiles ≠ `elipse` (el modelo nunca puede forjar `ctx`: lo suyo va dentro de `args`). `resolve_pending_action` desenvuelve y ejecuta con ese `actor`/`session`. El formato de `elipse` no cambia.
 - `safety.exec_profile(nombre, caller)`: con qué perfil se ejecuta una acción al confirmarla (llave de anfitrión → su propio perfil con su techo real; admin → el perfil de la acción con el techo restrictivo por defecto; falla cerrado).
 
@@ -506,13 +522,76 @@ Las tools que corren dentro del sistema del anfitrión se declaran en `spec.tool
 
 `db.py` (migración v1, poda por perfil) · `auth.py` (`Principal`, `require_principal`, `require_admin_key`, `require_principal_ws`, `create_key(profile, caps)`) · `main.py` (`/v1/chat` y compañía con `require_principal`, `session`/`actor` en `ChatRequest`, `profiles_router`) · `core.py` · `tasks.py` · `safety.py` · `tools.py` (todo acepta `profile`; `execute_tool(name, args, profile, actor, session)`) · `personality.py` · `memory.py` · `voice/` (`store.py`, `__init__.py`, `router.py`) · `manage_keys.py` (`--profile`, `--caps`) · `launcher/settings_window.py` y `launcher/process_utils.py` (fila **Perfiles** → **Administrar**).
 
-### Archivos nuevos
+### Archivos nuevos (Fases 0–4)
 
-`app/core/profiles.py` (modelo, spec/caps, `Capabilities`, gestión, callback config) · `app/core/profiles_api.py` (router `/v1/profiles`) · `app/core/callback.py` (firma, verificación y despacho HMAC) · `app/manage_profiles.py` (CLI) · `launcher/profiles_dialog.py` (crear/editar perfiles y llaves, callback; la llave y el secreto se muestran una sola vez) · `callback_demo.py` (raíz; anfitrión de juguete para probar sin Django) · tests (abajo).
+`app/core/profiles.py` (modelo, spec/caps, `Capabilities`, gestión, callback config) · `app/core/profiles_api.py` (router `/v1/profiles`) · `app/core/callback.py` (firma, verificación y despacho HMAC) · `app/manage_profiles.py` (CLI) · `launcher/profiles_dialog.py` (crear/editar perfiles y llaves, callback; la llave y el secreto se muestran una sola vez) · `callback_demo.py` (raíz; anfitrión de juguete para probar sin Django) · tests (abajo). De la Fase 5 (`docs/protocol/`, `sdk/python/`, `tests/test_protocol_vectors.py`, `tests/test_sdk.py`) se habla en «Protocolo del callback y SDK».
 
-### Tests (74 pasan; corre `pytest tests -v` **desde la raíz del proyecto**, `~/Elipse-engine/elipse`)
+### Protocolo del callback y SDK `elipse_sdk` (Fase 5, hecho en parte)
 
-`test_golden_default.py` (6: `elipse` no cambia) · `test_migration.py` (16: migración, llaves, 403, poda) · `test_profiles_phase2.py` (14) · `test_profiles_phase3.py` (19: aislamiento de memoria, historial, prompt, tareas ajenas, adjuntos) · `test_profiles_phase4.py` (14: firma, timeout, redirects, respuesta enorme, acciones pendientes con `actor`/`session`) · `test_profiles_prompt.py` (5: prompt sin creador y con fecha). Los de memoria usan un **Chroma falso en memoria** (no cargan el modelo de embeddings): la memoria con Chroma real **no está probada por tests**, solo a mano.
+**Principio de diseño:** el SDK no sabe nada de RBE. RBE es el primer cliente, pero cualquier sistema (otra app Django, un servicio FastAPI, algo en Node o PHP) debe poder enchufarse con el mismo protocolo. Del lado del motor ya es así: cada perfil tiene su nombre, su llave con techo, su callback, su memoria, su historial y su voz; sumar un sistema es crear otro perfil, otra llave y otro secreto, sin tocar el motor. Cada consumidor vive en **su propio repo** y define sus tools en su código: nada de RBE entra al paquete.
+
+**Capas, de más genérico a más específico:**
+1. **Protocolo** (`docs/protocol/`): documento + vectores, independiente del lenguaje.
+2. **Núcleo** (`sdk/python/elipse_sdk/`): cliente, registro de tools, firma y verificación. No depende de Django ni de nada web.
+3. **Adaptadores finos por framework** (pendiente): solo reciben la petición, pasan los bytes crudos y los headers al núcleo y devuelven la respuesta.
+
+#### Protocolo v1 (`docs/protocol/`)
+
+- `PROTOCOL.md`: qué conoce cada lado, la petición (URL, headers, cuerpo, límites), la firma paso a paso, el checklist de verificación del anfitrión, la tabla de respuestas con lo que hace el motor en cada caso, la confirmación humana, la seguridad y las reglas de versionado.
+- `vectors.json`: 15 vectores (3 positivos, 10 negativos, 2 de borde válidos) con secreto de prueba, cuerpo, hash, mensaje y firma. Salen de tráfico real capturado con hora y `call_id` fijos. **El secreto de los vectores es público: nunca usarlo en producción.**
+- `ref/`: `verify_python.py`, `verify_node.js` y `run_vectors.py` (corre las dos implementaciones contra los vectores; la parte de Node necesita `node` instalado). Se verificó además con `openssl` y `sha256sum`, que no comparten código con el motor.
+- `tests/test_protocol_vectors.py`: comprueba firma y verificación contra los vectores y levanta un servidor local, llama al motor real y exige que los bytes y headers que salen sean idénticos a los del vector. Si alguien cambia el formato del cable sin actualizar el documento, este test falla.
+- El vector `unicode_y_escapes` (acentos, ñ, emoji, saltos de línea, comillas) es el que más sirve para otros lenguajes: si una implementación falla solo ahí, casi seguro está escapando a ASCII o volviendo a serializar el JSON en vez de usar los bytes crudos.
+- Decisiones del protocolo: el nombre del perfil **no viaja** en la petición (el anfitrión usa el suyo, el configurado; así nadie se hace pasar por otro perfil); **no hay header de versión** (la v1 es implícita y agregar campos al cuerpo es compatible, por eso el anfitrión debe ignorar los que no conozca); la firma se calcula sobre los **bytes crudos** del cuerpo, nunca sobre un JSON re-serializado.
+
+#### El SDK (`sdk/python/elipse_sdk/`)
+
+| Archivo | Qué hace |
+|---|---|
+| `signing.py` | `sign()` y `verify_request()`. Solo biblioteca estándar. Timestamp estricto (entero canónico), ventana de 60 s, comparación en tiempo constante hecha **en bytes** (con `str` no ASCII, `compare_digest` lanzaría `TypeError`). |
+| `schema.py` | Esquema JSON desde los type hints y la primera línea del docstring. Tipos: `str`, `int`, `float`, `bool`, `list[X]`, `dict`, `X \| None`, `Literal[...]`, `Enum` de texto. La sección `Args:` (estilo Google) describe cada parámetro. Un parámetro `ctx` o anotado como `Context` no entra al esquema. Un tipo no soportado, `*args/**kwargs` o un esquema de más de 4000 caracteres **falla al decorar**, no en producción. También valida y convierte los argumentos que eligió el modelo (`"7"` → `7`). |
+| `registry.py` | `ToolRegistry`, `@tool`, `Context` y el despacho (`handle` síncrono, `ahandle` para ASGI). |
+| `client.py` | La clase `Elipse`: `configure()`, `sync()`, `chat()`, `stream()`, `wait()`, `pending_actions()`, `confirm()`, `cancel()`, y atajos `handle_callback()` / `verify_request()`. Necesita `httpx`; `stream()` además `websockets`. |
+| `__init__.py` | Exporta `Elipse`, `ChatResult`, `ElipseError`, `ElipseTimeout`, `Context`, `ToolError`, `ToolRegistry`, `SchemaError`, `sign`, `verify_request`. |
+
+**Uso mínimo:**
+
+```python
+from elipse_sdk import Elipse, Context
+
+elipse = Elipse(url="http://127.0.0.1:8000", key="elp_...", profile="rbe", secret="...")
+elipse.configure(role="Asistente de RBE", rules=["Responde corto"], tools={"builtin": ["calculate"]})
+
+@elipse.tool(risk="read")
+def viajes_del_dia(ctx: Context, fecha: str) -> list:
+    """Lista los viajes de una fecha (AAAA-MM-DD)."""
+    ...   # ctx.actor y ctx.session llegan firmados
+
+elipse.sync()                                   # PUT idempotente del perfil
+r = elipse.chat("viajes de hoy", actor="admin:42", session="s1")
+print(r.reply, r.status)                        # r.ok, r.needs_confirmation, r.pending
+```
+
+**Lo que hace `ToolRegistry.handle()`** (en este orden, todo lo que pide `PROTOCOL.md`): verifica la firma **antes** de mirar nada más (una firma mala da 401 aunque la tool no exista, para no revelar qué tools hay) → tope de 32 KB de cuerpo → JSON válido → la `tool` del cuerpo debe coincidir con la de la URL → tool desconocida (404) → `call_id` repetido en tools `write`/`danger` (409) → valida y convierte los argumentos → ejecuta → serializa el resultado. Los fallos de la tool vuelven como `{"ok": false, "error": "..."}`: `ToolError("mensaje")` para fallos esperados (el mensaje llega al modelo), y cualquier otra excepción se registra en el log del anfitrión y al modelo solo le llega «error interno de la herramienta» (nunca el detalle).
+
+**Decisiones del SDK (se pueden cambiar):**
+- `risk` por defecto es **`"write"`** (pide confirmación humana): olvidar el riesgo falla del lado seguro.
+- Los argumentos desconocidos se **rechazan** con un mensaje claro para que el modelo corrija y reintente. `profile`, `actor` y `session` que vengan en `args` se descartan (el contexto solo sale de la petición firmada).
+- Un resultado de más de ~40 KB se rechaza con «devuelve menos filas o un resumen» (el motor lo descartaría igual). Se serializan solos fechas, `Decimal` (a número), `Enum`, `set`/`tuple` y dataclasses.
+- El nombre de la tool es el de la función (`a-z`, `0-9`, `_`; 2–48 caracteres, empieza con letra); la descripción se corta a 300 caracteres (límite del motor).
+- `configure()` **no acepta** `tools.host`: esa lista sale de las funciones con `@elipse.tool`. `sync()` publica el spec completo cada vez, y lo que el techo de la llave recorta llega en `rejected` (warning, o `ElipseError` con `strict=True`).
+- `Elipse.__repr__` y los mensajes de error nunca incluyen la llave ni el secreto.
+- La guardia anti-replay (`call_id`) está **en memoria del proceso**: con varios workers cada uno tiene la suya. Si importa, moverla a Redis o a la base.
+
+**Tests (`tests/test_sdk.py`, 46):** los 15 vectores del protocolo a través del SDK; esquema y validación de argumentos; despacho (firma inválida, ts vencido, tool distinta, replay, bugs que no filtran detalle, resultado enorme, `ahandle` sync/async); **ida y vuelta real**: el `call_host_tool` del motor llama a un servidor HTTP local que usa el SDK (incluye unicode con emoji y secreto equivocado); y el cliente con un transporte `httpx` simulado (no necesita motor levantado). No usan `elipse.db`.
+
+**No probado todavía:** `stream()` por WebSocket (sin test) y `sync()`/`chat()` contra un motor levantado con modelo (solo con transporte simulado).
+
+**Instalar para desarrollar** (desde `elipse/`, con el venv activo): `pip install httpx websockets pytest`. Los tests agregan `sdk/python` al `sys.path`, así que no hace falta instalar el paquete; para usarlo desde otro proyecto: `pip install -e sdk/python[client]` (o `[stream]`).
+
+### Tests (124 pasan; corre `pytest tests -v` **desde la raíz del proyecto**, `~/Elipse-engine/elipse`)
+
+`test_golden_default.py` (6: `elipse` no cambia) · `test_migration.py` (16: migración, llaves, 403, poda) · `test_profiles_phase2.py` (14) · `test_profiles_phase3.py` (19: aislamiento de memoria, historial, prompt, tareas ajenas, adjuntos) · `test_profiles_phase4.py` (14: firma, timeout, redirects, respuesta enorme, acciones pendientes con `actor`/`session`) · `test_profiles_prompt.py` (5: prompt sin creador y con fecha) · `test_protocol_vectors.py` (4: ata `PROTOCOL.md` y los vectores al motor real) · `test_sdk.py` (46: SDK, ver arriba). Los de memoria usan un **Chroma falso en memoria** (no cargan el modelo de embeddings): la memoria con Chroma real **no está probada por tests**, solo a mano.
 
 ### Prueba de extremo a extremo con el modelo real (sin Django)
 
@@ -534,11 +613,19 @@ Parches de un solo uso, en este orden: `patch_tools_fase2.py` → `patch_fase3.p
 ### Lo que falta (en orden recomendado)
 
 1. ✅ **Hecho (2026-10-29)** — prueba con Chroma real de `remember`/`recall` con un perfil: guarda y recupera en su colección, no ve los recuerdos de `elipse` y descarta un `profile` forjado en los argumentos. Falta solo calibrar `memory.max_distance` (sin umbral, `recall` devuelve lo más cercano aunque sea irrelevante).
-2. **Fase 5 — SDK y RBE** (`PLAN §4.9–4.10`). Necesita de RBE: `taquilla/elipse_views.py`, la plantilla `elipse.html` y el archivo donde viven los intents.
-   - Paquete **`elipse_sdk`**: `@elipse.tool` (esquema JSON desde type hints), `sync()` (PUT del perfil), `chat()` con streaming, `verify_request()` (copia exacta de `callback.verify_request`).
-   - **Helper de Django**: vista de chat y vista de callback que verifica la firma.
-   - Reemplazar `elipse_chat` de RBE (hoy intents por regex + Groq) y **migrar ~40 intents a tools deterministas**, con un test que compare la salida vieja contra la nueva.
-   - Tool opcional de **SQL de solo lectura**, apagada por defecto; pasar `INFO_RBE` y el esquema a la memoria del perfil `rbe`.
+2. **Fase 5 — lo que queda** (`PLAN §4.9–4.10`). Hecho: protocolo v1 y núcleo del SDK (ver «Protocolo del callback y SDK»). Pendiente, en este orden:
+   - **Probar contra el motor levantado** `sync()`, `chat()` y `stream()` (hoy `stream()` no tiene test y `sync()`/`chat()` solo se probaron con transporte simulado).
+   - **Adaptador de Django** (`elipse_sdk.django`): vista de callback `/elipse/tools/<n>` que pase los **bytes crudos** (`request.body`) y los headers `X-Elipse-Ts` / `X-Elipse-Sig` a `Elipse.handle_callback`, y vista de chat que tome el usuario y la sesión de Django como `actor` y `session`. Después **FastAPI** (usa `ahandle`) y Flask/WSGI, para comprobar que de verdad es agnóstico.
+   - **Comando de onboarding** `manage_profiles onboard NOMBRE --url ...`: crea perfil, callback y llave y imprime **una sola vez** el bloque listo para pegar en la config del anfitrión (`ELIPSE_URL`, `ELIPSE_KEY`, `ELIPSE_PROFILE`, secreto). El launcher podría tener el mismo botón.
+   - **Migrar RBE** (necesita `taquilla/elipse_views.py`, la plantilla `elipse.html` y el archivo donde viven los intents, más cómo se llama hoy al motor, la versión de Django y si se usa ORM o SQL crudo):
+     - Reemplazar `elipse_chat` de RBE (hoy ~40 intents por regex y, si no coincide, SQL generado con Groq) y migrar cada intent a una tool determinista (`top_conductores(n)`, `pasajeros_viaje(numero)`, `ingresos_anio(anio)`…) con ORM o SQL parametrizado, y un test que compare la salida vieja contra la nueva por intent.
+     - Mantener `elipse_view` y `elipse.html`, adaptando el JS (hoy espera `{html, intent, modelo}`).
+     - SQL libre como tool **opcional y apagada por defecto**: usuario MySQL de solo lectura, una sola sentencia validada con `sqlparse`, `LIMIT` forzado, tiempo máximo y lista blanca de tablas (la validación vieja era solo `startswith('SELECT')`).
+     - Mover el esquema a la descripción de las tools, y `INFO_RBE` y las notas de negocio a la memoria del perfil `rbe`.
+   - Orden de riesgo para RBE: conectar el helper con 2–3 tools de ejemplo conviviendo con el chat actual → migrar intents de a poco comparando salidas → apagar el chat viejo y el fallback de SQL libre cuando todo coincida.
+   - **Unificar la regla del timestamp**: que `callback.verify_request` del motor use la misma regex estricta que el protocolo y el SDK (hoy acepta `"+123"`, `" 123"`).
+   - **Cuotas y prioridades por perfil** en la cola del modelo (hoy hay `queue_timeout_s` por perfil pero un solo semáforo de GPU): si un sistema satura, los demás esperan. No urge con dos anfitriones; sí cuando haya más.
+   - **Anti-replay compartido** (Redis o base) si el anfitrión corre con varios workers.
 3. **Resumen "¿cómo vas en RBE?" (§4.8)**: `profile_brief()` hecho solo con SQL (≤600 caracteres), disparador en `core._run` solo para `elipse`, sanitizar textos de usuarios de RBE, `GET /v1/profiles/{name}/brief`. No depende de nada: se puede hacer en cualquier momento.
 4. **E8 exacto**: el prompt de perfiles es propio y corto; el plan pedía `TOOL_RULE_SNIPPETS` con test de reconstrucción byte a byte contra el de `elipse`.
 5. **Abrir más tools propias a perfiles** de a una (`read_file`, `search_web`, `research_topic`…): cada una debe recibir `profile` por código, usar su propio espacio, y entrar a `PROFILE_SAFE_BUILTINS` + `PROFILE_AWARE_TOOLS` con test de aislamiento.
@@ -556,6 +643,23 @@ Una fase por vez · para `elipse`, **ni un byte** de diferencia (los 6 tests dor
 
 ---
 
+## Control de versiones
+
+El repositorio git está en la carpeta **padre** (`~/Elipse-engine/`); el motor vive en `~/Elipse-engine/elipse/`. Hay un `.gitignore` en la raíz del repositorio que debe dejar fuera, como mínimo:
+
+```
+venv/  .venv/  __pycache__/  *.pyc  .env  *.db  *.db.bak*  *.backup.db
+chroma_data/  logs/  workspace/  app_backup*/  *.bak  xd.zip
+elipse/skills/.compiled/  elipse/skills/state.json
+```
+
+- **No subir nunca** `elipse.db` (perfiles, llaves, secretos de callback y memoria), `.env` (API keys) ni `chroma_data/`. Si alguno llegó a un commit, ignorarlo después **no lo quita del historial** y hay que rotar las llaves.
+- Revisar `git status` antes de cada commit; evitar `git add .` en la raíz del repositorio.
+- Para pasar el trabajo a otro equipo (p. ej. Windows) con git viajan el código, los tests, `docs/` y `sdk/`; **no** viajan la base, el `.env` ni el `venv`: hay que recrear el entorno (`python -m venv venv` y `pip install -r requirements.txt`; en Windows se activa con `venv\Scripts\activate`), reconfigurar los `.env` y copiar `elipse.db` aparte si se necesita.
+- Si git en Windows avisa de CRLF/LF, un `.gitattributes` con `* text=auto eol=lf` evita ruido; los vectores no se afectan porque el cuerpo viaja escapado en JSON.
+
+---
+
 ## Instalación de dependencias
 
 `requirements.txt` agrupa: API (`fastapi`, `uvicorn`, `pydantic`, `pydantic-settings`), proveedores (`anthropic`, `ollama`, `httpx`, `requests`), `ddgs`, `chromadb`, `mcp`, documentos (`python-docx`, `reportlab`) y **visión** (`pillow`, `onnxruntime` y un motor de OCR).
@@ -569,6 +673,7 @@ python -m pip install -r requirements.txt
 - **Tesseract (opcional):** `pip install pytesseract`, instalar el programa con el idioma `spa` y poner `OCR_ENGINE=tesseract` (y `TESSERACT_CMD` si no está en el PATH).
 - **Comprobación rápida:** `python app/probar_ocr.py captura.png` debe decir `Motor OCR : rapidocr` y mostrar el texto. Al arrancar el servidor **no** debería aparecer el aviso `OCR: no hay ningun motor disponible`.
 - **Modelo de visión local:** `ollama pull qwen3-vl:4b-instruct` (o `qwen3-vl:2b`) y `VISION_OLLAMA_MODEL` en el `.env`. Con 4 GB de VRAM verificá con `ollama ps` que diga `100% GPU`; si no, bajá `VISION_MAX_SIDE_TEXT` o usá el 2b.
+- **Pruebas y SDK:** `pip install pytest httpx websockets` (el SDK solo usa la biblioteca estándar salvo el cliente, que necesita `httpx`, y `stream()`, que necesita `websockets`).
 - **Skills (opcional):** no necesitan dependencias. Crear `skills/<nombre>/SKILL.md` a mano, o `python -m app.core.skills install <url>` y luego `enable`.
 - **Voz (opcional):** sin dependencias extra (usa `httpx`). Para Fish Audio: `VOICE_FISH_API_KEY` (y `VOICE_FISH_VOICE_ID` si querés una voz concreta). Para voz local: levantar un servidor que acepte `POST {text}` y apuntar `VOICE_LOCAL_URL` a él. `VOICE_CLOUD_ALLOWED=false` deja solo el proveedor local.
 
@@ -672,7 +777,7 @@ Panel de escritorio en Tkinter puro (sin dependencias extra) para no tener que a
 - **Voz — el texto sale a la nube con Fish.** Lo que se envía es solo el texto hablable ya filtrado, pero sale de tu PC mientras `voice_cloud_allowed=true`. Para evitarlo, `VOICE_CLOUD_ALLOWED=false` (solo proveedor local).
 - **Voz — dos proveedores fijos.** `fish` y `local` están registrados a mano en `voice/router.py` (`_PROVIDERS`) y en `voice/store.py` (`PROVIDER_NAMES`); sumar otro requiere tocar ambos. El audio de una tarea solo se puede pedir mientras la tarea siga en memoria (1 hora).
 - **`router.py` y `topic_tag.py` están deprecados y listos para borrarse** (ver `core/ROUTER_DEPRECATED.txt`) — nada los importa hoy.
-- **Git queda fuera del Tool System por ahora** — decisión explícita, no falta ni bug.
+- **Git no es una tool del modelo** (el modelo no puede hacer commits ni push) — decisión explícita, no falta ni bug. El proyecto en sí **sí** se versiona con git (ver «Control de versiones»).
 - **`run_python` no tiene sandbox de filesystem**, solo bloqueo por lista negra de patrones (`BLOCKED_PATTERNS`) y `cwd` en `workspace/`. A diferencia de `read_file`/`write_file`, el código Python que corre ahí sí podría tocar rutas absolutas fuera del workspace. Bajo riesgo mientras esto corra solo local y sin exponerse en red — si se expone a otros dispositivos, conviene sandboxing real (contenedor o intérprete restringido) antes de abrir el acceso de verdad. (Hoy toda ejecución de `run_python` pasa por confirmación humana.)
 - **`_tasks` (estado de las tareas del Agent Loop) vive en memoria**, se pierde si reiniciás el servidor a mitad de una tarea y las terminadas se limpian a la hora. Aceptable por ahora.
 - **El `HISTORY_LIMIT` sigue fijo en 10 mensajes** para proveedores de nube (los locales usan `ollama_history_limit`). Resumir historial viejo en vez de simplemente cortarlo queda pendiente.

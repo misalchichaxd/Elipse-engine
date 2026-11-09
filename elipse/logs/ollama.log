@@ -15170,3 +15170,1792 @@ srv  update_slots: all slots are idle
 
 ===== 2026-10-05 16:51:50 iniciando Ollama =====
 Error: listen tcp 127.0.0.1:11434: bind: Only one usage of each socket address (protocol/network address/port) is normally permitted.
+
+===== 2026-10-23 16:10:47 iniciando Ollama =====
+time=2026-10-23T16:10:47.915-07:00 level=INFO source=routes.go:2439 msg="server config" env="map[CUDA_VISIBLE_DEVICES: GGML_VK_VISIBLE_DEVICES: GPU_DEVICE_ORDINAL: HIP_VISIBLE_DEVICES: HSA_OVERRIDE_GFX_VERSION: HTTPS_PROXY: HTTP_PROXY: LLAMA_ARG_FIT: LLAMA_ARG_FIT_TARGET: NO_PROXY: OLLAMA_CONTEXT_LENGTH:0 OLLAMA_CREATE_REMOTE:false OLLAMA_DEBUG:INFO OLLAMA_DEBUG_LOG_REQUESTS:false OLLAMA_EDITOR: OLLAMA_FLASH_ATTENTION:false OLLAMA_GO_TEMPLATE:true OLLAMA_GPU_OVERHEAD:0 OLLAMA_HOST:http://127.0.0.1:11434 OLLAMA_IGPU_ENABLE: OLLAMA_KEEP_ALIVE:5m0s OLLAMA_KV_CACHE_TYPE: OLLAMA_LLM_LIBRARY: OLLAMA_LOAD_TIMEOUT:5m0s OLLAMA_MAX_LOADED_MODELS:0 OLLAMA_MAX_QUEUE:512 OLLAMA_MAX_TRANSFER_STREAMS:4 OLLAMA_MODELS:/home/misa/.ollama/models OLLAMA_NOHISTORY:false OLLAMA_NOPRUNE:false OLLAMA_NO_CLOUD:false OLLAMA_NUM_PARALLEL:1 OLLAMA_ORIGINS:[http://localhost https://localhost http://localhost:* https://localhost:* http://127.0.0.1 https://127.0.0.1 http://127.0.0.1:* https://127.0.0.1:* http://0.0.0.0 https://0.0.0.0 http://0.0.0.0:* https://0.0.0.0:* app://* file://* tauri://* vscode-webview://* vscode-file://*] OLLAMA_REMOTES:[ollama.com] OLLAMA_SCHED_SPREAD:false OLLAMA_VULKAN:true ROCR_VISIBLE_DEVICES: http_proxy: https_proxy: no_proxy:]"
+time=2026-10-23T16:10:47.918-07:00 level=INFO source=routes.go:2441 msg="Ollama cloud disabled: false"
+time=2026-10-23T16:10:47.921-07:00 level=INFO source=images.go:1000 msg="total blobs: 0"
+time=2026-10-23T16:10:47.921-07:00 level=INFO source=images.go:1009 msg="total unused blobs removed: 0"
+time=2026-10-23T16:10:47.926-07:00 level=INFO source=routes.go:2501 msg="Listening on 127.0.0.1:11434 (version 0.40.6)"
+time=2026-10-23T16:10:47.930-07:00 level=INFO source=runner.go:60 msg="discovering available GPUs..."
+time=2026-10-23T16:10:48.325-07:00 level=INFO source=model_recommendations.go:177 msg="model recommendations cache sleep scheduled" wait=3h21m12.191073843s consecutive_failures=0
+time=2026-10-23T16:10:54.949-07:00 level=INFO source=runner.go:405 msg="dropping integrated GPU; to enable, set OLLAMA_IGPU_ENABLE=1" id=0 library=Vulkan compute=0.0 name=Vulkan0 description="Intel(R) Graphics (ADL GT2)" pci_id=0000:00:02.0
+time=2026-10-23T16:10:57.745-07:00 level=INFO source=types.go:32 msg="inference compute" id=0 filter_id=0 library=CUDA compute=8.6 name=CUDA0 description="NVIDIA GeForce RTX 2050" libdirs=ollama,cuda_v13 driver=13.0 pci_id=0000:01:00.0 type=discrete total="3.7 GiB" available="3.5 GiB"
+time=2026-10-23T16:10:57.745-07:00 level=INFO source=routes.go:2551 msg="vram-based default context" total_vram="3.7 GiB" default_num_ctx=4096
+[GIN] 2026/10/23 - 16:10:57 | 200 |    4.710078ms |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:10:57 | 200 |    4.823792ms |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:10:57 | 200 |    4.773803ms |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:10:57 | 200 |    4.723779ms |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:10:57 | 200 |    4.718998ms |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:10:57 | 200 |    4.712847ms |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:10:57 | 200 |    4.571458ms |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:10:57 | 200 |    4.660773ms |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:10:57 | 200 |    4.713851ms |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:10:59 | 200 |      53.973µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:00 | 404 |    5.636824ms |       127.0.0.1 | POST     "/api/chat"
+[GIN] 2026/10/23 - 16:11:02 | 200 |      99.042µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:04 | 200 |      32.615µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:07 | 200 |      51.601µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:09 | 200 |      46.777µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:12 | 200 |      54.689µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:14 | 200 |      58.478µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:17 | 200 |      46.469µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:19 | 200 |      42.214µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:22 | 200 |      59.985µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:24 | 200 |      47.789µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:27 | 200 |      40.842µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:29 | 200 |      40.237µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:32 | 200 |      47.255µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:34 | 200 |      63.229µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:37 | 200 |      46.219µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:39 | 200 |      44.094µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:42 | 200 |      50.986µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:44 | 200 |      49.036µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:47 | 200 |      53.619µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:49 | 200 |      93.699µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:52 | 200 |      56.275µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:54 | 200 |      50.484µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:57 | 200 |      46.309µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:11:59 | 200 |      47.323µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:02 | 200 |      45.556µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:05 | 200 |      50.223µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:07 | 200 |       42.89µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:10 | 200 |      45.614µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:12 | 200 |      95.452µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:15 | 200 |      26.694µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:17 | 200 |      55.921µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:20 | 200 |      66.432µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:22 | 200 |      54.231µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:25 | 200 |      28.492µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:27 | 404 |      191.94µs |       127.0.0.1 | POST     "/api/chat"
+[GIN] 2026/10/23 - 16:12:27 | 200 |      22.303µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:28 | 404 |    1.324218ms |       127.0.0.1 | POST     "/api/chat"
+[GIN] 2026/10/23 - 16:12:30 | 200 |      40.295µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:32 | 200 |      59.249µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:35 | 200 |       43.16µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:36 | 404 |     493.526µs |       127.0.0.1 | POST     "/api/chat"
+[GIN] 2026/10/23 - 16:12:36 | 404 |     385.829µs |       127.0.0.1 | POST     "/api/chat"
+[GIN] 2026/10/23 - 16:12:37 | 200 |      47.004µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:40 | 200 |      38.631µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:42 | 200 |      66.398µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:45 | 200 |      49.896µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:47 | 200 |      55.212µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:50 | 200 |      41.362µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:52 | 200 |      19.127µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:55 | 200 |      27.484µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:12:57 | 200 |      82.953µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:00 | 200 |      77.957µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:02 | 404 |       281.9µs |       127.0.0.1 | POST     "/api/chat"
+[GIN] 2026/10/23 - 16:13:02 | 200 |      19.141µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:05 | 200 |      35.255µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:07 | 200 |       37.53µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:10 | 200 |      50.873µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:12 | 200 |      58.527µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:15 | 200 |      29.498µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:17 | 200 |      20.858µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:20 | 200 |      32.476µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:22 | 200 |       19.92µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:25 | 200 |      17.669µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:27 | 200 |      47.334µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:28 | 200 |      24.508µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:13:28 | 200 |     581.987µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:30 | 200 |      73.832µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:32 | 200 |      37.239µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:35 | 200 |      27.712µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:37 | 200 |      48.412µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:38 | 200 |    1.155023ms |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:38 | 200 |      84.624µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:38 | 200 |      19.051µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:13:38 | 200 |       60.94µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:38 | 200 |      45.062µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:13:38 | 200 |     129.153µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:38 | 200 |      22.091µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:13:38 | 200 |     107.498µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:40 | 200 |      91.461µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:40 | 200 |     335.836µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:40 | 200 |     188.023µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:40 | 200 |      18.185µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:13:40 | 200 |      51.246µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:40 | 200 |       65.11µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:13:40 | 200 |      75.318µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:40 | 200 |      18.078µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:13:40 | 200 |       50.73µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:40 | 200 |     276.431µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:40 | 200 |     224.813µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:40 | 200 |      18.308µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:13:40 | 200 |      48.168µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:40 | 200 |      16.581µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:13:40 | 200 |      46.629µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:40 | 200 |      18.036µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:13:40 | 200 |      50.505µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:40 | 200 |     118.896µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:40 | 200 |     129.214µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:40 | 200 |      16.661µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:13:40 | 200 |      47.151µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:40 | 200 |      22.683µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:13:40 | 200 |      70.004µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:40 | 200 |      21.767µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:13:40 | 200 |      65.025µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:13:42 | 200 |      57.075µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:45 | 200 |      22.372µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:47 | 200 |      25.097µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:50 | 200 |      32.866µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:52 | 200 |      39.595µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:55 | 200 |      69.641µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:13:57 | 200 |      43.899µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:00 | 200 |      23.213µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:02 | 200 |      23.649µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:05 | 200 |      40.575µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:07 | 200 |      22.902µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:10 | 200 |      22.151µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:12 | 200 |      55.689µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:15 | 200 |       42.54µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:17 | 200 |      64.038µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:20 | 200 |      29.512µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:22 | 200 |      31.618µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:25 | 200 |      29.617µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:27 | 200 |       28.08µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:30 | 200 |       25.19µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:32 | 200 |      46.368µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:35 | 200 |      20.941µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:37 | 200 |      40.833µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:40 | 200 |      46.307µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:42 | 200 |      22.885µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:45 | 200 |      18.624µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:47 | 200 |      46.793µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:50 | 200 |      36.177µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:52 | 200 |      42.996µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:55 | 200 |      42.963µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:14:57 | 200 |      56.588µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:15:00 | 200 |     137.966µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:15:02 | 200 |      38.745µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:15:05 | 200 |      30.201µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:15:07 | 200 |      25.036µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:15:10 | 200 |      48.168µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:15:12 | 200 |      44.923µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:15:15 | 200 |      40.544µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:15:17 | 200 |      27.577µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:15:20 | 200 |      55.163µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:15:22 | 200 |      47.983µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:15:25 | 200 |      25.757µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:15:31 | 200 |      20.125µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:15:33 | 200 |      57.833µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:15:34 | 200 |     104.397µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:34 | 200 |      63.971µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:34 | 200 |       26.61µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:34 | 200 |      81.843µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:34 | 200 |      16.952µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:34 | 200 |      59.678µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:34 | 200 |      21.666µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:34 | 200 |       47.28µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |     237.456µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |     190.434µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      17.043µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      59.258µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      21.631µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:35 | 200 |        68.9µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      17.546µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      70.797µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      229.62µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |     184.819µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      25.927µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      74.491µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      35.942µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      65.463µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      21.527µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      54.425µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |     209.189µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |     133.692µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      54.937µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      73.253µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      24.844µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      58.494µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |       73.98µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      83.183µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |     311.631µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |     176.916µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      35.583µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:35 | 200 |     141.223µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      32.905µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      95.268µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      20.431µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      72.739µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |     236.508µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |     207.159µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      19.549µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      67.856µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      20.984µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:35 | 200 |      68.153µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:36 | 200 |      19.447µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:36 | 200 |      46.576µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:36 | 200 |      71.351µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:15:36 | 200 |     272.825µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:36 | 200 |     239.811µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:36 | 200 |      23.278µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:36 | 200 |      76.285µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:36 | 200 |      21.963µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:36 | 200 |      53.285µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:15:36 | 200 |      19.977µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2026/10/23 - 16:15:36 | 200 |      52.579µs |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:16:23 | 200 |    1.874952ms |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:16:26 | 200 |      29.558µs |       127.0.0.1 | GET      "/"
+
+===== 2026-10-23 16:16:29 iniciando Ollama =====
+time=2026-10-23T16:16:29.639-07:00 level=INFO source=routes.go:2439 msg="server config" env="map[CUDA_VISIBLE_DEVICES: GGML_VK_VISIBLE_DEVICES: GPU_DEVICE_ORDINAL: HIP_VISIBLE_DEVICES: HSA_OVERRIDE_GFX_VERSION: HTTPS_PROXY: HTTP_PROXY: LLAMA_ARG_FIT: LLAMA_ARG_FIT_TARGET: NO_PROXY: OLLAMA_CONTEXT_LENGTH:0 OLLAMA_CREATE_REMOTE:false OLLAMA_DEBUG:INFO OLLAMA_DEBUG_LOG_REQUESTS:false OLLAMA_EDITOR: OLLAMA_FLASH_ATTENTION:false OLLAMA_GO_TEMPLATE:true OLLAMA_GPU_OVERHEAD:0 OLLAMA_HOST:http://127.0.0.1:11434 OLLAMA_IGPU_ENABLE: OLLAMA_KEEP_ALIVE:5m0s OLLAMA_KV_CACHE_TYPE: OLLAMA_LLM_LIBRARY: OLLAMA_LOAD_TIMEOUT:5m0s OLLAMA_MAX_LOADED_MODELS:0 OLLAMA_MAX_QUEUE:512 OLLAMA_MAX_TRANSFER_STREAMS:4 OLLAMA_MODELS:/usr/share/ollama/.ollama/models OLLAMA_NOHISTORY:false OLLAMA_NOPRUNE:false OLLAMA_NO_CLOUD:false OLLAMA_NUM_PARALLEL:1 OLLAMA_ORIGINS:[http://localhost https://localhost http://localhost:* https://localhost:* http://127.0.0.1 https://127.0.0.1 http://127.0.0.1:* https://127.0.0.1:* http://0.0.0.0 https://0.0.0.0 http://0.0.0.0:* https://0.0.0.0:* app://* file://* tauri://* vscode-webview://* vscode-file://*] OLLAMA_REMOTES:[ollama.com] OLLAMA_SCHED_SPREAD:false OLLAMA_VULKAN:true ROCR_VISIBLE_DEVICES: http_proxy: https_proxy: no_proxy:]"
+time=2026-10-23T16:16:29.639-07:00 level=INFO source=routes.go:2441 msg="Ollama cloud disabled: false"
+time=2026-10-23T16:16:29.652-07:00 level=INFO source=images.go:1000 msg="total blobs: 15"
+time=2026-10-23T16:16:29.653-07:00 level=INFO source=images.go:1009 msg="total unused blobs removed: 0"
+time=2026-10-23T16:16:29.655-07:00 level=INFO source=routes.go:2501 msg="Listening on 127.0.0.1:11434 (version 0.40.6)"
+time=2026-10-23T16:16:29.658-07:00 level=INFO source=runner.go:60 msg="discovering available GPUs..."
+time=2026-10-23T16:16:30.126-07:00 level=INFO source=model_recommendations.go:177 msg="model recommendations cache sleep scheduled" wait=4h20m44.460858931s consecutive_failures=0
+time=2026-10-23T16:16:36.558-07:00 level=INFO source=runner.go:405 msg="dropping integrated GPU; to enable, set OLLAMA_IGPU_ENABLE=1" id=0 library=Vulkan compute=0.0 name=Vulkan0 description="Intel(R) Graphics (ADL GT2)" pci_id=0000:00:02.0
+time=2026-10-23T16:16:37.623-07:00 level=INFO source=types.go:32 msg="inference compute" id=0 filter_id=0 library=CUDA compute=8.6 name=CUDA0 description="NVIDIA GeForce RTX 2050" libdirs=ollama,cuda_v13 driver=13.0 pci_id=0000:01:00.0 type=discrete total="3.7 GiB" available="3.5 GiB"
+time=2026-10-23T16:16:37.623-07:00 level=INFO source=routes.go:2551 msg="vram-based default context" total_vram="3.7 GiB" default_num_ctx=4096
+[GIN] 2026/10/23 - 16:16:37 | 200 |      192.78µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:16:37 | 200 |      41.413µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:16:37 | 200 |      13.153µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:16:37 | 200 |      10.881µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:16:37 | 200 |       8.384µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:16:37 | 200 |      49.304µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:16:37 | 200 |       9.371µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:16:38 | 200 |      21.149µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:16:40 | 200 |   227.54241ms |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:16:40 | 200 |  166.225087ms |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:16:41 | 200 |      50.827µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:16:43 | 200 |      84.838µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:16:46 | 200 |      52.037µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:16:48 | 200 |      64.561µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:16:51 | 200 |      98.341µs |       127.0.0.1 | GET      "/"
+time=2026-10-23T16:16:53.292-07:00 level=INFO source=sched.go:1257 msg="disabling mmap for llama-server load due to host memory pressure" model=/usr/share/ollama/.ollama/models/blobs/sha256-3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597 model_size="2.3 GiB" loaded_mmap_size="0 B" headroom="7.5 GiB" system_free="1.4 GiB" system_total="7.4 GiB" predicted_vram="2.7 GiB" available_vram="3.5 GiB"
+time=2026-10-23T16:16:53.292-07:00 level=INFO source=server.go:107 msg="using llama-server for model" model=/usr/share/ollama/.ollama/models/blobs/sha256-3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597
+time=2026-10-23T16:16:53.294-07:00 level=INFO source=llama_server.go:457 msg="starting llama-server" cmd="/usr/local/lib/ollama/llama-server --model /usr/share/ollama/.ollama/models/blobs/sha256-3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597 --port 41413 --host 127.0.0.1 --no-webui --offline -c 4096 -np 1 --log-verbosity 4 --no-log-prefix --no-log-timestamps --no-jinja --chat-template chatml --load-mode none --flash-attn auto -b 512 -ub 512 --context-shift --keep 4"
+time=2026-10-23T16:16:53.295-07:00 level=INFO source=sched.go:664 msg="system memory" total="7.4 GiB" free="1.4 GiB" free_swap="5.0 GiB"
+time=2026-10-23T16:16:53.295-07:00 level=INFO source=sched.go:671 msg="gpu memory" id=0 library=CUDA available="3.0 GiB" free="3.5 GiB" minimum="457.0 MiB" overhead="0 B"
+time=2026-10-23T16:16:53.295-07:00 level=INFO source=llama_server.go:1083 msg="loading model via llama-server" model=/usr/share/ollama/.ollama/models/blobs/sha256-3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597
+time=2026-10-23T16:16:53.295-07:00 level=INFO source=llama_server.go:1336 msg="waiting for llama-server to start responding"
+time=2026-10-23T16:16:53.295-07:00 level=INFO source=llama_server.go:1391 msg="waiting for llama-server to become available" status="llm server not responding"
+srv  llama_server: initializing ...
+load_backend: loaded CPU backend from /usr/local/lib/ollama/libggml-cpu-alderlake.so
+ggml_cuda_init: found 1 CUDA devices (Total VRAM: 3768 MiB):
+  Device 0: NVIDIA GeForce RTX 2050, compute capability 8.6, VMM: yes, VRAM: 3768 MiB
+load_backend: loaded CUDA backend from /usr/local/lib/ollama/cuda_v13/libggml-cuda.so
+cmn  common_param: common_params_print_info: build 1 (620d2225c) with GNU 13.3.1 for Linux x86_64
+cmn  common_param: common_params_print_info: verbosity = 4 (adjust with the `-lv N` CLI arg)
+cmn  common_param: device_info:
+cmn  common_param:   - CPU     : 12th Gen Intel(R) Core(TM) i5-12450H (7622 MiB, 7622 MiB free)
+cmn  common_param:   - CUDA0   : NVIDIA GeForce RTX 2050 (3768 MiB, 3570 MiB free)
+cmn  common_param: system_info: n_threads = 4 (n_threads_batch = 4) / 12 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX_VNNI = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | LLAMAFILE = 1 | REPACK = 1 | CUDA : ARCHS = 750,800,860,870,890,900,1000,1030,1100,1200,1210 | USE_GRAPHS = 1 | FA_QUANTS = q4_0-q4_0,q8_0-q8_0,f16-f16,bf16-bf16 | 
+srv  init_listene: The UI is disabled
+srv  init_listene: Use --ui/--no-ui (or deprecated --webui/--no-webui) to enable/disable
+srv          init: using 11 threads for HTTP server
+srv  llama_server: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)
+srv    load_model: loading model '/usr/share/ollama/.ollama/models/blobs/sha256-3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597'
+srv    load_model: local path '/usr/share/ollama/.ollama/models/blobs/sha256-3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597'
+cmn  common_init_: fitting params to device memory ...
+cmn  common_init_: (for bugs during this step try to reproduce them with -fit off, or provide --verbose logs if the bug only occurs with -fit on)
+common_params_fit_impl: getting device memory data for initial parameters:
+time=2026-10-23T16:16:53.546-07:00 level=INFO source=llama_server.go:1391 msg="waiting for llama-server to become available" status="llm server loading model"
+[GIN] 2026/10/23 - 16:16:53 | 200 |      23.489µs |       127.0.0.1 | GET      "/"
+common_memory_breakdown_print: | memory breakdown [MiB] | total   free    self   model   context   compute    unaccounted |
+common_memory_breakdown_print: |   - CUDA0 (RTX 2050)   |  3768 = 3570 + (3032 =  2375 +     576 +      81) +       -2835 |
+common_memory_breakdown_print: |   - Host               |                  328 =   304 +       0 +      24                |
+common_params_fit_impl: projected to use 3032 MiB of device memory vs. 3570 MiB of free device memory
+common_params_fit_impl: cannot meet free memory target of 1024 MiB, need to reduce device memory by 485 MiB
+common_params_fit_impl: context size set by user to 4096 -> no change
+common_params_fit_impl: id=0, target=2546 MiB
+common_memory_breakdown_print: | memory breakdown [MiB] | total   free    self   model   context   compute    unaccounted |
+common_memory_breakdown_print: |   - CUDA0 (RTX 2050)   |  3768 = 3570 + (  90 =     0 +       0 +      90) +         107 |
+common_memory_breakdown_print: |   - Host               |                 2975 =  2375 +     576 +      24                |
+common_params_fit_impl: memory for test allocation by device:
+common_params_fit_impl: id=0, n_layer= 0, n_part= 0, overflow_type=4, mem=    90 MiB
+common_params_fit_impl: filling dense layers back-to-front:
+common_memory_breakdown_print: | memory breakdown [MiB] | total   free    self   model   context   compute    unaccounted |
+common_memory_breakdown_print: |   - CUDA0 (RTX 2050)   |  3768 = 3570 + (3032 =  2375 +     576 +      81) +       -2835 |
+common_memory_breakdown_print: |   - Host               |                  328 =   304 +       0 +      24                |
+common_params_fit_impl: memory for test allocation by device:
+common_params_fit_impl: id=0, n_layer=37, n_part= 0, overflow_type=4, mem=  3032 MiB
+common_params_fit_impl: start filling device 0, delta=37
+common_memory_breakdown_print: | memory breakdown [MiB] | total   free    self   model   context   compute    unaccounted |
+common_memory_breakdown_print: |   - CUDA0 (RTX 2050)   |  3768 = 3570 + (2517 =  1962 +     464 +      90) +       -2319 |
+common_memory_breakdown_print: |   - Host               |                  853 =   717 +     112 +      24                |
+common_params_fit_impl: memory for test allocation by device:
+common_params_fit_impl: id=0, n_layer=30, n_part= 0, overflow_type=4, mem=  2517 MiB
+common_params_fit_impl: set ngl_per_device[0].n_layer=30
+common_memory_breakdown_print: | memory breakdown [MiB] | total   free    self   model   context   compute    unaccounted |
+common_memory_breakdown_print: |   - CUDA0 (RTX 2050)   |  3768 = 3570 + (2594 =  2023 +     480 +      90) +       -2396 |
+common_memory_breakdown_print: |   - Host               |                  776 =   656 +      96 +      24                |
+common_params_fit_impl: memory for test allocation by device:
+common_params_fit_impl: id=0, n_layer=31, n_part= 0, overflow_type=4, mem=  2594 MiB
+common_params_fit_impl: set ngl_per_device_high[0].n_layer=31
+common_params_fit_impl:   - CUDA0 (NVIDIA GeForce RTX 2050): 30 layers,   2517 MiB used,   1053 MiB free
+common_fit_params: successfully fit params to free device memory
+common_fit_params: fitting params to free memory took 1.18 seconds
+llama_model_loader: loaded meta data with 42 key-value pairs and 398 tensors from /usr/share/ollama/.ollama/models/blobs/sha256-3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597 (version GGUF V3 (latest))
+llama_model_loader: Dumping metadata keys/values. Note: KV overrides do not apply in this output.
+llama_model_loader: - kv   0:                       general.architecture str              = qwen3
+llama_model_loader: - kv   1:                               general.type str              = model
+llama_model_loader: - kv   2:                               general.name str              = Qwen3-4B-Instruct-2507
+llama_model_loader: - kv   3:                            general.version str              = 2507
+llama_model_loader: - kv   4:                           general.finetune str              = Instruct
+llama_model_loader: - kv   5:                           general.basename str              = Qwen3-4B-Instruct-2507
+llama_model_loader: - kv   6:                       general.quantized_by str              = Unsloth
+llama_model_loader: - kv   7:                         general.size_label str              = 4B
+llama_model_loader: - kv   8:                            general.license str              = apache-2.0
+llama_model_loader: - kv   9:                       general.license.link str              = https://huggingface.co/Qwen/Qwen3-4B-...
+llama_model_loader: - kv  10:                           general.repo_url str              = https://huggingface.co/unsloth
+llama_model_loader: - kv  11:                   general.base_model.count u32              = 1
+llama_model_loader: - kv  12:                  general.base_model.0.name str              = Qwen3 4B Instruct 2507
+llama_model_loader: - kv  13:               general.base_model.0.version str              = 2507
+llama_model_loader: - kv  14:          general.base_model.0.organization str              = Qwen
+llama_model_loader: - kv  15:              general.base_model.0.repo_url str              = https://huggingface.co/Qwen/Qwen3-4B-...
+llama_model_loader: - kv  16:                               general.tags arr[str,2]       = ["unsloth", "text-generation"]
+llama_model_loader: - kv  17:                          qwen3.block_count u32              = 36
+llama_model_loader: - kv  18:                       qwen3.context_length u32              = 262144
+llama_model_loader: - kv  19:                     qwen3.embedding_length u32              = 2560
+llama_model_loader: - kv  20:                  qwen3.feed_forward_length u32              = 9728
+llama_model_loader: - kv  21:                 qwen3.attention.head_count u32              = 32
+llama_model_loader: - kv  22:              qwen3.attention.head_count_kv u32              = 8
+llama_model_loader: - kv  23:                       qwen3.rope.freq_base f32              = 5000000.000000
+llama_model_loader: - kv  24:     qwen3.attention.layer_norm_rms_epsilon f32              = 0.000001
+llama_model_loader: - kv  25:                 qwen3.attention.key_length u32              = 128
+llama_model_loader: - kv  26:               qwen3.attention.value_length u32              = 128
+llama_model_loader: - kv  27:                       tokenizer.ggml.model str              = gpt2
+llama_model_loader: - kv  28:                         tokenizer.ggml.pre str              = qwen2
+llama_model_loader: - kv  29:                      tokenizer.ggml.tokens arr[str,151936]  = ["!", "\"", "#", "$", "%", "&", "'", ...
+llama_model_loader: - kv  30:                  tokenizer.ggml.token_type arr[i32,151936]  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ...
+llama_model_loader: - kv  31:                      tokenizer.ggml.merges arr[str,151387]  = ["Ġ Ġ", "ĠĠ ĠĠ", "i n", "Ġ t",...
+llama_model_loader: - kv  32:                tokenizer.ggml.eos_token_id u32              = 151645
+llama_model_loader: - kv  33:            tokenizer.ggml.padding_token_id u32              = 151654
+llama_model_loader: - kv  34:               tokenizer.ggml.add_bos_token bool             = false
+llama_model_loader: - kv  35:                    tokenizer.chat_template str              = {%- if tools %}\n    {{- '<|im_start|>...
+llama_model_loader: - kv  36:               general.quantization_version u32              = 2
+llama_model_loader: - kv  37:                          general.file_type u32              = 15
+llama_model_loader: - kv  38:                      quantize.imatrix.file str              = Qwen3-4B-Instruct-2507-GGUF/imatrix_u...
+llama_model_loader: - kv  39:                   quantize.imatrix.dataset str              = unsloth_calibration_Qwen3-4B-Instruct...
+llama_model_loader: - kv  40:             quantize.imatrix.entries_count u32              = 252
+llama_model_loader: - kv  41:              quantize.imatrix.chunks_count u32              = 79
+llama_model_loader: - type  f32:  145 tensors
+llama_model_loader: - type q4_K:  216 tensors
+llama_model_loader: - type q6_K:   37 tensors
+print_info: file format = GGUF V3 (latest)
+print_info: file type   = Q4_K - Medium
+print_info: file size   = 2.32 GiB (4.95 BPW) 
+llama_prepare_model_devices: using device CUDA0 (NVIDIA GeForce RTX 2050) (0000:01:00.0) - 3570 MiB free
+load: 0 unused tokens
+load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+load: printing all EOG tokens:
+load:   - 128247 ('</s>')
+load:   - 151643 ('<|endoftext|>')
+load:   - 151645 ('<|im_end|>')
+load:   - 151662 ('<|fim_pad|>')
+load:   - 151663 ('<|repo_name|>')
+load:   - 151664 ('<|file_sep|>')
+load: special tokens cache size = 27
+load: token to piece cache size = 0.9311 MB
+print_info: arch                  = qwen3
+print_info: vocab_only            = 0
+print_info: no_alloc              = 0
+print_info: n_ctx_train           = 262144
+print_info: n_embd_inp            = 2560
+print_info: n_embd                = 2560
+print_info: n_embd_out            = 2560
+print_info: n_layer               = 36
+print_info: n_layer_all           = 36
+print_info: n_head                = 32
+print_info: n_head_kv             = 8
+print_info: n_rot                 = 128
+print_info: n_swa                 = 0
+print_info: is_swa_any            = 0
+print_info: non_causal_type       = 0
+print_info: n_embd_head_k         = 128
+print_info: n_embd_head_v         = 128
+print_info: n_gqa                 = 4
+print_info: n_embd_k_gqa          = 1024
+print_info: n_embd_v_gqa          = 1024
+print_info: f_norm_eps            = 0.0e+00
+print_info: f_norm_rms_eps        = 1.0e-06
+print_info: f_clamp_kqv           = 0.0e+00
+print_info: f_max_alibi_bias      = 0.0e+00
+print_info: f_logit_scale         = 0.0e+00
+print_info: f_attn_scale          = 0.0e+00
+print_info: f_attn_value_scale    = 0.0000
+print_info: n_ff                  = 9728
+print_info: n_expert              = 0
+print_info: n_expert_used         = 0
+print_info: n_expert_groups       = 0
+print_info: n_group_used          = 0
+print_info: causal attn           = 1
+print_info: pooling type          = -1
+print_info: rope type             = 2
+print_info: rope scaling          = linear
+print_info: freq_base_train       = 5000000.0
+print_info: freq_scale_train      = 1
+print_info: n_ctx_orig_yarn       = 262144
+print_info: rope_yarn_log_mul     = 0.0000
+print_info: rope_finetuned        = unknown
+print_info: model type            = 4B
+print_info: model params          = 4.02 B
+print_info: general.name          = Qwen3-4B-Instruct-2507
+print_info: vocab type            = BPE
+print_info: n_vocab               = 151936
+print_info: n_merges              = 151387
+print_info: BOS token             = 11 ','
+print_info: EOS token             = 151645 '<|im_end|>'
+print_info: EOT token             = 151645 '<|im_end|>'
+print_info: PAD token             = 151654 '<|vision_pad|>'
+print_info: LF token              = 198 'Ċ'
+print_info: FIM PRE token         = 151659 '<|fim_prefix|>'
+print_info: FIM SUF token         = 151661 '<|fim_suffix|>'
+print_info: FIM MID token         = 151660 '<|fim_middle|>'
+print_info: FIM PAD token         = 151662 '<|fim_pad|>'
+print_info: FIM REP token         = 151663 '<|repo_name|>'
+print_info: FIM SEP token         = 151664 '<|file_sep|>'
+print_info: EOG token             = 128247 '</s>'
+print_info: EOG token             = 151643 '<|endoftext|>'
+print_info: EOG token             = 151645 '<|im_end|>'
+print_info: EOG token             = 151662 '<|fim_pad|>'
+print_info: EOG token             = 151663 '<|repo_name|>'
+print_info: EOG token             = 151664 '<|file_sep|>'
+print_info: max token length      = 256
+load_tensors: loading model tensors, this can take a while... (load_mode = none)
+time=2026-10-23T16:16:55.255-07:00 level=INFO source=llama_server.go:1391 msg="waiting for llama-server to become available" status="llm server not responding"
+[GIN] 2026/10/23 - 16:16:56 | 200 |       66.54µs |       127.0.0.1 | GET      "/"
+load_tensors: offloading output layer to GPU
+load_tensors: offloading 29 repeating layers to GPU
+load_tensors: offloaded 30/37 layers to GPU
+load_tensors:        CUDA0 model buffer size =  1962.95 MiB
+load_tensors:    CUDA_Host model buffer size =   717.25 MiB
+time=2026-10-23T16:16:56.509-07:00 level=INFO source=llama_server.go:1391 msg="waiting for llama-server to become available" status="llm server loading model"
+[GIN] 2026/10/23 - 16:16:58 | 200 |      72.025µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:17:01 | 200 |      39.792µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:17:03 | 200 |      27.089µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:17:06 | 200 |      33.649µs |       127.0.0.1 | GET      "/"
+cmn  common_init_: added </s> logit bias = -inf
+cmn  common_init_: added <|endoftext|> logit bias = -inf
+cmn  common_init_: added <|im_end|> logit bias = -inf
+cmn  common_init_: added <|fim_pad|> logit bias = -inf
+cmn  common_init_: added <|repo_name|> logit bias = -inf
+cmn  common_init_: added <|file_sep|> logit bias = -inf
+llama_context: constructing llama_context
+llama_context: n_seq_max             = 1
+llama_context: n_ctx                 = 4096
+llama_context: n_ctx_seq             = 4096
+llama_context: n_batch               = 512
+llama_context: n_ubatch              = 512
+llama_context: causal_attn           = 1
+llama_context: flash_attn            = auto
+llama_context: kv_unified            = false
+llama_context: freq_base             = 5000000.0
+llama_context: freq_scale            = 1
+llama_context: n_rs_seq              = 0
+llama_context: n_outputs_max         = 1
+llama_context: n_outputs_max_per_seq = 1
+llama_context: n_ctx_seq (4096) < n_ctx_train (262144) -- the full capacity of the model will not be utilized
+llama_context:  CUDA_Host  output buffer size =     0.58 MiB
+llama_kv_cache:        CPU KV buffer size =   112.00 MiB
+llama_kv_cache:      CUDA0 KV buffer size =   464.00 MiB
+llama_kv_cache: size =  576.00 MiB (  4096 cells,  36 layers,  1/1 seqs), K (f16):  288.00 MiB, V (f16):  288.00 MiB
+llama_kv_cache: n_rot_k = 0, n_embd_head_k_all = 128
+llama_kv_cache: n_rot_v = 0, n_embd_head_k_all = 128
+sched_reserve: reserving ...
+resolve_fused_ops: Flash Attention enabled
+resolve_fused_ops: resolving fused DeepSeek V4 HC support:
+resolve_fused_ops: fused DeepSeek V4 HC pre enabled
+resolve_fused_ops: fused DeepSeek V4 HC comb enabled
+resolve_fused_ops: fused DeepSeek V4 HC post enabled
+sched_reserve:      CUDA0 compute buffer size =    90.36 MiB
+sched_reserve:  CUDA_Host compute buffer size =    24.02 MiB
+sched_reserve: graph (pp bs=512, tg bs=1): nodes = 1269 / 1269, splits = 93 / 16, input objects = 4 / 4, input tensors = 9 / 9
+sched_reserve: reserve took 18.26 ms, sched copies = 1
+cmn          init: llama threadpool init, n_threads = 4
+cmn  common_init_: warming up the model with an empty run - please wait ... (--no-warmup to disable)
+[GIN] 2026/10/23 - 16:17:08 | 200 |      22.597µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:17:11 | 200 |      19.267µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:17:13 | 200 |      18.942µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:17:16 | 200 |      18.544µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:17:18 | 200 |       24.68µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:17:21 | 200 |      18.674µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:17:23 | 200 |      24.135µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:17:26 | 200 |      23.706µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:17:28 | 200 |      20.899µs |       127.0.0.1 | GET      "/"
+srv    load_model: initializing, n_slots = 1, n_ctx_slot = 4096, kv_unified = 'false'
+spec common_specu: no implementations specified for speculative decoding
+slot   load_model: id  0 | task -1 | new slot, n_ctx = 4096
+srv    load_model: prompt cache is enabled, size limit: 8192 MiB
+srv    load_model: use `--cache-ram 0` to disable the prompt cache
+srv    load_model: for more info see https://github.com/ggml-org/llama.cpp/pull/16391
+srv    load_model: context checkpoints enabled, max = 32, min spacing = 8192
+srv          init: idle slots will be saved to prompt cache upon starting a new task
+srv          init: init: chat template, example_format: '<|im_start|>system
+You are a helpful assistant<|im_end|>
+<|im_start|>user
+Hello<|im_end|>
+<|im_start|>assistant
+Hi there<|im_end|>
+<|im_start|>user
+How are you?<|im_end|>
+<|im_start|>assistant
+'
+srv          init: init: chat template, thinking = 0
+srv          init: preserve_reasoning kwarg: not supported by template
+srv  llama_server: model loaded
+srv  llama_server: listening on http://127.0.0.1:41413
+srv  update_slots: all slots are idle
+time=2026-10-23T16:17:29.694-07:00 level=INFO source=llama_server.go:1403 msg="llama-server started in 36.40 seconds"
+time=2026-10-23T16:17:29.694-07:00 level=INFO source=images.go:422 msg="template selection" model=hf.co/unsloth/Qwen3-4B-Instruct-2507-GGUF:Q4_K_M selected=go_template renderer="" parser="" go_template="[completion tools thinking]" chat_template="[tools thinking completion]" harmony=null renderer_parser=null
+time=2026-10-23T16:17:29.695-07:00 level=INFO source=sched.go:788 msg="loaded runners" count=1
+time=2026-10-23T16:17:29.696-07:00 level=INFO source=llama_server.go:1336 msg="waiting for llama-server to start responding"
+time=2026-10-23T16:17:29.696-07:00 level=INFO source=llama_server.go:1403 msg="llama-server started in 36.40 seconds"
+srv  server_strea: conv_id= (empty=1)
+slot get_availabl: id  0 | task -1 |  - skipping, slot is empty
+slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 0, t_last = -1
+srv  get_availabl: updating prompt cache
+srv          load:  - looking for better prompt, base f_keep = -1.000, f_sim = 0.000
+srv        update:  - cache state: 0 prompts, 0.000 MiB (limits: 8192.000 MiB, 4096 tokens, 8589934592 est)
+srv  get_availabl: prompt cache update took 0.01 ms
+slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task -1 | sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 20, top_p = 0.950, min_p = 0.000, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.600
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+slot   operator(): id  0 | task 0 | new prompt, n_ctx_slot = 4096, n_keep = 4, task.n_tokens = 422
+slot   operator(): id  0 | task 0 | cached n_tokens = 0, memory_seq_rm [0, end)
+slot init_sampler: id  0 | task 0 | init sampler, took 0.04 ms, tokens: text = 422, total = 422
+[GIN] 2026/10/23 - 16:17:31 | 200 |      21.801µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:17:33 | 200 |      22.732µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:17:36 | 200 |      41.872µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:17:38 | 200 |      32.571µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:17:41 | 200 |      34.232µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:17:43 | 200 |       21.94µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:17:46 | 200 |      21.715µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 0 | prompt eval time =   16740.23 ms /   422 tokens (   39.67 ms per token,    25.21 tokens per second)
+slot print_timing: id  0 | task 0 |        eval time =    1097.09 ms /    26 tokens (   43.88 ms per token,    22.79 tokens per second)
+slot print_timing: id  0 | task 0 |       total time =   17837.32 ms /   448 tokens
+slot print_timing: id  0 | task 0 |    graphs reused =         25
+slot print_timing: id  0 | task 0 |   graph reallocs =          0    /     0        (same size) / (changed size)
+slot      release: id  0 | task 0 | stop processing: n_tokens = 447, truncated = 0
+srv  update_slots: all slots are idle
+[GIN] 2026/10/23 - 16:17:47 | 200 | 56.028582018s |       127.0.0.1 | POST     "/api/chat"
+[GIN] 2026/10/23 - 16:17:48 | 200 |       60.24µs |       127.0.0.1 | GET      "/"
+srv  server_strea: conv_id= (empty=1)
+slot get_availabl: id  0 | task -1 |  - checking sim = 0.004 (3/813) > 0.100
+slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 447, t_last = 25456288245
+srv  get_availabl: updating prompt cache
+srv   prompt_save:  - saving prompt with length 447, total state size = 62.865 MiB (draft: 0.000 MiB)
+srv          load:  - looking for better prompt, base f_keep = 0.007, f_sim = 0.004
+srv          load:    - prompt with length     447, lcp =       3, f_keep = 0.007, f_sim = 0.004
+srv        update:  - cache state: 1 prompts, 62.865 MiB (limits: 8192.000 MiB, 4096 tokens, 58248 est)
+srv        update:    - prompt 0x3753f0a0:     447 tokens, checkpoints:  0,    62.865 MiB
+srv  get_availabl: prompt cache update took 23.47 ms
+slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task -1 | sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 20, top_p = 0.950, min_p = 0.000, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.600
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+slot launch_slot_: id  0 | task 27 | processing task, is_child = 0
+slot   operator(): id  0 | task 27 | new prompt, n_ctx_slot = 4096, n_keep = 4, task.n_tokens = 813
+slot   operator(): id  0 | task 27 | cached n_tokens = 3, memory_seq_rm [3, end)
+slot   operator(): id  0 | task 27 | cached n_tokens = 515, memory_seq_rm [515, end)
+slot init_sampler: id  0 | task 27 | init sampler, took 0.06 ms, tokens: text = 813, total = 813
+sched_graph_realloc: graph reallocation: nodes = 1497 (changed = 0), splits = 93, n_same = 1, n_diff = 0
+[GIN] 2026/10/23 - 16:17:51 | 200 |      34.547µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:17:53 | 200 |      40.371µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =    100, tg =  21.51 t/s, tg_3s =  21.73 t/s
+[GIN] 2026/10/23 - 16:17:56 | 200 |      26.079µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =    165, tg =  21.47 t/s, tg_3s =  21.40 t/s
+[GIN] 2026/10/23 - 16:17:58 | 200 |      35.848µs |       127.0.0.1 | GET      "/"
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 2, n_diff = 0
+slot print_timing: id  0 | task 27 | n_gen =    229, tg =  21.40 t/s, tg_3s =  21.25 t/s
+[GIN] 2026/10/23 - 16:18:01 | 200 |      25.159µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =    291, tg =  21.24 t/s, tg_3s =  20.65 t/s
+[GIN] 2026/10/23 - 16:18:03 | 200 |      22.011µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:18:06 | 200 |      22.792µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =    353, tg =  21.09 t/s, tg_3s =  20.43 t/s
+[GIN] 2026/10/23 - 16:18:08 | 200 |      22.058µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =    415, tg =  21.01 t/s, tg_3s =  20.56 t/s
+[GIN] 2026/10/23 - 16:18:11 | 200 |      28.995µs |       127.0.0.1 | GET      "/"
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 3, n_diff = 0
+slot print_timing: id  0 | task 27 | n_gen =    476, tg =  20.88 t/s, tg_3s =  20.04 t/s
+[GIN] 2026/10/23 - 16:18:13 | 200 |      25.553µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =    536, tg =  20.77 t/s, tg_3s =  19.91 t/s
+[GIN] 2026/10/23 - 16:18:16 | 200 |       21.36µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =    595, tg =  20.64 t/s, tg_3s =  19.58 t/s
+[GIN] 2026/10/23 - 16:18:18 | 200 |      38.024µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:18:21 | 200 |      23.892µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =    654, tg =  20.53 t/s, tg_3s =  19.49 t/s
+[GIN] 2026/10/23 - 16:18:23 | 200 |      36.861µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =    714, tg =  20.46 t/s, tg_3s =  19.70 t/s
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 4, n_diff = 0
+[GIN] 2026/10/23 - 16:18:26 | 200 |      27.533µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =    769, tg =  20.28 t/s, tg_3s =  18.25 t/s
+[GIN] 2026/10/23 - 16:18:28 | 200 |      33.584µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =    825, tg =  20.16 t/s, tg_3s =  18.64 t/s
+[GIN] 2026/10/23 - 16:18:31 | 200 |      43.691µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =    881, tg =  20.05 t/s, tg_3s =  18.48 t/s
+[GIN] 2026/10/23 - 16:18:33 | 200 |      42.262µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:18:36 | 200 |      36.508µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =    937, tg =  19.94 t/s, tg_3s =  18.45 t/s
+[GIN] 2026/10/23 - 16:18:38 | 200 |      36.352µs |       127.0.0.1 | GET      "/"
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 5, n_diff = 0
+slot print_timing: id  0 | task 27 | n_gen =    992, tg =  19.84 t/s, tg_3s =  18.27 t/s
+[GIN] 2026/10/23 - 16:18:41 | 200 |      23.554µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =   1046, tg =  19.72 t/s, tg_3s =  17.75 t/s
+[GIN] 2026/10/23 - 16:18:43 | 200 |       32.97µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =   1100, tg =  19.62 t/s, tg_3s =  17.81 t/s
+[GIN] 2026/10/23 - 16:18:46 | 200 |      24.857µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =   1153, tg =  19.52 t/s, tg_3s =  17.65 t/s
+[GIN] 2026/10/23 - 16:18:48 | 200 |       24.23µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:18:51 | 200 |      39.177µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =   1207, tg =  19.43 t/s, tg_3s =  17.70 t/s
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 6, n_diff = 0
+[GIN] 2026/10/23 - 16:18:53 | 200 |      29.072µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =   1260, tg =  19.34 t/s, tg_3s =  17.53 t/s
+[GIN] 2026/10/23 - 16:18:56 | 200 |      44.713µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =   1312, tg =  19.24 t/s, tg_3s =  17.09 t/s
+[GIN] 2026/10/23 - 16:18:58 | 200 |      32.972µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =   1364, tg =  19.15 t/s, tg_3s =  17.19 t/s
+[GIN] 2026/10/23 - 16:19:01 | 200 |      37.539µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:19:03 | 200 |      28.665µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =   1416, tg =  19.07 t/s, tg_3s =  17.13 t/s
+[GIN] 2026/10/23 - 16:19:06 | 200 |      24.546µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =   1467, tg =  18.99 t/s, tg_3s =  16.95 t/s
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 7, n_diff = 0
+[GIN] 2026/10/23 - 16:19:08 | 200 |      31.932µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 27 | n_gen =   1518, tg =  18.91 t/s, tg_3s =  16.80 t/s
+slot print_timing: id  0 | task 27 | prompt eval time =     649.92 ms /   810 tokens (    0.80 ms per token,  1246.31 tokens per second)
+slot print_timing: id  0 | task 27 |        eval time =   81316.60 ms /  1536 tokens (   52.97 ms per token,    18.88 tokens per second)
+slot print_timing: id  0 | task 27 |       total time =   81966.52 ms /  2346 tokens
+slot print_timing: id  0 | task 27 |    graphs reused =       1553
+slot print_timing: id  0 | task 27 |   graph reallocs =          7    /     0        (same size) / (changed size)
+slot      release: id  0 | task 27 | stop processing: n_tokens = 2348, truncated = 0
+srv  update_slots: all slots are idle
+[GIN] 2026/10/23 - 16:19:11 | 200 |         1m22s |       127.0.0.1 | POST     "/api/chat"
+srv  server_strea: conv_id= (empty=1)
+slot get_availabl: id  0 | task -1 |  - checking sim = 0.003 (3/1129) > 0.100
+slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 2348, t_last = 25539765581
+srv  get_availabl: updating prompt cache
+srv   prompt_save:  - saving prompt with length 2348, total state size = 330.215 MiB (draft: 0.000 MiB)
+[GIN] 2026/10/23 - 16:19:11 | 200 |      76.302µs |       127.0.0.1 | GET      "/"
+srv          load:  - looking for better prompt, base f_keep = 0.001, f_sim = 0.003
+srv          load:    - prompt with length     447, lcp =       6, f_keep = 0.013, f_sim = 0.005
+srv          load:    - prompt with length    2348, lcp =       3, f_keep = 0.001, f_sim = 0.003
+srv        update:  - cache state: 2 prompts, 393.081 MiB (limits: 8192.000 MiB, 4096 tokens, 58249 est)
+srv        update:    - prompt 0x3753f0a0:     447 tokens, checkpoints:  0,    62.865 MiB
+srv        update:    - prompt 0x3753f150:    2348 tokens, checkpoints:  0,   330.215 MiB
+srv  get_availabl: prompt cache update took 374.41 ms
+slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task -1 | sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 20, top_p = 0.950, min_p = 0.000, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.600
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+slot launch_slot_: id  0 | task 1565 | processing task, is_child = 0
+slot   operator(): id  0 | task 1565 | new prompt, n_ctx_slot = 4096, n_keep = 4, task.n_tokens = 1129
+slot   operator(): id  0 | task 1565 | cached n_tokens = 3, memory_seq_rm [3, end)
+slot   operator(): id  0 | task 1565 | cached n_tokens = 515, memory_seq_rm [515, end)
+sched_graph_realloc: graph reallocation: nodes = 1497 (changed = 0), splits = 93, n_same = 8, n_diff = 0
+slot   operator(): id  0 | task 1565 | cached n_tokens = 1027, memory_seq_rm [1027, end)
+slot init_sampler: id  0 | task 1565 | init sampler, took 0.10 ms, tokens: text = 1129, total = 1129
+sched_graph_realloc: graph reallocation: nodes = 1497 (changed = 0), splits = 93, n_same = 9, n_diff = 0
+[GIN] 2026/10/23 - 16:19:13 | 200 |      41.787µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:19:16 | 200 |      26.918µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 1565 | n_gen =    100, tg =  20.49 t/s, tg_3s =  20.70 t/s
+[GIN] 2026/10/23 - 16:19:18 | 200 |      23.217µs |       127.0.0.1 | GET      "/"
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 10, n_diff = 0
+slot print_timing: id  0 | task 1565 | n_gen =    162, tg =  20.43 t/s, tg_3s =  20.34 t/s
+[GIN] 2026/10/23 - 16:19:21 | 200 |      28.324µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 1565 | n_gen =    221, tg =  20.20 t/s, tg_3s =  19.60 t/s
+[GIN] 2026/10/23 - 16:19:23 | 200 |       23.42µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 1565 | n_gen =    281, tg =  20.10 t/s, tg_3s =  19.72 t/s
+[GIN] 2026/10/23 - 16:19:26 | 200 |      46.628µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:19:28 | 200 |      27.008µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 1565 | n_gen =    340, tg =  19.99 t/s, tg_3s =  19.50 t/s
+[GIN] 2026/10/23 - 16:19:31 | 200 |      25.473µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 1565 | n_gen =    397, tg =  19.82 t/s, tg_3s =  18.90 t/s
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 11, n_diff = 0
+[GIN] 2026/10/23 - 16:19:34 | 200 |      28.122µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 1565 | prompt eval time =     930.80 ms /  1126 tokens (    0.83 ms per token,  1209.72 tokens per second)
+slot print_timing: id  0 | task 1565 |        eval time =   22778.29 ms /   447 tokens (   51.07 ms per token,    19.58 tokens per second)
+slot print_timing: id  0 | task 1565 |       total time =   23709.09 ms /  1573 tokens
+slot print_timing: id  0 | task 1565 |    graphs reused =       1996
+slot print_timing: id  0 | task 1565 |   graph reallocs =         11    /     0        (same size) / (changed size)
+slot      release: id  0 | task 1565 | stop processing: n_tokens = 1575, truncated = 0
+srv  update_slots: all slots are idle
+[GIN] 2026/10/23 - 16:19:35 | 200 | 24.133126399s |       127.0.0.1 | POST     "/api/chat"
+srv  server_strea: conv_id= (empty=1)
+slot get_availabl: id  0 | task -1 |  - checking sim = 0.168 (180/1070) > 0.100
+slot get_availabl: id  0 | task -1 | selected slot by LCP similarity, f_sim_best = 0.168 (> 0.100 thold), f_keep = 0.114
+srv  get_availabl: updating prompt cache
+srv   prompt_save:  - saving prompt with length 1575, total state size = 221.503 MiB (draft: 0.000 MiB)
+srv          load:  - looking for better prompt, base f_keep = 0.114, f_sim = 0.168
+srv          load:    - prompt with length     447, lcp =       6, f_keep = 0.013, f_sim = 0.006
+srv          load:    - prompt with length    2348, lcp =       3, f_keep = 0.001, f_sim = 0.003
+srv          load:    - prompt with length    1575, lcp =     180, f_keep = 0.114, f_sim = 0.168
+srv        update:  - cache state: 3 prompts, 614.584 MiB (limits: 8192.000 MiB, 4096 tokens, 58249 est)
+srv        update:    - prompt 0x3753f0a0:     447 tokens, checkpoints:  0,    62.865 MiB
+srv        update:    - prompt 0x3753f150:    2348 tokens, checkpoints:  0,   330.215 MiB
+srv        update:    - prompt 0x2cf520f0:    1575 tokens, checkpoints:  0,   221.503 MiB
+srv  get_availabl: prompt cache update took 691.59 ms
+slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task -1 | sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 20, top_p = 0.950, min_p = 0.000, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.600
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+slot launch_slot_: id  0 | task 2015 | processing task, is_child = 0
+slot   operator(): id  0 | task 2015 | new prompt, n_ctx_slot = 4096, n_keep = 4, task.n_tokens = 1070
+slot   operator(): id  0 | task 2015 | cached n_tokens = 180, memory_seq_rm [180, end)
+slot   operator(): id  0 | task 2015 | cached n_tokens = 692, memory_seq_rm [692, end)
+slot init_sampler: id  0 | task 2015 | init sampler, took 0.08 ms, tokens: text = 1070, total = 1070
+sched_graph_realloc: graph reallocation: nodes = 1497 (changed = 0), splits = 93, n_same = 12, n_diff = 0
+[GIN] 2026/10/23 - 16:19:36 | 200 |      27.196µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2015 | prompt eval time =    1008.44 ms /   890 tokens (    1.13 ms per token,   882.55 tokens per second)
+slot print_timing: id  0 | task 2015 |        eval time =     379.60 ms /     7 tokens (   63.27 ms per token,    15.81 tokens per second)
+slot print_timing: id  0 | task 2015 |       total time =    1388.04 ms /   897 tokens
+slot print_timing: id  0 | task 2015 |    graphs reused =       2001
+slot print_timing: id  0 | task 2015 |   graph reallocs =         12    /     0        (same size) / (changed size)
+slot      release: id  0 | task 2015 | stop processing: n_tokens = 1076, truncated = 0
+srv  update_slots: all slots are idle
+[GIN] 2026/10/23 - 16:19:37 | 200 |  2.167600941s |       127.0.0.1 | POST     "/api/chat"
+[GIN] 2026/10/23 - 16:19:39 | 200 |     102.371µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:19:41 | 200 |      21.806µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:19:44 | 200 |   18.211803ms |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:19:46 | 200 |      32.659µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:19:49 | 200 |      78.414µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:19:51 | 200 |      39.593µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:19:54 | 200 |     106.574µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:19:56 | 200 |      43.071µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:19:59 | 200 |      21.463µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:20:01 | 200 |      20.935µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:20:04 | 200 |     120.456µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:20:06 | 200 |      47.119µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:20:09 | 200 |      52.716µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:20:11 | 200 |      65.464µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:20:14 | 200 |      29.953µs |       127.0.0.1 | GET      "/"
+srv  server_strea: conv_id= (empty=1)
+slot get_availabl: id  0 | task -1 |  - checking sim = 0.014 (6/414) > 0.100
+slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 1076, t_last = 25566082247
+srv  get_availabl: updating prompt cache
+srv   prompt_save:  - saving prompt with length 1076, total state size = 151.326 MiB (draft: 0.000 MiB)
+srv          load:  - looking for better prompt, base f_keep = 0.006, f_sim = 0.014
+srv          load:    - prompt with length     447, lcp =     392, f_keep = 0.877, f_sim = 0.947
+srv          load:    - prompt with length    2348, lcp =       3, f_keep = 0.001, f_sim = 0.007
+srv          load:    - prompt with length    1575, lcp =       6, f_keep = 0.004, f_sim = 0.014
+srv          load:    - prompt with length    1076, lcp =       6, f_keep = 0.006, f_sim = 0.014
+srv          load:  - found better prompt with f_keep = 0.877, f_sim = 0.947
+srv        update:  - cache state: 3 prompts, 703.044 MiB (limits: 8192.000 MiB, 4096 tokens, 58249 est)
+srv        update:    - prompt 0x3753f150:    2348 tokens, checkpoints:  0,   330.215 MiB
+srv        update:    - prompt 0x2cf520f0:    1575 tokens, checkpoints:  0,   221.503 MiB
+srv        update:    - prompt 0x2cf52780:    1076 tokens, checkpoints:  0,   151.326 MiB
+srv  get_availabl: prompt cache update took 298.43 ms
+slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task -1 | sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 20, top_p = 0.950, min_p = 0.000, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.600
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+slot launch_slot_: id  0 | task 2024 | processing task, is_child = 0
+slot   operator(): id  0 | task 2024 | new prompt, n_ctx_slot = 4096, n_keep = 4, task.n_tokens = 414
+slot   operator(): id  0 | task 2024 | cached n_tokens = 392, memory_seq_rm [392, end)
+slot init_sampler: id  0 | task 2024 | init sampler, took 0.05 ms, tokens: text = 414, total = 414
+slot print_timing: id  0 | task 2024 | prompt eval time =     266.60 ms /    22 tokens (   12.12 ms per token,    82.52 tokens per second)
+slot print_timing: id  0 | task 2024 |        eval time =     843.79 ms /    20 tokens (   44.41 ms per token,    22.52 tokens per second)
+slot print_timing: id  0 | task 2024 |       total time =    1110.38 ms /    42 tokens
+slot print_timing: id  0 | task 2024 |    graphs reused =       2019
+slot print_timing: id  0 | task 2024 |   graph reallocs =         12    /     0        (same size) / (changed size)
+slot      release: id  0 | task 2024 | stop processing: n_tokens = 433, truncated = 0
+srv  update_slots: all slots are idle
+[GIN] 2026/10/23 - 16:20:15 | 200 |  1.594040741s |       127.0.0.1 | POST     "/api/chat"
+srv  server_strea: conv_id= (empty=1)
+slot get_availabl: id  0 | task -1 |  - checking sim = 0.003 (6/2238) > 0.100
+slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 433, t_last = 25604439532
+srv  get_availabl: updating prompt cache
+srv   prompt_save:  - saving prompt with length 433, total state size = 60.896 MiB (draft: 0.000 MiB)
+srv          load:  - looking for better prompt, base f_keep = 0.014, f_sim = 0.003
+srv          load:    - prompt with length    2348, lcp =       3, f_keep = 0.001, f_sim = 0.001
+srv          load:    - prompt with length    1575, lcp =       6, f_keep = 0.004, f_sim = 0.003
+srv          load:    - prompt with length    1076, lcp =       6, f_keep = 0.006, f_sim = 0.003
+srv          load:    - prompt with length     433, lcp =       6, f_keep = 0.014, f_sim = 0.003
+srv        update:  - cache state: 4 prompts, 763.941 MiB (limits: 8192.000 MiB, 4096 tokens, 58249 est)
+srv        update:    - prompt 0x3753f150:    2348 tokens, checkpoints:  0,   330.215 MiB
+srv        update:    - prompt 0x2cf520f0:    1575 tokens, checkpoints:  0,   221.503 MiB
+srv        update:    - prompt 0x2cf52780:    1076 tokens, checkpoints:  0,   151.326 MiB
+srv        update:    - prompt 0x4329dfd0:     433 tokens, checkpoints:  0,    60.896 MiB
+srv  get_availabl: prompt cache update took 22.75 ms
+slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task -1 | sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 20, top_p = 0.950, min_p = 0.000, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.600
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+slot launch_slot_: id  0 | task 2045 | processing task, is_child = 0
+slot   operator(): id  0 | task 2045 | new prompt, n_ctx_slot = 4096, n_keep = 4, task.n_tokens = 2238
+slot   operator(): id  0 | task 2045 | cached n_tokens = 6, memory_seq_rm [6, end)
+slot   operator(): id  0 | task 2045 | cached n_tokens = 518, memory_seq_rm [518, end)
+sched_graph_realloc: graph reallocation: nodes = 1497 (changed = 0), splits = 93, n_same = 13, n_diff = 0
+slot   operator(): id  0 | task 2045 | cached n_tokens = 1030, memory_seq_rm [1030, end)
+sched_graph_realloc: graph reallocation: nodes = 1497 (changed = 0), splits = 93, n_same = 14, n_diff = 0
+[GIN] 2026/10/23 - 16:20:16 | 200 |      26.173µs |       127.0.0.1 | GET      "/"
+slot   operator(): id  0 | task 2045 | cached n_tokens = 1542, memory_seq_rm [1542, end)
+sched_graph_realloc: graph reallocation: nodes = 1497 (changed = 0), splits = 93, n_same = 15, n_diff = 0
+slot   operator(): id  0 | task 2045 | cached n_tokens = 2054, memory_seq_rm [2054, end)
+slot init_sampler: id  0 | task 2045 | init sampler, took 0.18 ms, tokens: text = 2238, total = 2238
+sched_graph_realloc: graph reallocation: nodes = 1497 (changed = 0), splits = 93, n_same = 16, n_diff = 0
+[GIN] 2026/10/23 - 16:20:19 | 200 |      22.638µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:20:21 | 200 |      37.749µs |       127.0.0.1 | GET      "/"
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 17, n_diff = 0
+slot print_timing: id  0 | task 2045 | n_gen =    100, tg =  16.62 t/s, tg_3s =  16.79 t/s
+[GIN] 2026/10/23 - 16:20:24 | 200 |      26.802µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:20:26 | 200 |      74.134µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2045 | n_gen =    147, tg =  16.29 t/s, tg_3s =  15.62 t/s
+[GIN] 2026/10/23 - 16:20:29 | 200 |      40.841µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2045 | n_gen =    195, tg =  16.15 t/s, tg_3s =  15.74 t/s
+[GIN] 2026/10/23 - 16:20:31 | 200 |      32.119µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2045 | n_gen =    240, tg =  15.87 t/s, tg_3s =  14.80 t/s
+[GIN] 2026/10/23 - 16:20:34 | 200 |      44.114µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2045 | n_gen =    287, tg =  15.83 t/s, tg_3s =  15.58 t/s
+[GIN] 2026/10/23 - 16:20:36 | 200 |      43.813µs |       127.0.0.1 | GET      "/"
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 18, n_diff = 0
+slot print_timing: id  0 | task 2045 | n_gen =    332, tg =  15.67 t/s, tg_3s =  14.74 t/s
+[GIN] 2026/10/23 - 16:20:39 | 200 |      49.122µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:20:41 | 200 |      31.337µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2045 | n_gen =    377, tg =  15.57 t/s, tg_3s =  14.87 t/s
+[GIN] 2026/10/23 - 16:20:44 | 200 |      35.534µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2045 | n_gen =    420, tg =  15.41 t/s, tg_3s =  14.14 t/s
+[GIN] 2026/10/23 - 16:20:46 | 200 |      27.866µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2045 | n_gen =    464, tg =  15.32 t/s, tg_3s =  14.50 t/s
+[GIN] 2026/10/23 - 16:20:49 | 200 |      28.492µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2045 | n_gen =    511, tg =  15.34 t/s, tg_3s =  15.52 t/s
+[GIN] 2026/10/23 - 16:20:51 | 200 |      31.022µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2045 | n_gen =    558, tg =  15.35 t/s, tg_3s =  15.45 t/s
+[GIN] 2026/10/23 - 16:20:54 | 200 |      24.632µs |       127.0.0.1 | GET      "/"
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 19, n_diff = 0
+[GIN] 2026/10/23 - 16:20:56 | 200 |      29.456µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2045 | n_gen =    602, tg =  15.29 t/s, tg_3s =  14.60 t/s
+[GIN] 2026/10/23 - 16:20:59 | 200 |      35.886µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2045 | n_gen =    645, tg =  15.21 t/s, tg_3s =  14.13 t/s
+slot print_timing: id  0 | task 2045 | prompt eval time =    1868.14 ms /  2232 tokens (    0.84 ms per token,  1194.77 tokens per second)
+slot print_timing: id  0 | task 2045 |        eval time =   42554.34 ms /   648 tokens (   65.77 ms per token,    15.20 tokens per second)
+slot print_timing: id  0 | task 2045 |       total time =   44422.48 ms /  2880 tokens
+slot print_timing: id  0 | task 2045 |    graphs reused =       2662
+slot print_timing: id  0 | task 2045 |   graph reallocs =         19    /     0        (same size) / (changed size)
+slot      release: id  0 | task 2045 | stop processing: n_tokens = 2885, truncated = 0
+srv  update_slots: all slots are idle
+[GIN] 2026/10/23 - 16:21:00 | 200 | 44.628870117s |       127.0.0.1 | POST     "/api/chat"
+[GIN] 2026/10/23 - 16:21:01 | 200 |      23.118µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:04 | 200 |      74.583µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:06 | 200 |      19.869µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:09 | 200 |     117.065µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:11 | 200 |      40.612µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:14 | 200 |      47.016µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:16 | 200 |      19.138µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:19 | 200 |      46.596µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:21 | 200 |    3.638962ms |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:24 | 200 |    3.909369ms |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:26 | 200 |      18.871µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:29 | 200 |      48.251µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:31 | 200 |      39.494µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:34 | 200 |      50.599µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:36 | 200 |      47.649µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:39 | 200 |      34.241µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:41 | 200 |       24.02µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:44 | 200 |       46.08µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:46 | 200 |       42.48µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:49 | 200 |      22.085µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:51 | 200 |      30.704µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:54 | 200 |      44.847µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:56 | 200 |      39.114µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:21:59 | 200 |      21.067µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:01 | 200 |      25.011µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:04 | 200 |      29.299µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:06 | 200 |      34.114µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:09 | 200 |      46.936µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:11 | 200 |       52.19µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:14 | 200 |      40.788µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:16 | 200 |      45.298µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:19 | 200 |      62.802µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:21 | 200 |      60.991µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:24 | 200 |      39.993µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:26 | 200 |     105.324µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:29 | 200 |      25.215µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:31 | 200 |      47.038µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:34 | 200 |       42.65µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:36 | 200 |      43.046µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:39 | 200 |      43.485µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:41 | 200 |      57.061µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:44 | 200 |      42.566µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:46 | 200 |      39.388µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:49 | 200 |       40.99µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:51 | 200 |      46.756µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:54 | 200 |     772.769µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:56 | 200 |      32.188µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:22:59 | 200 |      20.645µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:01 | 200 |      22.354µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:04 | 200 |      25.614µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:06 | 200 |      47.401µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:09 | 200 |      28.071µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:11 | 200 |      53.376µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:14 | 200 |      22.101µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:16 | 200 |      48.376µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:19 | 200 |      39.087µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:21 | 200 |      19.004µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:24 | 200 |      38.065µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:26 | 200 |      63.558µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:29 | 200 |      53.477µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:32 | 200 |      48.196µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:34 | 200 |      34.252µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:37 | 200 |      24.857µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:39 | 200 |      43.666µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:42 | 200 |      49.975µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:44 | 200 |      48.988µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:47 | 200 |      42.567µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:49 | 200 |      41.392µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:52 | 200 |    6.031306ms |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:54 | 200 |      66.835µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:57 | 200 |      46.744µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:23:59 | 200 |      50.845µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:02 | 200 |     473.173µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:04 | 200 |      45.952µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:07 | 200 |      22.419µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:09 | 200 |      53.552µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:12 | 200 |      21.509µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:14 | 200 |      44.429µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:17 | 200 |      98.898µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:19 | 200 |      55.361µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:22 | 200 |      56.374µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:24 | 200 |      56.058µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:27 | 200 |      30.711µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:29 | 200 |      45.697µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:32 | 200 |      50.399µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:34 | 200 |      41.917µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:37 | 200 |       53.34µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:39 | 200 |      47.848µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:42 | 200 |      57.272µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:44 | 200 |       44.41µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:47 | 200 |      41.274µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:49 | 200 |      52.752µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:52 | 200 |      68.822µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:54 | 200 |      30.201µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:57 | 200 |       27.63µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:24:59 | 200 |       29.23µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:25:02 | 200 |      36.216µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:25:04 | 200 |      44.491µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:25:07 | 200 |       38.65µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:25:09 | 200 |      36.949µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:25:12 | 200 |      50.282µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:25:14 | 200 |      47.194µs |       127.0.0.1 | GET      "/"
+srv  server_strea: conv_id= (empty=1)
+slot get_availabl: id  0 | task -1 |  - checking sim = 0.015 (6/411) > 0.100
+slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 2885, t_last = 25649073225
+srv  get_availabl: updating prompt cache
+srv   prompt_save:  - saving prompt with length 2885, total state size = 405.737 MiB (draft: 0.000 MiB)
+[GIN] 2026/10/23 - 16:25:17 | 200 |      22.046µs |       127.0.0.1 | GET      "/"
+srv          load:  - looking for better prompt, base f_keep = 0.002, f_sim = 0.015
+srv          load:    - prompt with length    2348, lcp =       3, f_keep = 0.001, f_sim = 0.007
+srv          load:    - prompt with length    1575, lcp =       6, f_keep = 0.004, f_sim = 0.015
+srv          load:    - prompt with length    1076, lcp =       6, f_keep = 0.006, f_sim = 0.015
+srv          load:    - prompt with length     433, lcp =     392, f_keep = 0.905, f_sim = 0.954
+srv          load:    - prompt with length    2885, lcp =       6, f_keep = 0.002, f_sim = 0.015
+srv          load:  - found better prompt with f_keep = 0.905, f_sim = 0.954
+srv        update:  - cache state: 4 prompts, 1108.781 MiB (limits: 8192.000 MiB, 4096 tokens, 58249 est)
+srv        update:    - prompt 0x3753f150:    2348 tokens, checkpoints:  0,   330.215 MiB
+srv        update:    - prompt 0x2cf520f0:    1575 tokens, checkpoints:  0,   221.503 MiB
+srv        update:    - prompt 0x2cf52780:    1076 tokens, checkpoints:  0,   151.326 MiB
+srv        update:    - prompt 0x3abdd0a0:    2885 tokens, checkpoints:  0,   405.737 MiB
+srv  get_availabl: prompt cache update took 1445.78 ms
+slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task -1 | sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 20, top_p = 0.950, min_p = 0.000, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.600
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+slot launch_slot_: id  0 | task 2698 | processing task, is_child = 0
+slot   operator(): id  0 | task 2698 | new prompt, n_ctx_slot = 4096, n_keep = 4, task.n_tokens = 411
+slot   operator(): id  0 | task 2698 | cached n_tokens = 392, memory_seq_rm [392, end)
+slot init_sampler: id  0 | task 2698 | init sampler, took 0.05 ms, tokens: text = 411, total = 411
+[GIN] 2026/10/23 - 16:25:19 | 200 |      26.642µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2698 | prompt eval time =     257.94 ms /    19 tokens (   13.58 ms per token,    73.66 tokens per second)
+slot print_timing: id  0 | task 2698 |        eval time =    1158.73 ms /    26 tokens (   46.35 ms per token,    21.58 tokens per second)
+slot print_timing: id  0 | task 2698 |       total time =    1416.66 ms /    45 tokens
+slot print_timing: id  0 | task 2698 |    graphs reused =       2686
+slot print_timing: id  0 | task 2698 |   graph reallocs =         19    /     0        (same size) / (changed size)
+slot      release: id  0 | task 2698 | stop processing: n_tokens = 436, truncated = 0
+srv  update_slots: all slots are idle
+[GIN] 2026/10/23 - 16:25:19 | 200 |  3.111889657s |       127.0.0.1 | POST     "/api/chat"
+[GIN] 2026/10/23 - 16:25:22 | 200 |      24.129µs |       127.0.0.1 | GET      "/"
+srv  server_strea: conv_id= (empty=1)
+slot get_availabl: id  0 | task -1 |  - checking sim = 0.006 (3/478) > 0.100
+slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 436, t_last = 25908469930
+srv  get_availabl: updating prompt cache
+srv   prompt_save:  - saving prompt with length 436, total state size = 61.318 MiB (draft: 0.000 MiB)
+srv          load:  - looking for better prompt, base f_keep = 0.007, f_sim = 0.006
+srv          load:    - prompt with length    2348, lcp =       6, f_keep = 0.003, f_sim = 0.013
+srv          load:    - prompt with length    1575, lcp =       3, f_keep = 0.002, f_sim = 0.006
+srv          load:    - prompt with length    1076, lcp =       3, f_keep = 0.003, f_sim = 0.006
+srv          load:    - prompt with length    2885, lcp =       3, f_keep = 0.001, f_sim = 0.006
+srv          load:    - prompt with length     436, lcp =       3, f_keep = 0.007, f_sim = 0.006
+srv        update:  - cache state: 5 prompts, 1170.099 MiB (limits: 8192.000 MiB, 4096 tokens, 58249 est)
+srv        update:    - prompt 0x3753f150:    2348 tokens, checkpoints:  0,   330.215 MiB
+srv        update:    - prompt 0x2cf520f0:    1575 tokens, checkpoints:  0,   221.503 MiB
+srv        update:    - prompt 0x2cf52780:    1076 tokens, checkpoints:  0,   151.326 MiB
+srv        update:    - prompt 0x3abdd0a0:    2885 tokens, checkpoints:  0,   405.737 MiB
+srv        update:    - prompt 0x4329dfd0:     436 tokens, checkpoints:  0,    61.318 MiB
+srv  get_availabl: prompt cache update took 29.72 ms
+slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task -1 | sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 20, top_p = 0.950, min_p = 0.000, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.600
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+slot launch_slot_: id  0 | task 2725 | processing task, is_child = 0
+slot   operator(): id  0 | task 2725 | new prompt, n_ctx_slot = 4096, n_keep = 4, task.n_tokens = 478
+slot   operator(): id  0 | task 2725 | cached n_tokens = 3, memory_seq_rm [3, end)
+slot init_sampler: id  0 | task 2725 | init sampler, took 0.04 ms, tokens: text = 478, total = 478
+[GIN] 2026/10/23 - 16:25:24 | 200 |      22.172µs |       127.0.0.1 | GET      "/"
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 20, n_diff = 0
+[GIN] 2026/10/23 - 16:25:27 | 200 |      47.775µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2725 | n_gen =    100, tg =  21.25 t/s, tg_3s =  21.46 t/s
+[GIN] 2026/10/23 - 16:25:29 | 200 |      35.533µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2725 | prompt eval time =     378.91 ms /   475 tokens (    0.80 ms per token,  1253.59 tokens per second)
+slot print_timing: id  0 | task 2725 |        eval time =    7642.56 ms /   159 tokens (   48.37 ms per token,    20.67 tokens per second)
+slot print_timing: id  0 | task 2725 |       total time =    8021.47 ms /   634 tokens
+slot print_timing: id  0 | task 2725 |    graphs reused =       2842
+slot print_timing: id  0 | task 2725 |   graph reallocs =         20    /     0        (same size) / (changed size)
+slot      release: id  0 | task 2725 | stop processing: n_tokens = 636, truncated = 0
+srv  update_slots: all slots are idle
+[GIN] 2026/10/23 - 16:25:31 | 200 |  8.278179656s |       127.0.0.1 | POST     "/api/chat"
+[GIN] 2026/10/23 - 16:25:32 | 200 |      37.195µs |       127.0.0.1 | GET      "/"
+srv  server_strea: conv_id= (empty=1)
+slot get_availabl: id  0 | task -1 |  - checking sim = 0.010 (6/593) > 0.100
+slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 636, t_last = 25919739474
+srv  get_availabl: updating prompt cache
+srv   prompt_save:  - saving prompt with length 636, total state size = 89.446 MiB (draft: 0.000 MiB)
+srv          load:  - looking for better prompt, base f_keep = 0.009, f_sim = 0.010
+srv          load:    - prompt with length    2348, lcp =      70, f_keep = 0.030, f_sim = 0.118
+srv          load:    - prompt with length    1575, lcp =       3, f_keep = 0.002, f_sim = 0.005
+srv          load:    - prompt with length    1076, lcp =       3, f_keep = 0.003, f_sim = 0.005
+srv          load:    - prompt with length    2885, lcp =       3, f_keep = 0.001, f_sim = 0.005
+srv          load:    - prompt with length     436, lcp =       3, f_keep = 0.007, f_sim = 0.005
+srv          load:    - prompt with length     636, lcp =       6, f_keep = 0.009, f_sim = 0.010
+srv        update:  - cache state: 6 prompts, 1259.545 MiB (limits: 8192.000 MiB, 4096 tokens, 58249 est)
+srv        update:    - prompt 0x3753f150:    2348 tokens, checkpoints:  0,   330.215 MiB
+srv        update:    - prompt 0x2cf520f0:    1575 tokens, checkpoints:  0,   221.503 MiB
+srv        update:    - prompt 0x2cf52780:    1076 tokens, checkpoints:  0,   151.326 MiB
+srv        update:    - prompt 0x3abdd0a0:    2885 tokens, checkpoints:  0,   405.737 MiB
+srv        update:    - prompt 0x4329dfd0:     436 tokens, checkpoints:  0,    61.318 MiB
+srv        update:    - prompt 0x3753f0a0:     636 tokens, checkpoints:  0,    89.446 MiB
+srv  get_availabl: prompt cache update took 56.03 ms
+slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task -1 | sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 20, top_p = 0.950, min_p = 0.000, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.600
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+slot launch_slot_: id  0 | task 2885 | processing task, is_child = 0
+slot   operator(): id  0 | task 2885 | new prompt, n_ctx_slot = 4096, n_keep = 4, task.n_tokens = 593
+slot   operator(): id  0 | task 2885 | cached n_tokens = 6, memory_seq_rm [6, end)
+slot   operator(): id  0 | task 2885 | cached n_tokens = 518, memory_seq_rm [518, end)
+slot init_sampler: id  0 | task 2885 | init sampler, took 0.05 ms, tokens: text = 593, total = 593
+sched_graph_realloc: graph reallocation: nodes = 1497 (changed = 0), splits = 93, n_same = 21, n_diff = 0
+[GIN] 2026/10/23 - 16:25:35 | 200 |      648.95µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:25:37 | 200 |      26.849µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2885 | n_gen =    100, tg =  21.11 t/s, tg_3s =  21.33 t/s
+[GIN] 2026/10/23 - 16:25:40 | 200 |       33.19µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2885 | n_gen =    163, tg =  21.07 t/s, tg_3s =  20.99 t/s
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 22, n_diff = 0
+[GIN] 2026/10/23 - 16:25:42 | 200 |      26.189µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2885 | n_gen =    223, tg =  20.74 t/s, tg_3s =  19.91 t/s
+[GIN] 2026/10/23 - 16:25:45 | 200 |       23.83µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:25:47 | 200 |      22.516µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2885 | n_gen =    287, tg =  20.80 t/s, tg_3s =  21.02 t/s
+[GIN] 2026/10/23 - 16:25:50 | 200 |    5.855619ms |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2885 | n_gen =    351, tg =  20.85 t/s, tg_3s =  21.04 t/s
+[GIN] 2026/10/23 - 16:25:52 | 200 |      26.581µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2885 | n_gen =    415, tg =  20.90 t/s, tg_3s =  21.20 t/s
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 23, n_diff = 0
+[GIN] 2026/10/23 - 16:25:55 | 200 |      42.334µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2885 | n_gen =    477, tg =  20.85 t/s, tg_3s =  20.50 t/s
+[GIN] 2026/10/23 - 16:25:57 | 200 |      25.429µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2885 | n_gen =    539, tg =  20.81 t/s, tg_3s =  20.56 t/s
+[GIN] 2026/10/23 - 16:26:00 | 200 |      27.052µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:26:02 | 200 |      34.447µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2885 | n_gen =    600, tg =  20.76 t/s, tg_3s =  20.30 t/s
+[GIN] 2026/10/23 - 16:26:05 | 200 |      78.326µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2885 | n_gen =    661, tg =  20.72 t/s, tg_3s =  20.31 t/s
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 24, n_diff = 0
+[GIN] 2026/10/23 - 16:26:07 | 200 |      76.865µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2885 | n_gen =    716, tg =  20.50 t/s, tg_3s =  18.24 t/s
+[GIN] 2026/10/23 - 16:26:10 | 200 |      38.713µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2885 | n_gen =    776, tg =  20.45 t/s, tg_3s =  19.82 t/s
+[GIN] 2026/10/23 - 16:26:13 | 200 |      51.723µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2885 | n_gen =    832, tg =  20.31 t/s, tg_3s =  18.51 t/s
+[GIN] 2026/10/23 - 16:26:15 | 200 |      39.874µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:26:18 | 200 |      27.531µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2885 | n_gen =    882, tg =  20.04 t/s, tg_3s =  16.47 t/s
+[GIN] 2026/10/23 - 16:26:20 | 200 |        41.4µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2885 | n_gen =    931, tg =  19.80 t/s, tg_3s =  16.32 t/s
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 25, n_diff = 0
+[GIN] 2026/10/23 - 16:26:23 | 200 |      24.013µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2885 | n_gen =    986, tg =  19.70 t/s, tg_3s =  18.06 t/s
+[GIN] 2026/10/23 - 16:26:25 | 200 |      28.367µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2885 | n_gen =   1039, tg =  19.56 t/s, tg_3s =  17.30 t/s
+[GIN] 2026/10/23 - 16:26:28 | 200 |      25.111µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 2885 | prompt eval time =     707.37 ms /   587 tokens (    1.21 ms per token,   829.83 tokens per second)
+slot print_timing: id  0 | task 2885 |        eval time =   54341.22 ms /  1061 tokens (   51.27 ms per token,    19.51 tokens per second)
+slot print_timing: id  0 | task 2885 |       total time =   55048.59 ms /  1648 tokens
+slot print_timing: id  0 | task 2885 |    graphs reused =       3897
+slot print_timing: id  0 | task 2885 |   graph reallocs =         25    /     0        (same size) / (changed size)
+slot      release: id  0 | task 2885 | stop processing: n_tokens = 1653, truncated = 0
+srv  update_slots: all slots are idle
+[GIN] 2026/10/23 - 16:26:28 | 200 | 55.229253493s |       127.0.0.1 | POST     "/api/chat"
+[GIN] 2026/10/23 - 16:26:30 | 200 |      19.094µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:26:33 | 200 |      48.216µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:26:35 | 200 |       33.93µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:26:38 | 200 |      36.261µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:26:40 | 200 |      40.309µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:26:43 | 200 |      27.345µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:26:45 | 200 |       67.43µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:26:48 | 200 |      54.547µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:26:50 | 200 |      60.859µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:26:53 | 200 |      46.008µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:26:55 | 200 |      20.791µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:26:58 | 200 |      17.344µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:00 | 200 |       34.39µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:03 | 200 |      53.818µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:05 | 200 |       50.26µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:08 | 200 |      32.999µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:10 | 200 |      37.292µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:13 | 200 |      42.866µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:15 | 200 |      74.886µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:18 | 200 |      53.752µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:20 | 200 |       42.23µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:23 | 200 |      38.665µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:25 | 200 |      26.304µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:28 | 200 |      38.359µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:30 | 200 |      29.495µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:33 | 200 |      33.243µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:35 | 200 |      26.244µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:38 | 200 |       30.97µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:40 | 200 |      27.279µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:43 | 200 |      93.243µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:45 | 200 |      31.068µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:48 | 200 |      34.004µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:50 | 200 |      50.521µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:53 | 200 |       43.48µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:55 | 200 |      34.596µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:27:58 | 200 |      41.217µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:00 | 200 |      30.849µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:03 | 200 |      29.609µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:05 | 200 |      40.004µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:08 | 200 |      72.718µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:10 | 200 |      37.499µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:13 | 200 |       54.94µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:15 | 200 |      32.508µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:18 | 200 |      51.167µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:20 | 200 |      35.781µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:23 | 200 |      42.546µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:25 | 200 |      54.878µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:28 | 200 |      34.068µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:30 | 200 |      17.548µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:33 | 200 |      38.705µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:35 | 200 |     105.038µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:38 | 200 |      48.412µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:40 | 200 |      36.044µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:43 | 200 |      35.043µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:45 | 200 |      28.315µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:48 | 200 |      47.467µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:50 | 200 |      48.139µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:53 | 200 |      37.702µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:55 | 200 |      40.222µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:28:58 | 200 |      48.732µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:29:00 | 200 |      42.121µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:29:03 | 200 |       63.53µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:29:05 | 200 |       48.62µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:29:08 | 200 |      52.444µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:29:10 | 200 |      47.251µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:29:13 | 200 |      52.278µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:29:15 | 200 |      40.337µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:29:18 | 200 |      21.814µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:29:20 | 200 |      73.345µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:29:23 | 200 |      59.655µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:29:25 | 200 |      39.978µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:29:28 | 200 |      52.681µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:29:30 | 200 |       54.49µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:29:33 | 200 |      43.511µs |       127.0.0.1 | GET      "/"
+srv  server_strea: conv_id= (empty=1)
+slot get_availabl: id  0 | task -1 |  - checking sim = 0.000 (1/2460) > 0.100
+slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 1653, t_last = 25977636797
+srv  get_availabl: updating prompt cache
+srv   prompt_save:  - saving prompt with length 1653, total state size = 232.473 MiB (draft: 0.000 MiB)
+srv          load:  - looking for better prompt, base f_keep = 0.001, f_sim = 0.000
+srv          load:    - prompt with length    2348, lcp =       1, f_keep = 0.000, f_sim = 0.000
+srv          load:    - prompt with length    1575, lcp =       1, f_keep = 0.001, f_sim = 0.000
+srv          load:    - prompt with length    1076, lcp =       1, f_keep = 0.001, f_sim = 0.000
+srv          load:    - prompt with length    2885, lcp =       1, f_keep = 0.000, f_sim = 0.000
+srv          load:    - prompt with length     436, lcp =       1, f_keep = 0.002, f_sim = 0.000
+srv          load:    - prompt with length     636, lcp =       1, f_keep = 0.002, f_sim = 0.000
+srv          load:    - prompt with length    1653, lcp =       1, f_keep = 0.001, f_sim = 0.000
+srv        update:  - cache state: 7 prompts, 1492.018 MiB (limits: 8192.000 MiB, 4096 tokens, 58249 est)
+srv        update:    - prompt 0x3753f150:    2348 tokens, checkpoints:  0,   330.215 MiB
+srv        update:    - prompt 0x2cf520f0:    1575 tokens, checkpoints:  0,   221.503 MiB
+srv        update:    - prompt 0x2cf52780:    1076 tokens, checkpoints:  0,   151.326 MiB
+srv        update:    - prompt 0x3abdd0a0:    2885 tokens, checkpoints:  0,   405.737 MiB
+srv        update:    - prompt 0x4329dfd0:     436 tokens, checkpoints:  0,    61.318 MiB
+srv        update:    - prompt 0x3753f0a0:     636 tokens, checkpoints:  0,    89.446 MiB
+srv        update:    - prompt 0x3753f200:    1653 tokens, checkpoints:  0,   232.473 MiB
+srv  get_availabl: prompt cache update took 163.87 ms
+slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task -1 | sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 20, top_p = 0.950, min_p = 0.000, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.600
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+slot launch_slot_: id  0 | task 3948 | processing task, is_child = 0
+slot   operator(): id  0 | task 3948 | new prompt, n_ctx_slot = 4096, n_keep = 4, task.n_tokens = 2460
+slot   operator(): id  0 | task 3948 | cached n_tokens = 1, memory_seq_rm [1, end)
+[GIN] 2026/10/23 - 16:29:35 | 200 |      33.545µs |       127.0.0.1 | GET      "/"
+slot   operator(): id  0 | task 3948 | cached n_tokens = 513, memory_seq_rm [513, end)
+sched_graph_realloc: graph reallocation: nodes = 1497 (changed = 0), splits = 93, n_same = 26, n_diff = 0
+slot   operator(): id  0 | task 3948 | cached n_tokens = 1025, memory_seq_rm [1025, end)
+sched_graph_realloc: graph reallocation: nodes = 1497 (changed = 0), splits = 93, n_same = 27, n_diff = 0
+slot   operator(): id  0 | task 3948 | cached n_tokens = 1537, memory_seq_rm [1537, end)
+sched_graph_realloc: graph reallocation: nodes = 1497 (changed = 0), splits = 93, n_same = 28, n_diff = 0
+slot   operator(): id  0 | task 3948 | cached n_tokens = 2049, memory_seq_rm [2049, end)
+slot init_sampler: id  0 | task 3948 | init sampler, took 0.20 ms, tokens: text = 2460, total = 2460
+sched_graph_realloc: graph reallocation: nodes = 1497 (changed = 0), splits = 93, n_same = 29, n_diff = 0
+[GIN] 2026/10/23 - 16:29:38 | 200 |      24.461µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:29:40 | 200 |      31.255µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:29:43 | 200 |      43.137µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    100, tg =  15.71 t/s, tg_3s =  15.87 t/s
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 30, n_diff = 0
+[GIN] 2026/10/23 - 16:29:45 | 200 |      30.718µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    147, tg =  15.64 t/s, tg_3s =  15.49 t/s
+[GIN] 2026/10/23 - 16:29:48 | 200 |       32.71µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    195, tg =  15.67 t/s, tg_3s =  15.75 t/s
+[GIN] 2026/10/23 - 16:29:50 | 200 |      22.667µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    240, tg =  15.52 t/s, tg_3s =  14.90 t/s
+[GIN] 2026/10/23 - 16:29:53 | 200 |      22.015µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:29:55 | 200 |      29.136µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    288, tg =  15.57 t/s, tg_3s =  15.85 t/s
+[GIN] 2026/10/23 - 16:29:58 | 200 |      33.458µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    335, tg =  15.58 t/s, tg_3s =  15.67 t/s
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 31, n_diff = 0
+[GIN] 2026/10/23 - 16:30:00 | 200 |      35.669µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    380, tg =  15.50 t/s, tg_3s =  14.88 t/s
+[GIN] 2026/10/23 - 16:30:03 | 200 |      43.704µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    423, tg =  15.34 t/s, tg_3s =  14.08 t/s
+[GIN] 2026/10/23 - 16:30:05 | 200 |      34.146µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    469, tg =  15.33 t/s, tg_3s =  15.27 t/s
+[GIN] 2026/10/23 - 16:30:08 | 200 |      75.631µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:30:10 | 200 |      37.109µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    516, tg =  15.34 t/s, tg_3s =  15.42 t/s
+[GIN] 2026/10/23 - 16:30:13 | 200 |      55.747µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    563, tg =  15.36 t/s, tg_3s =  15.60 t/s
+[GIN] 2026/10/23 - 16:30:15 | 200 |      25.978µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    602, tg =  15.18 t/s, tg_3s =  12.91 t/s
+[GIN] 2026/10/23 - 16:30:18 | 200 |      32.288µs |       127.0.0.1 | GET      "/"
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 32, n_diff = 0
+slot print_timing: id  0 | task 3948 | n_gen =    640, tg =  14.98 t/s, tg_3s =  12.48 t/s
+[GIN] 2026/10/23 - 16:30:20 | 200 |      40.934µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:30:23 | 200 |      37.527µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    683, tg =  14.94 t/s, tg_3s =  14.28 t/s
+[GIN] 2026/10/23 - 16:30:25 | 200 |      24.771µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    729, tg =  14.94 t/s, tg_3s =  15.03 t/s
+[GIN] 2026/10/23 - 16:30:28 | 200 |      28.477µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    775, tg =  14.95 t/s, tg_3s =  15.08 t/s
+[GIN] 2026/10/23 - 16:30:30 | 200 |      36.803µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    820, tg =  14.95 t/s, tg_3s =  14.90 t/s
+[GIN] 2026/10/23 - 16:30:33 | 200 |      38.485µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    865, tg =  14.94 t/s, tg_3s =  14.76 t/s
+[GIN] 2026/10/23 - 16:30:35 | 200 |      33.694µs |       127.0.0.1 | GET      "/"
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 33, n_diff = 0
+[GIN] 2026/10/23 - 16:30:38 | 200 |      49.242µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    904, tg =  14.84 t/s, tg_3s =  12.96 t/s
+[GIN] 2026/10/23 - 16:30:40 | 200 |      31.945µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    944, tg =  14.77 t/s, tg_3s =  13.25 t/s
+[GIN] 2026/10/23 - 16:30:43 | 200 |      22.482µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =    987, tg =  14.74 t/s, tg_3s =  14.14 t/s
+[GIN] 2026/10/23 - 16:30:45 | 200 |       29.22µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =   1029, tg =  14.70 t/s, tg_3s =  13.80 t/s
+[GIN] 2026/10/23 - 16:30:48 | 200 |      29.901µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =   1071, tg =  14.66 t/s, tg_3s =  13.73 t/s
+[GIN] 2026/10/23 - 16:30:50 | 200 |      46.477µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:30:53 | 200 |      44.764µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =   1110, tg =  14.58 t/s, tg_3s =  12.75 t/s
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 34, n_diff = 0
+[GIN] 2026/10/23 - 16:30:55 | 200 |      27.072µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =   1150, tg =  14.53 t/s, tg_3s =  13.20 t/s
+[GIN] 2026/10/23 - 16:30:58 | 200 |      34.342µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =   1183, tg =  14.39 t/s, tg_3s =  10.87 t/s
+[GIN] 2026/10/23 - 16:31:00 | 200 |      30.613µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =   1212, tg =  14.22 t/s, tg_3s =   9.61 t/s
+[GIN] 2026/10/23 - 16:31:03 | 200 |      28.473µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:31:05 | 200 |      40.581µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =   1251, tg =  14.17 t/s, tg_3s =  12.71 t/s
+[GIN] 2026/10/23 - 16:31:08 | 200 |      26.304µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =   1290, tg =  14.12 t/s, tg_3s =  12.76 t/s
+[GIN] 2026/10/23 - 16:31:10 | 200 |      25.275µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | n_gen =   1330, tg =  14.09 t/s, tg_3s =  13.23 t/s
+[GIN] 2026/10/23 - 16:31:13 | 200 |      25.546µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 3948 | prompt eval time =    2147.56 ms /  2459 tokens (    0.87 ms per token,  1145.02 tokens per second)
+slot print_timing: id  0 | task 3948 |        eval time =   95847.75 ms /  1349 tokens (   71.10 ms per token,    14.06 tokens per second)
+slot print_timing: id  0 | task 3948 |       total time =   97995.31 ms /  3808 tokens
+slot print_timing: id  0 | task 3948 |    graphs reused =       5239
+slot print_timing: id  0 | task 3948 |   graph reallocs =         34    /     0        (same size) / (changed size)
+slot      release: id  0 | task 3948 | stop processing: n_tokens = 3808, truncated = 0
+srv  update_slots: all slots are idle
+[GIN] 2026/10/23 - 16:31:13 | 200 |         1m38s |       127.0.0.1 | POST     "/api/chat"
+[GIN] 2026/10/23 - 16:31:15 | 200 |      19.655µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:31:18 | 200 |      54.951µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:31:20 | 200 |      83.091µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:31:23 | 200 |      49.989µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:31:25 | 200 |      47.906µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:31:28 | 200 |      44.468µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:31:30 | 200 |      48.047µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:31:33 | 200 |      34.554µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:31:35 | 200 |       24.02µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:31:38 | 200 |      67.786µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:31:40 | 200 |    3.629437ms |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:31:43 | 200 |      59.213µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:31:45 | 200 |      31.633µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:31:48 | 200 |      42.739µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:31:50 | 200 |      52.151µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:31:53 | 200 |      79.669µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:31:56 | 200 |      38.646µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:31:58 | 200 |      76.448µs |       127.0.0.1 | GET      "/"
+srv  server_strea: conv_id= (empty=1)
+slot get_availabl: id  0 | task -1 |  - checking sim = 0.002 (1/413) > 0.100
+slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 3808, t_last = 26262400146
+srv  get_availabl: updating prompt cache
+srv   prompt_save:  - saving prompt with length 3808, total state size = 535.544 MiB (draft: 0.000 MiB)
+srv          load:  - looking for better prompt, base f_keep = 0.000, f_sim = 0.002
+srv          load:    - prompt with length    2348, lcp =       3, f_keep = 0.001, f_sim = 0.007
+srv          load:    - prompt with length    1575, lcp =       6, f_keep = 0.004, f_sim = 0.015
+srv          load:    - prompt with length    1076, lcp =       6, f_keep = 0.006, f_sim = 0.015
+srv          load:    - prompt with length    2885, lcp =       6, f_keep = 0.002, f_sim = 0.015
+srv          load:    - prompt with length     436, lcp =     392, f_keep = 0.899, f_sim = 0.949
+srv          load:    - prompt with length     636, lcp =       3, f_keep = 0.005, f_sim = 0.007
+srv          load:    - prompt with length    1653, lcp =       3, f_keep = 0.002, f_sim = 0.007
+srv          load:    - prompt with length    3808, lcp =       1, f_keep = 0.000, f_sim = 0.002
+srv          load:  - found better prompt with f_keep = 0.899, f_sim = 0.949
+[GIN] 2026/10/23 - 16:32:01 | 200 |    1.782859ms |       127.0.0.1 | GET      "/"
+srv        update:  - cache state: 7 prompts, 1966.244 MiB (limits: 8192.000 MiB, 4096 tokens, 58249 est)
+srv        update:    - prompt 0x3753f150:    2348 tokens, checkpoints:  0,   330.215 MiB
+srv        update:    - prompt 0x2cf520f0:    1575 tokens, checkpoints:  0,   221.503 MiB
+srv        update:    - prompt 0x2cf52780:    1076 tokens, checkpoints:  0,   151.326 MiB
+srv        update:    - prompt 0x3abdd0a0:    2885 tokens, checkpoints:  0,   405.737 MiB
+srv        update:    - prompt 0x3753f0a0:     636 tokens, checkpoints:  0,    89.446 MiB
+srv        update:    - prompt 0x3753f200:    1653 tokens, checkpoints:  0,   232.473 MiB
+srv        update:    - prompt 0x432b1440:    3808 tokens, checkpoints:  0,   535.544 MiB
+srv  get_availabl: prompt cache update took 1535.44 ms
+slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task -1 | sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 20, top_p = 0.950, min_p = 0.000, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.600
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+slot launch_slot_: id  0 | task 5302 | processing task, is_child = 0
+slot   operator(): id  0 | task 5302 | new prompt, n_ctx_slot = 4096, n_keep = 4, task.n_tokens = 413
+slot   operator(): id  0 | task 5302 | cached n_tokens = 392, memory_seq_rm [392, end)
+slot init_sampler: id  0 | task 5302 | init sampler, took 0.04 ms, tokens: text = 413, total = 413
+slot print_timing: id  0 | task 5302 | prompt eval time =     220.18 ms /    21 tokens (   10.48 ms per token,    95.37 tokens per second)
+slot print_timing: id  0 | task 5302 |        eval time =    1002.94 ms /    23 tokens (   45.59 ms per token,    21.94 tokens per second)
+slot print_timing: id  0 | task 5302 |       total time =    1223.13 ms /    44 tokens
+slot print_timing: id  0 | task 5302 |    graphs reused =       5260
+slot print_timing: id  0 | task 5302 |   graph reallocs =         34    /     0        (same size) / (changed size)
+slot      release: id  0 | task 5302 | stop processing: n_tokens = 435, truncated = 0
+srv  update_slots: all slots are idle
+[GIN] 2026/10/23 - 16:32:02 | 200 |  2.793165423s |       127.0.0.1 | POST     "/api/chat"
+srv  server_strea: conv_id= (empty=1)
+slot get_availabl: id  0 | task -1 |  - checking sim = 0.004 (6/1368) > 0.100
+slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 435, t_last = 26311442052
+srv  get_availabl: updating prompt cache
+srv   prompt_save:  - saving prompt with length 435, total state size = 61.178 MiB (draft: 0.000 MiB)
+srv          load:  - looking for better prompt, base f_keep = 0.014, f_sim = 0.004
+srv          load:    - prompt with length    2348, lcp =       3, f_keep = 0.001, f_sim = 0.002
+srv          load:    - prompt with length    1575, lcp =       6, f_keep = 0.004, f_sim = 0.004
+srv          load:    - prompt with length    1076, lcp =       6, f_keep = 0.006, f_sim = 0.004
+srv          load:    - prompt with length    2885, lcp =     202, f_keep = 0.070, f_sim = 0.148
+srv          load:    - prompt with length     636, lcp =       3, f_keep = 0.005, f_sim = 0.002
+srv          load:    - prompt with length    1653, lcp =       3, f_keep = 0.002, f_sim = 0.002
+srv          load:    - prompt with length    3808, lcp =       1, f_keep = 0.000, f_sim = 0.001
+srv          load:    - prompt with length     435, lcp =       6, f_keep = 0.014, f_sim = 0.004
+srv        update:  - cache state: 8 prompts, 2027.422 MiB (limits: 8192.000 MiB, 4096 tokens, 58249 est)
+srv        update:    - prompt 0x3753f150:    2348 tokens, checkpoints:  0,   330.215 MiB
+srv        update:    - prompt 0x2cf520f0:    1575 tokens, checkpoints:  0,   221.503 MiB
+srv        update:    - prompt 0x2cf52780:    1076 tokens, checkpoints:  0,   151.326 MiB
+srv        update:    - prompt 0x3abdd0a0:    2885 tokens, checkpoints:  0,   405.737 MiB
+srv        update:    - prompt 0x3753f0a0:     636 tokens, checkpoints:  0,    89.446 MiB
+srv        update:    - prompt 0x3753f200:    1653 tokens, checkpoints:  0,   232.473 MiB
+srv        update:    - prompt 0x432b1440:    3808 tokens, checkpoints:  0,   535.544 MiB
+srv        update:    - prompt 0x3ac4c840:     435 tokens, checkpoints:  0,    61.178 MiB
+srv  get_availabl: prompt cache update took 24.59 ms
+slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task -1 | sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 20, top_p = 0.950, min_p = 0.000, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.600
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+slot launch_slot_: id  0 | task 5326 | processing task, is_child = 0
+slot   operator(): id  0 | task 5326 | new prompt, n_ctx_slot = 4096, n_keep = 4, task.n_tokens = 1368
+slot   operator(): id  0 | task 5326 | cached n_tokens = 6, memory_seq_rm [6, end)
+slot   operator(): id  0 | task 5326 | cached n_tokens = 518, memory_seq_rm [518, end)
+sched_graph_realloc: graph reallocation: nodes = 1497 (changed = 0), splits = 93, n_same = 35, n_diff = 0
+slot   operator(): id  0 | task 5326 | cached n_tokens = 1030, memory_seq_rm [1030, end)
+slot init_sampler: id  0 | task 5326 | init sampler, took 0.16 ms, tokens: text = 1368, total = 1368
+sched_graph_realloc: graph reallocation: nodes = 1497 (changed = 0), splits = 93, n_same = 36, n_diff = 0
+[GIN] 2026/10/23 - 16:32:03 | 200 |       25.03µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:32:06 | 200 |       49.45µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:32:08 | 200 |      30.637µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =    100, tg =  19.51 t/s, tg_3s =  19.70 t/s
+[GIN] 2026/10/23 - 16:32:11 | 200 |      25.308µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =    158, tg =  19.43 t/s, tg_3s =  19.30 t/s
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 37, n_diff = 0
+[GIN] 2026/10/23 - 16:32:13 | 200 |      34.843µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =    212, tg =  19.00 t/s, tg_3s =  17.85 t/s
+[GIN] 2026/10/23 - 16:32:16 | 200 |       23.75µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =    266, tg =  18.74 t/s, tg_3s =  17.76 t/s
+[GIN] 2026/10/23 - 16:32:18 | 200 |      39.414µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:32:21 | 200 |      74.131µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =    319, tg =  18.52 t/s, tg_3s =  17.52 t/s
+[GIN] 2026/10/23 - 16:32:23 | 200 |      29.977µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =    373, tg =  18.43 t/s, tg_3s =  17.88 t/s
+[GIN] 2026/10/23 - 16:32:26 | 200 |      41.951µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =    423, tg =  18.17 t/s, tg_3s =  16.47 t/s
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 38, n_diff = 0
+[GIN] 2026/10/23 - 16:32:28 | 200 |      24.974µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =    476, tg =  18.09 t/s, tg_3s =  17.50 t/s
+[GIN] 2026/10/23 - 16:32:31 | 200 |      24.246µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =    528, tg =  18.01 t/s, tg_3s =  17.32 t/s
+[GIN] 2026/10/23 - 16:32:33 | 200 |     423.455µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:32:36 | 200 |      27.866µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =    573, tg =  17.70 t/s, tg_3s =  14.69 t/s
+[GIN] 2026/10/23 - 16:32:38 | 200 |    3.574908ms |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =    618, tg =  17.44 t/s, tg_3s =  14.70 t/s
+[GIN] 2026/10/23 - 16:32:41 | 200 |      24.876µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =    666, tg =  17.32 t/s, tg_3s =  15.98 t/s
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 39, n_diff = 0
+[GIN] 2026/10/23 - 16:32:43 | 200 |       25.83µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =    714, tg =  17.20 t/s, tg_3s =  15.63 t/s
+[GIN] 2026/10/23 - 16:32:46 | 200 |      40.451µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =    765, tg =  17.17 t/s, tg_3s =  16.73 t/s
+[GIN] 2026/10/23 - 16:32:48 | 200 |      34.351µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:32:51 | 200 |       43.46µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =    815, tg =  17.12 t/s, tg_3s =  16.40 t/s
+[GIN] 2026/10/23 - 16:32:53 | 200 |      24.475µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =    865, tg =  17.08 t/s, tg_3s =  16.45 t/s
+[GIN] 2026/10/23 - 16:32:54 | 200 |  466.955046ms |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:32:56 | 200 |      26.145µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =    916, tg =  17.07 t/s, tg_3s =  16.89 t/s
+[GIN] 2026/10/23 - 16:32:58 | 200 |       23.95µs |       127.0.0.1 | GET      "/"
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 40, n_diff = 0
+slot print_timing: id  0 | task 5326 | n_gen =    966, tg =  17.03 t/s, tg_3s =  16.46 t/s
+[GIN] 2026/10/23 - 16:33:01 | 200 |      30.695µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:33:03 | 200 |       35.19µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =   1014, tg =  16.98 t/s, tg_3s =  15.99 t/s
+[GIN] 2026/10/23 - 16:33:06 | 200 |      25.858µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =   1061, tg =  16.90 t/s, tg_3s =  15.37 t/s
+[GIN] 2026/10/23 - 16:33:08 | 200 |      28.963µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =   1111, tg =  16.88 t/s, tg_3s =  16.34 t/s
+[GIN] 2026/10/23 - 16:33:11 | 200 |      31.451µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =   1160, tg =  16.84 t/s, tg_3s =  16.07 t/s
+[GIN] 2026/10/23 - 16:33:13 | 200 |      28.197µs |       127.0.0.1 | GET      "/"
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 41, n_diff = 0
+slot print_timing: id  0 | task 5326 | n_gen =   1205, tg =  16.76 t/s, tg_3s =  14.81 t/s
+[GIN] 2026/10/23 - 16:33:16 | 200 |      44.297µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:33:18 | 200 |      24.575µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =   1252, tg =  16.71 t/s, tg_3s =  15.62 t/s
+[GIN] 2026/10/23 - 16:33:21 | 200 |      32.978µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =   1299, tg =  16.66 t/s, tg_3s =  15.53 t/s
+[GIN] 2026/10/23 - 16:33:23 | 200 |  238.468345ms |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:33:23 | 200 |      34.492µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =   1347, tg =  16.64 t/s, tg_3s =  15.94 t/s
+[GIN] 2026/10/23 - 16:33:26 | 200 |       31.47µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =   1396, tg =  16.62 t/s, tg_3s =  16.11 t/s
+[GIN] 2026/10/23 - 16:33:28 | 200 |       39.55µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 5326 | n_gen =   1444, tg =  16.60 t/s, tg_3s =  15.98 t/s
+[GIN] 2026/10/23 - 16:33:31 | 200 |     331.223µs |       127.0.0.1 | GET      "/"
+sched_graph_realloc: graph reallocation: nodes = 1325 (changed = 0), splits = 16, n_same = 42, n_diff = 0
+[GIN] 2026/10/23 - 16:33:31 | 200 |  264.661311ms |       127.0.0.1 | GET      "/api/tags"
+slot print_timing: id  0 | task 5326 | prompt eval time =    1088.87 ms /  1362 tokens (    0.80 ms per token,  1250.84 tokens per second)
+slot print_timing: id  0 | task 5326 |        eval time =   89372.88 ms /  1481 tokens (   60.39 ms per token,    16.56 tokens per second)
+slot print_timing: id  0 | task 5326 |       total time =   90461.75 ms /  2843 tokens
+slot print_timing: id  0 | task 5326 |    graphs reused =       6733
+slot print_timing: id  0 | task 5326 |   graph reallocs =         42    /     0        (same size) / (changed size)
+slot      release: id  0 | task 5326 | stop processing: n_tokens = 2848, truncated = 0
+srv  update_slots: all slots are idle
+[GIN] 2026/10/23 - 16:33:33 | 200 |         1m30s |       127.0.0.1 | POST     "/api/chat"
+[GIN] 2026/10/23 - 16:33:33 | 200 |      22.921µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:33:36 | 200 |      59.977µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:33:38 | 200 |      51.667µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:33:41 | 200 |      49.414µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:33:41 | 200 |  158.476521ms |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2026/10/23 - 16:33:43 | 200 |      55.642µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:33:46 | 200 |      55.077µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:33:48 | 200 |      64.211µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:33:51 | 200 |       43.15µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:33:53 | 200 |      19.945µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:33:56 | 200 |      19.382µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:33:58 | 200 |      50.524µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:01 | 200 |      28.203µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:03 | 200 |      48.704µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:06 | 200 |      58.911µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:08 | 200 |      39.288µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:11 | 200 |      46.375µs |       127.0.0.1 | GET      "/"
+srv  server_strea: conv_id= (empty=1)
+slot get_availabl: id  0 | task -1 |  - checking sim = 0.015 (6/413) > 0.100
+slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 2848, t_last = 26402133981
+srv  get_availabl: updating prompt cache
+srv   prompt_save:  - saving prompt with length 2848, total state size = 400.533 MiB (draft: 0.000 MiB)
+srv          load:  - looking for better prompt, base f_keep = 0.002, f_sim = 0.015
+srv          load:    - prompt with length    2348, lcp =       3, f_keep = 0.001, f_sim = 0.007
+srv          load:    - prompt with length    1575, lcp =       6, f_keep = 0.004, f_sim = 0.015
+srv          load:    - prompt with length    1076, lcp =       6, f_keep = 0.006, f_sim = 0.015
+srv          load:    - prompt with length    2885, lcp =       6, f_keep = 0.002, f_sim = 0.015
+srv          load:    - prompt with length     636, lcp =       3, f_keep = 0.005, f_sim = 0.007
+srv          load:    - prompt with length    1653, lcp =       3, f_keep = 0.002, f_sim = 0.007
+srv          load:    - prompt with length    3808, lcp =       1, f_keep = 0.000, f_sim = 0.002
+srv          load:    - prompt with length     435, lcp =     392, f_keep = 0.901, f_sim = 0.949
+srv          load:    - prompt with length    2848, lcp =       6, f_keep = 0.002, f_sim = 0.015
+srv          load:  - found better prompt with f_keep = 0.901, f_sim = 0.949
+srv        update:  - cache state: 8 prompts, 2366.778 MiB (limits: 8192.000 MiB, 4096 tokens, 58249 est)
+srv        update:    - prompt 0x3753f150:    2348 tokens, checkpoints:  0,   330.215 MiB
+srv        update:    - prompt 0x2cf520f0:    1575 tokens, checkpoints:  0,   221.503 MiB
+srv        update:    - prompt 0x2cf52780:    1076 tokens, checkpoints:  0,   151.326 MiB
+srv        update:    - prompt 0x3abdd0a0:    2885 tokens, checkpoints:  0,   405.737 MiB
+srv        update:    - prompt 0x3753f0a0:     636 tokens, checkpoints:  0,    89.446 MiB
+srv        update:    - prompt 0x3753f200:    1653 tokens, checkpoints:  0,   232.473 MiB
+srv        update:    - prompt 0x432b1440:    3808 tokens, checkpoints:  0,   535.544 MiB
+srv        update:    - prompt 0x42afc3b0:    2848 tokens, checkpoints:  0,   400.533 MiB
+srv  get_availabl: prompt cache update took 287.86 ms
+slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task -1 | sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 20, top_p = 0.950, min_p = 0.000, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.600
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+slot launch_slot_: id  0 | task 6810 | processing task, is_child = 0
+slot   operator(): id  0 | task 6810 | new prompt, n_ctx_slot = 4096, n_keep = 4, task.n_tokens = 413
+slot   operator(): id  0 | task 6810 | cached n_tokens = 392, memory_seq_rm [392, end)
+slot init_sampler: id  0 | task 6810 | init sampler, took 0.04 ms, tokens: text = 413, total = 413
+[GIN] 2026/10/23 - 16:34:13 | 200 |      23.634µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 6810 | prompt eval time =     241.89 ms /    21 tokens (   11.52 ms per token,    86.82 tokens per second)
+slot print_timing: id  0 | task 6810 |        eval time =    1210.11 ms /    28 tokens (   44.82 ms per token,    22.31 tokens per second)
+slot print_timing: id  0 | task 6810 |       total time =    1452.00 ms /    49 tokens
+slot print_timing: id  0 | task 6810 |    graphs reused =       6759
+slot print_timing: id  0 | task 6810 |   graph reallocs =         42    /     0        (same size) / (changed size)
+slot      release: id  0 | task 6810 | stop processing: n_tokens = 440, truncated = 0
+srv  update_slots: all slots are idle
+[GIN] 2026/10/23 - 16:34:14 | 200 |  1.775703213s |       127.0.0.1 | POST     "/api/chat"
+[GIN] 2026/10/23 - 16:34:16 | 200 |      32.748µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:18 | 200 |      35.231µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:21 | 200 |      34.925µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:23 | 200 |      34.624µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:26 | 200 |      28.239µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:28 | 200 |      39.784µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:31 | 200 |        43.2µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:33 | 200 |      23.132µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:36 | 200 |      31.289µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:38 | 200 |     5.78491ms |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:41 | 200 |       23.93µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:43 | 200 |      19.461µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:46 | 200 |      32.343µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:48 | 200 |      46.676µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:51 | 200 |      63.725µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:53 | 200 |      46.181µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:56 | 200 |      59.137µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:34:58 | 200 |     106.252µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:01 | 200 |      46.202µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:03 | 200 |      40.259µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:06 | 200 |      50.045µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:08 | 200 |      43.621µs |       127.0.0.1 | GET      "/"
+srv  server_strea: conv_id= (empty=1)
+slot get_availabl: id  0 | task -1 |  - checking sim = 0.961 (392/408) > 0.100
+slot get_availabl: id  0 | task -1 | selected slot by LCP similarity, f_sim_best = 0.961 (> 0.100 thold), f_keep = 0.891
+slot launch_slot_: id  0 | task -1 | sampler chain: logits -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> ?min-p -> ?xtc -> temp-ext -> dist 
+slot launch_slot_: id  0 | task -1 | sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 20, top_p = 0.950, min_p = 0.000, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.600
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+slot launch_slot_: id  0 | task 6839 | processing task, is_child = 0
+slot   operator(): id  0 | task 6839 | new prompt, n_ctx_slot = 4096, n_keep = 4, task.n_tokens = 408
+slot   operator(): id  0 | task 6839 | cached n_tokens = 392, memory_seq_rm [392, end)
+slot init_sampler: id  0 | task 6839 | init sampler, took 0.11 ms, tokens: text = 408, total = 408
+[GIN] 2026/10/23 - 16:35:11 | 200 |      35.969µs |       127.0.0.1 | GET      "/"
+slot print_timing: id  0 | task 6839 | prompt eval time =     240.84 ms /    16 tokens (   15.05 ms per token,    66.43 tokens per second)
+slot print_timing: id  0 | task 6839 |        eval time =    1004.74 ms /    23 tokens (   45.67 ms per token,    21.90 tokens per second)
+slot print_timing: id  0 | task 6839 |       total time =    1245.58 ms /    39 tokens
+slot print_timing: id  0 | task 6839 |    graphs reused =       6780
+slot print_timing: id  0 | task 6839 |   graph reallocs =         42    /     0        (same size) / (changed size)
+slot      release: id  0 | task 6839 | stop processing: n_tokens = 430, truncated = 0
+srv  update_slots: all slots are idle
+[GIN] 2026/10/23 - 16:35:12 | 200 |  1.299160928s |       127.0.0.1 | POST     "/api/chat"
+[GIN] 2026/10/23 - 16:35:13 | 200 |      38.405µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:16 | 200 |      25.269µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:18 | 200 |      30.378µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:21 | 200 |      26.898µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:23 | 200 |      24.944µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:26 | 200 |      43.973µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:28 | 200 |      34.654µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:31 | 200 |       29.35µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:33 | 200 |      49.839µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:36 | 200 |      26.316µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:38 | 200 |      21.071µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:41 | 200 |       42.73µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:43 | 200 |      21.152µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:46 | 200 |      34.447µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:48 | 200 |     338.295µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:51 | 200 |      19.361µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:53 | 200 |      20.737µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:56 | 200 |      33.539µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:35:58 | 200 |      68.734µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:01 | 200 |      28.885µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:03 | 200 |      22.134µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:06 | 200 |      19.317µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:08 | 200 |      35.083µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:11 | 200 |      28.716µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:13 | 200 |    7.976708ms |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:16 | 200 |      44.427µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:18 | 200 |      37.569µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:21 | 200 |     121.784µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:24 | 200 |      38.814µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:26 | 200 |       45.92µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:29 | 200 |      46.384µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:31 | 200 |      54.382µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:34 | 200 |      46.933µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:36 | 200 |       35.22µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:39 | 200 |      45.275µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:41 | 200 |      43.831µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:44 | 200 |       20.26µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:46 | 200 |      20.275µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:49 | 200 |      57.168µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:51 | 200 |      28.481µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:54 | 200 |      24.124µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:56 | 200 |      30.795µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:36:59 | 200 |      25.753µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:01 | 200 |      21.465µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:04 | 200 |      21.302µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:06 | 200 |      37.582µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:09 | 200 |      47.077µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:11 | 200 |      51.682µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:14 | 200 |      40.838µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:16 | 200 |      52.125µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:19 | 200 |      54.068µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:21 | 200 |      81.193µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:24 | 200 |      68.349µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:26 | 200 |       46.73µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:29 | 200 |      59.775µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:31 | 200 |      66.311µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:34 | 200 |      43.317µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:36 | 200 |      70.317µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:39 | 200 |     112.939µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:41 | 200 |      40.786µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:44 | 200 |      55.833µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:46 | 200 |      52.917µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:49 | 200 |      46.179µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:51 | 200 |      50.071µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:54 | 200 |      58.849µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:56 | 200 |      50.771µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:37:59 | 200 |      63.416µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:01 | 200 |      32.468µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:04 | 200 |      24.275µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:06 | 200 |      39.595µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:09 | 200 |      32.983µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:11 | 200 |     162.197µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:14 | 200 |      38.761µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:16 | 200 |      47.282µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:19 | 200 |      26.147µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:21 | 200 |      31.227µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:24 | 200 |      45.082µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:26 | 200 |      52.491µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:29 | 200 |      39.833µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:31 | 200 |      50.418µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:34 | 200 |      21.804µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:36 | 200 |      50.893µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:39 | 200 |      26.272µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:41 | 200 |       26.02µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:44 | 200 |      48.962µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:46 | 200 |      53.693µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:49 | 200 |      33.535µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:51 | 200 |      38.191µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:54 | 200 |      28.997µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:56 | 200 |      45.493µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:38:59 | 200 |      22.742µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:01 | 200 |      31.189µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:04 | 200 |       32.43µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:06 | 200 |     123.361µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:09 | 200 |      27.517µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:11 | 200 |      28.111µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:14 | 200 |      52.622µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:16 | 200 |      33.295µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:19 | 200 |      43.096µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:21 | 200 |      28.845µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:24 | 200 |      77.535µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:26 | 200 |      17.795µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:29 | 200 |      46.386µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:31 | 200 |      36.501µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:34 | 200 |      48.431µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:36 | 200 |      46.641µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:39 | 200 |      27.619µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:41 | 200 |      31.121µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:44 | 200 |      50.225µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:46 | 200 |      30.076µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:49 | 200 |      30.277µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:51 | 200 |      22.115µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:54 | 200 |       43.35µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:56 | 200 |      23.828µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:39:59 | 200 |      47.183µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:01 | 200 |      54.521µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:04 | 200 |      25.865µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:06 | 200 |      18.092µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:09 | 200 |       43.97µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:11 | 200 |      58.763µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:14 | 200 |    2.268437ms |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:16 | 200 |      50.672µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:19 | 200 |      35.131µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:21 | 200 |      20.309µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:24 | 200 |      52.625µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:26 | 200 |       24.29µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:29 | 200 |      55.182µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:31 | 200 |      67.434µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:34 | 200 |      26.255µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:36 | 200 |      72.337µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:39 | 200 |      40.859µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:41 | 200 |      39.597µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:44 | 200 |      43.259µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:46 | 200 |      29.421µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:49 | 200 |      84.081µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:51 | 200 |      39.547µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:54 | 200 |      20.952µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:56 | 200 |      57.261µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:40:59 | 200 |      81.904µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:41:01 | 200 |      26.386µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:41:04 | 200 |      31.866µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:41:06 | 200 |      28.654µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:41:09 | 200 |      61.654µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:41:11 | 200 |      20.304µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:41:14 | 200 |      46.537µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:41:16 | 200 |     469.244µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:41:19 | 200 |      22.731µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:41:22 | 200 |      21.496µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:41:24 | 200 |      51.136µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:41:27 | 200 |      26.508µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:41:29 | 200 |      24.919µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:41:32 | 200 |      31.935µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:41:34 | 200 |      21.471µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:41:37 | 200 |      26.761µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:41:39 | 200 |      23.427µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:41:42 | 200 |      31.472µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/10/23 - 16:41:44 | 200 |       17.07µs |       127.0.0.1 | GET      "/"
+time=2026-10-23T16:45:16.006-07:00 level=WARN source=llama_server.go:130 msg="llama-server discovery: timed out waiting for server startup" error="context deadline exceeded" libDirs="[/usr/local/lib/ollama /usr/local/lib/ollama/cuda_v13]" lines_captured=2
+time=2026-10-23T16:45:15.984-07:00 level=WARN source=runner.go:584 msg="llama-server GPU discovery watchdog timed out" OLLAMA_LIBRARY_PATH="[/usr/local/lib/ollama /usr/local/lib/ollama/cuda_v13]" extra_envs=map[CUDA_VISIBLE_DEVICES:0] error="context deadline exceeded"
+time=2026-10-23T16:45:16.055-07:00 level=INFO source=runner.go:522 msg="failure during llama-server GPU discovery" OLLAMA_LIBRARY_PATH="[/usr/local/lib/ollama /usr/local/lib/ollama/cuda_v13]" extra_envs=map[CUDA_VISIBLE_DEVICES:0] error="context deadline exceeded" detail=""
+time=2026-10-23T16:45:16.055-07:00 level=WARN source=runner.go:364 msg="unable to refresh free memory, using old values"
+time=2026-10-23T16:45:17.469-07:00 level=WARN source=runner.go:584 msg="llama-server GPU discovery watchdog timed out" OLLAMA_LIBRARY_PATH="[/usr/local/lib/ollama /usr/local/lib/ollama/cuda_v13]" extra_envs=map[CUDA_VISIBLE_DEVICES:0] error="context deadline exceeded"
+time=2026-10-23T16:45:17.469-07:00 level=INFO source=runner.go:522 msg="failure during llama-server GPU discovery" OLLAMA_LIBRARY_PATH="[/usr/local/lib/ollama /usr/local/lib/ollama/cuda_v13]" extra_envs=map[CUDA_VISIBLE_DEVICES:0] error="context deadline exceeded" detail=""
+time=2026-10-23T16:45:17.469-07:00 level=WARN source=runner.go:364 msg="unable to refresh free memory, using old values"
+time=2026-10-23T16:45:17.477-07:00 level=WARN source=llama_server.go:130 msg="llama-server discovery: timed out waiting for server startup" error="context deadline exceeded" libDirs="[/usr/local/lib/ollama /usr/local/lib/ollama/cuda_v13]" lines_captured=2

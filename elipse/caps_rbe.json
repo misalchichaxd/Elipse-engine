@@ -1,0 +1,3 @@
+{"tools": [], "host_tools": true, "max_host_tools": 20, "pipelines": [], "vision": false,
+ "attachments": false, "continuation": false, "mcp": [], "skills": [],
+ "voice": {"allowed": false, "cloud": false}, "data_policy": "local_only"}

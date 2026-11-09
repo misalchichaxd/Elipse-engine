@@ -1,0 +1,2482 @@
+hovers para elipse:
+
+-- 1. Tarjeta holográfica
+
+.holographic-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #000;
+}
+
+.holographic-card {
+  width: 300px;
+  height: 200px;
+  background: #111;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  border-radius: 15px;
+  transition: all 0.5s ease;
+}
+
+.holographic-card h2 {
+  color: #0ff;
+  font-size: 2rem;
+  position: relative;
+  z-index: 2;
+}
+
+.holographic-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    0deg, 
+    transparent, 
+    transparent 30%, 
+    rgba(0,255,255,0.3)
+  );
+  transform: rotate(-45deg);
+  transition: all 0.5s ease;
+  opacity: 0;
+}
+
+.holographic-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(0,255,255,0.5);
+}
+
+.holographic-card:hover::before {
+  opacity: 1;
+  transform: rotate(-45deg) translateY(100%);
+}
+
+
+2. Morfo líquido
+.liquid-morph-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #001;
+}
+
+.liquid-morph-element {
+  width: 250px;
+  height: 100px;
+  background: #0a2342;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  border-radius: 50px;
+  overflow: hidden;
+  transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.liquid-morph-element span {
+  color: #fff;
+  font-size: 1.5rem;
+  position: relative;
+  z-index: 2;
+}
+
+.liquid-morph-element::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: conic-gradient(
+    #0ff 0deg, 
+    #0a2342 120deg, 
+    #0ff 240deg
+  );
+  transition: all 0.6s ease;
+  opacity: 0;
+  transform: scale(0);
+}
+
+.liquid-morph-element:hover {
+  border-radius: 10px;
+  transform: rotate(15deg);
+}
+
+.liquid-morph-element:hover::before {
+  opacity: 0.5;
+  transform: scale(2);
+}
+
+3. Efecto de texto explosivo
+.particle-deconstruct-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #000;
+}
+
+.particle-deconstruct-element {
+  width: 300px;
+  height: 200px;
+  background: #111;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.particle-deconstruct-element h2 {
+  color: #0ff;
+  font-size: 2rem;
+  position: relative;
+  z-index: 2;
+  transition: all 0.5s ease;
+}
+
+.particle-deconstruct-element::before,
+.particle-deconstruct-element::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-radial-gradient(
+    circle at center, 
+    #0ff 1px, 
+    transparent 2px, 
+    transparent 50px
+  );
+  opacity: 0;
+  transition: all 0.5s ease;
+}
+
+.particle-deconstruct-element:hover h2 {
+  transform: scale(1.5) rotate(360deg);
+  opacity: 0;
+}
+
+.particle-deconstruct-element:hover::before {
+  transform: scale(2) rotate(45deg);
+  opacity: 0.3;
+}
+
+.particle-deconstruct-element:hover::after {
+  transform: scale(2) rotate(-45deg);
+  opacity: 0.3;
+}
+
+
+4. Subrayado de texto
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #0f0f0f;
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+.hover-underline {
+  font-size: 2rem;
+  color: #ffffff;
+  position: relative;
+  display: inline-block;
+}
+
+.hover-underline::after,
+.hover-underline::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(to right, #ff0000, #00ffff);
+  bottom: -5px;
+  left: 0;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.4s ease-out;
+}
+
+.hover-underline::before {
+  top: -5px;
+  transform-origin: left;
+}
+
+.hover-underline:hover::after,
+.hover-underline:hover::before {
+  transform: scaleX(1);
+}
+
+
+5. Menú desplegable
+/* Dropdown Menu */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .dropdown-content {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: white;
+      min-width: 160px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: all 0.3s;
+      pointer-events: none;
+      border-radius: 0.5rem;
+    }
+
+    .dropdown:hover .dropdown-content {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .dropdown-content a {
+      color: #374151;
+      padding: 0.5rem 1rem;
+      text-decoration: none;
+      display: block;
+    }
+
+    .dropdown-content a:hover {
+      background: #f3f4f6;
+    }
+
+    6. Tarjeta de doble cara
+.card {
+  width: 200px;
+  height: 250px;
+  margin: 1rem auto;
+  perspective: 1000px;
+  cursor: pointer;
+}
+
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.card:hover .card-inner {
+  transform: rotateY(180deg);
+}
+
+.card-front,
+.card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+}
+
+.card-front {
+  background: white;
+  border: 1px solid #e5e7eb;
+}
+
+.card-back {
+  background: #8b5cf6;
+  color: white;
+  transform: rotateY(180deg);
+}
+7. Imagen de 4 esquinas
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #242424;
+}
+
+.container {
+  padding: 2rem;
+}
+
+.split-image-container {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  margin: 0 auto;
+}
+
+.quadrant {
+  position: absolute;
+  width: 50%;
+  height: 50%;
+  background-image: url("https://picsum.photos/300/300");
+  background-size: 300px 300px;
+  transition: transform 0.3s ease;
+}
+
+.quadrant-1 {
+  top: 0;
+  left: 0;
+  background-position: top left;
+}
+
+.quadrant-2 {
+  top: 0;
+  right: 0;
+  background-position: top right;
+}
+
+.quadrant-3 {
+  bottom: 0;
+  left: 0;
+  background-position: bottom left;
+}
+
+.quadrant-4 {
+  bottom: 0;
+  right: 0;
+  background-position: bottom right;
+}
+
+.split-image-container:hover .quadrant-1 {
+  transform: translate(-10px, -10px);
+}
+
+.split-image-container:hover .quadrant-2 {
+  transform: translate(10px, -10px);
+}
+
+.split-image-container:hover .quadrant-3 {
+  transform: translate(-10px, 10px);
+}
+
+.split-image-container:hover .quadrant-4 {
+  transform: translate(10px, 10px);
+}
+
+8. Animaciones del cursor
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #242424;
+    color: #fff;
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    padding: 2rem;
+    max-width: 800px;
+}
+
+.cursor-box {
+    width: 150px;
+    height: 150px;
+    background-color: #333;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    text-align: center;
+    padding: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.cursor-box::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+    top: -100%;
+    left: -100%;
+    transition: all 0.5s ease;
+}
+
+.cursor-box:hover::before {
+    top: 100%;
+    left: 100%;
+}
+
+/* Unique styles for each cursor type */
+.pointer {
+    cursor: pointer;
+    background: linear-gradient(145deg, #2a2a2a, #383838);
+    border: 2px solid #646cff;
+}
+.pointer:hover {
+    transform: scale(1.05) rotate(2deg);
+    box-shadow: 0 0 15px #646cff50;
+}
+
+.help {
+    cursor: help;
+    background: linear-gradient(145deg, #2a2a2a, #383838);
+    border: 2px solid #00bcd4;
+}
+.help:hover {
+    transform: scale(1.05) translateY(-5px);
+    box-shadow: 0 5px 15px #00bcd450;
+}
+
+.wait {
+    cursor: wait;
+    background: linear-gradient(145deg, #2a2a2a, #383838);
+    border: 2px solid #ff4081;
+}
+.wait:hover {
+    animation: pulse 1.5s infinite;
+}
+
+.crosshair {
+    cursor: crosshair;
+    background: linear-gradient(145deg, #2a2a2a, #383838);
+    border: 2px solid #4caf50;
+}
+.crosshair:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 5px #4caf5030;
+}
+
+.text {
+    cursor: text;
+    background: linear-gradient(145deg, #2a2a2a, #383838);
+    border: 2px solid #ffc107;
+}
+.text:hover {
+    transform: scale(1.05);
+    letter-spacing: 2px;
+}
+
+.not-allowed {
+    cursor: not-allowed;
+    background: linear-gradient(145deg, #2a2a2a, #383838);
+    border: 2px solid #f44336;
+}
+.not-allowed:hover {
+    transform: scale(1.05);
+    animation: shake 0.5s ease-in-out;
+}
+
+.grab {
+    cursor: grab;
+    background: linear-gradient(145deg, #2a2a2a, #383838);
+    border: 2px solid #9c27b0;
+}
+.grab:hover {
+    transform: scale(1.05) translateX(10px);
+}
+
+.zoom-in {
+    cursor: zoom-in;
+    background: linear-gradient(145deg, #2a2a2a, #383838);
+    border: 2px solid #3f51b5;
+}
+.zoom-in:hover {
+    transform: scale(1.15);
+}
+
+.cell {
+    cursor: cell;
+    background: linear-gradient(145deg, #2a2a2a, #383838);
+    border: 2px solid #009688;
+}
+.cell:hover {
+    transform: scale(1.05);
+    clip-path: polygon(10% 0%, 90% 0%, 100% 10%, 100% 90%, 90% 100%, 10% 100%, 0% 90%, 0% 10%);
+}
+
+.copy {
+    cursor: copy;
+    background: linear-gradient(145deg, #2a2a2a, #383838);
+    border: 2px solid #cddc39;
+}
+.copy:hover {
+    transform: scale(1.05);
+    box-shadow: 5px 5px 0 #cddc3950;
+}
+
+.move {
+    cursor: move;
+    background: linear-gradient(145deg, #2a2a2a, #383838);
+    border: 2px solid #ff9800;
+}
+.move:hover {
+    animation: moveAround 2s infinite ease-in-out;
+}
+
+.alias {
+    cursor: alias;
+    background: linear-gradient(145deg, #2a2a2a, #383838);
+    border: 2px solid #e91e63;
+}
+.alias:hover {
+    transform: scale(1.05) skew(-5deg);
+}
+
+/* Animations */
+@keyframes pulse {
+    0% { transform: scale(1.05); }
+    50% { transform: scale(1); }
+    100% { transform: scale(1.05); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0) scale(1.05); }
+    25% { transform: translateX(-5px) scale(1.05); }
+    75% { transform: translateX(5px) scale(1.05); }
+}
+
+@keyframes moveAround {
+    0% { transform: translate(0, 0) scale(1.05); }
+    25% { transform: translate(5px, -5px) scale(1.05); }
+    50% { transform: translate(0, 0) scale(1.05); }
+    75% { transform: translate(-5px, 5px) scale(1.05); }
+    100% { transform: translate(0, 0) scale(1.05); }
+}
+
+@media (max-width: 768px) {
+    .container {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .cursor-box {
+        width: 120px;
+        height: 120px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .cursor-box {
+        width: 140px;
+        height: 140px;
+    }
+}
+
+9. Cubo giratorio
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #242424;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    perspective: 1000px;
+}
+
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transform-style: preserve-3d;
+}
+
+.box-card {
+    width: 200px;
+    height: 200px;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 1s ease;
+    cursor: pointer;
+}
+
+.box-card:hover {
+    animation: rotate3d 8s infinite linear;
+}
+
+.face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    backface-visibility: visible;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #2a2a2a, #383838);
+    border: 2px solid #646cff;
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.face::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+    top: -100%;
+    left: -100%;
+    transition: all 0.5s ease;
+    transform: translateZ(20px);
+}
+
+.face::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        135deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        transparent 100%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.face:hover::before {
+    top: 100%;
+    left: 100%;
+}
+
+.face:hover::after {
+    opacity: 1;
+}
+
+.front {
+    transform: translateZ(100px);
+    border-color: #646cff;
+}
+
+.back {
+    transform: translateZ(-100px) rotateY(180deg);
+    border-color: #00bcd4;
+}
+
+.right {
+    transform: translateX(100px) rotateY(90deg);
+    border-color: #4caf50;
+}
+
+.left {
+    transform: translateX(-100px) rotateY(-90deg);
+    border-color: #ff4081;
+}
+
+.top {
+    transform: translateY(-100px) rotateX(90deg);
+    border-color: #ffc107;
+}
+
+.bottom {
+    transform: translateY(100px) rotateX(-90deg);
+    border-color: #9c27b0;
+}
+
+@keyframes rotate3d {
+    0% {
+        transform: rotateX(0) rotateY(0);
+    }
+    25% {
+        transform: rotateX(90deg) rotateY(90deg);
+    }
+    50% {
+        transform: rotateX(180deg) rotateY(180deg);
+    }
+    75% {
+        transform: rotateX(270deg) rotateY(270deg);
+    }
+    100% {
+        transform: rotateX(360deg) rotateY(360deg);
+    }
+}
+
+@media (max-width: 768px) {
+    .box-card {
+        width: 150px;
+        height: 150px;
+    }
+    
+    .front { transform: translateZ(75px); }
+    .back { transform: translateZ(-75px) rotateY(180deg); }
+    .right { transform: translateX(75px) rotateY(90deg); }
+    .left { transform: translateX(-75px) rotateY(-90deg); }
+    .top { transform: translateY(-75px) rotateX(90deg); }
+    .bottom { transform: translateY(75px) rotateX(-90deg); }
+}
+
+10. Camaleón SVG
+/* Body styling */
+body {
+  background-color: #2c2c2c; /* Dark grey */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+/* Card styling */
+.hover-card {
+  width: 300px;
+  height: 200px;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="4" fill="%23ff7eb3" /><circle cx="4" cy="4" r="2" fill="%23ff758c" /><circle cx="16" cy="16" r="2" fill="%23ff758c" /></svg>') repeat;
+  background-size: 50px 50px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.5s ease;
+}
+
+/* Keyframe animation for moving and changing colors */
+@keyframes move-and-color {
+  0% {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="4" fill="%23ff7eb3" /><circle cx="4" cy="4" r="2" fill="%23ff758c" /><circle cx="16" cy="16" r="2" fill="%23ff758c" /></svg>');
+    background-position: 0 0;
+  }
+  50% {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="4" fill="%23ffcc00" /><circle cx="4" cy="4" r="2" fill="%2300ccff" /><circle cx="16" cy="16" r="2" fill="%23ff33cc" /></svg>');
+    background-position: 25px 25px;
+  }
+  100% {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="4" fill="%2300ffaa" /><circle cx="4" cy="4" r="2" fill="%23ff0066" /><circle cx="16" cy="16" r="2" fill="%23ff6600" /></svg>');
+    background-position: 50px 50px;
+  }
+}
+
+/* Hover effect */
+.hover-card:hover {
+  animation: move-and-color 3s linear infinite;
+}
+
+11. Visualización al pasar el cursor sobre la tarjeta de perfil
+body {
+
+    margin: 0;
+
+    padding: 0;
+
+    min-height: 100vh;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;  
+
+    font-family: sans-serif;
+
+    background-color: #f1f1f1; 
+
+}
+
+.container .card .icon {
+
+    position: absolute;
+
+    top: 0;
+
+    left: 0;
+
+    width: 100%;
+
+    height: 100%;
+
+    background: #2c73df;
+
+}
+
+.container .card .icon .fa {
+
+    position: absolute;
+
+    top: 50%;
+
+    left: 50%;
+
+    transform: translate(-50%, -50%);
+
+    font-size: 80px;
+
+    color: #fff;
+
+}
+
+.container .card .slide {
+
+    width: 300px;
+
+    height: 200px;
+
+    transition: 0.5s;
+
+}
+
+.container .card .slide.slide1 {
+
+    position: relative;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    z-index: 1;
+
+    transition: .7s;
+
+    transform: translateY(100px);
+
+}
+
+.container .card:hover .slide.slide1{
+
+    transform: translateY(0px);
+
+}
+
+.container .card .slide.slide2 {
+
+    position: relative;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    padding: 20px;
+
+    box-sizing: border-box;
+
+    transition: .8s;
+
+    transform: translateY(-100px);
+
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+
+}
+
+.container .card:hover .slide.slide2{
+
+    transform: translateY(0);
+
+}
+
+.container .card .slide.slide2::after{
+
+    content: "";
+
+    position: absolute;
+
+    width: 30px;
+
+    height: 4px;
+
+    bottom: 15px;
+
+    left: 50%;
+
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    background: #2c73df;
+
+}
+
+.container .card .slide.slide2 .content p {
+
+    margin: 0;
+
+    padding: 0;
+
+    text-align: center;
+
+    color: #414141;
+
+}
+
+.container .card .slide.slide2 .content h3 {
+
+    margin: 0 0 10px 0;
+
+    padding: 0;
+
+    font-size: 24px;
+
+    text-align: center;
+
+    color: #414141;
+
+} 
+
+12. Efectos de desplazamiento del ratón en CSS
+body{
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(45deg, #24006b, #f42f8c);
+  }
+  
+  .container{
+    width: 1200px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    grid-gap: 15px;
+    margin: 0 auto;
+  }
+  
+  .card{
+    position: relative;
+    width: 350px;
+    height: 400px;
+    margin: 0 auto;
+    background: #fff;
+    box-shadow: 0 15px 60px rgba(0,0,0, .5);
+    border-radius: 15px;
+  }
+  
+  .card .face{
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .card .face.face1{
+    box-sizing: border-box;
+    padding: 20px;
+  }
+  
+  .card .face.face1 h2{
+    margin: 0;
+    padding: 0;
+  }
+  
+  .card .face.face1 .content{
+    font-size:1.2em;
+    margin:0;
+    padding:0 0 1em 0;
+    font-weight:500;
+  }
+  
+  .card .face.face2{
+    background: #111;
+    transition: 0.5s;
+  }
+  
+  .card:nth-child(1) .face.face2{
+    background: linear-gradient(45deg, #3503ad, #f7308c);
+    border-radius: 15px;
+  }
+  
+  .card:nth-child(2) .face.face2{
+    background: linear-gradient(45deg, #ccff00, #09afff);
+    border-radius: 15px;
+  }
+  
+  .card:nth-child(3) .face.face2{
+    background: linear-gradient(45deg, #e91e63, #ffeb3b);
+    border-radius: 15px;
+  }
+  
+  .card:hover .face.face2{
+    height: 60px;
+    border-radius: 0 0 15px 15px;
+  }
+  
+  .card .face.face2:before{
+    content:'';
+    position: absolute;
+    top:0;
+    left:0;
+    width: 50%;
+    height: 100%;
+    background: rgba(255,255,255, 0.1);
+    border-radius: 15px 0 0 15px;
+  }
+  
+  .card .face.face2 h2{
+    margin: 0;
+    padding: 0;
+    font-size: 10em;
+    color: #fff;
+    transition: 0.5s;
+    text-shadow: 0 2px 5px rgba(0,0,0, .2);
+  }
+  
+  .card:hover .face.face2 h2{
+    font-size: 2em;
+  }
+
+13. Tarjeta de vidriomorfosis con gradiente brillante
+*
+{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: consolas;
+}
+
+body
+{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: #1d061a
+}
+
+.container
+{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 40px 0;
+}
+
+.container .box
+{
+  position: relative;
+  width: 320px;
+  height: 400px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 40px 30px;
+  transition: 0.5s;
+}
+
+.container .box::before
+{
+  content:' ';
+  position: absolute;
+  top: 0;
+  left: 50px;
+  width: 50%;
+  height: 100%;
+  text-decoration: none;
+  background: #fff;
+  border-radius: 8px;
+  transform: skewX(15deg);
+  transition: 0.5s;
+}
+
+.container .box::after
+{
+  content:'';
+  position: absolute;
+  top: 0;
+  left: 50;
+  width: 50%;
+  height: 100%;
+  background: #fff;
+  border-radius: 8px;
+  transform: skewX(15deg);
+  transition: 0.5s;
+  filter: blur(30px);
+}
+
+.container .box:hover:before,
+.container .box:hover:after
+{
+  transform: skewX(0deg);
+  left: 20px;
+  width: calc(100% - 90px);
+  
+}
+
+.container .box:nth-child(1):before,
+.container .box:nth-child(1):after
+{
+  background: linear-gradient(315deg, #ffbc00, #ff0058)
+}
+
+.container .box:nth-child(2):before,
+.container .box:nth-child(2):after
+{
+  background: linear-gradient(315deg, #03a9f4, #ff0058)
+}
+
+.container .box:nth-child(3):before,
+.container .box:nth-child(3):after
+{
+  background: linear-gradient(315deg, #4dff03, #00d0ff)
+}
+
+.container .box span
+{
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.container .box span::before
+{
+  content:'';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transition: 0.1s;  
+  animation: animate 2s ease-in-out infinite;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.08)
+}
+
+.container .box:hover span::before
+{
+  top: -50px;
+  left: 50px;
+  width: 100px;
+  height: 100px;
+  opacity: 1;
+}
+
+.container .box span::after
+{
+  content:'';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transition: 0.5s;
+  animation: animate 2s ease-in-out infinite;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+  animation-delay: -1s;
+}
+
+.container .box:hover span:after
+{
+  bottom: -50px;
+  right: 50px;
+  width: 100px;
+  height: 100px;
+  opacity: 1;
+}
+
+@keyframes animate
+{
+  0%, 100%
+  {
+    transform: translateY(10px);
+  }
+  
+  50%
+  {
+    transform: translate(-10px);
+  }
+}
+
+.container .box .content
+{
+  position: relative;
+  left: 0;
+  padding: 20px 40px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  z-index: 1;
+  transform: 0.5s;
+  color: #fff;
+}
+
+.container .box:hover .content
+{
+  left: -25px;
+  padding: 60px 40px;
+}
+
+.container .box .content h2
+{
+  font-size: 2em;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.container .box .content p
+{
+  font-size: 1.1em;
+  margin-bottom: 10px;
+  line-height: 1.4em;
+}
+
+.container .box .content a
+{
+  display: inline-block;
+  font-size: 1.1em;
+  color: #111;
+  background: #fff;
+  padding: 10px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 700;
+  margin-top: 5px;
+}
+
+.container .box .content a:hover
+{
+  background: #ffcf4d;
+  border: 1px solid rgba(255, 0, 88, 0.4);
+  box-shadow: 0 1px 15px rgba(1, 1, 1, 0.2);
+}
+
+14. Tarjetas turísticas
+@import url('https://fonts.googleapis.com/css?family=Exo:700');
+@import url('https://fonts.googleapis.com/css?family=Abel');
+body {
+  background-color: #dfe6e9;
+  -webkit-transform: perspective(900px);
+  -webkit-transform-style: preserve-3d;
+}
+.title{
+  width=100%;
+  text-align: center;
+}
+.title h1{
+  font-size:50px;
+  font-family: 'Exo', sans-serif;
+}
+.card1 {
+  text-align:center;
+  position: absolute;
+  left: 100px;
+  width: 250px;
+  height: 350px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  background: linear-gradient(rgb(225,150,58),rgb(227,144,91));
+  transition:.6s;
+  
+  transform: rotatex(75deg) translatey(-200px) translatez(-100px);
+  box-shadow: 0px 20px 60px rgba(0,0,0, 0.5);
+}
+.card1:hover{
+  transform: rotatex(0deg);
+  transform: rotatez(0deg);
+  transition:.6s;
+  box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.3);
+}
+.card1 img{
+  transform: translateY(15px);
+  width:200px;
+  height:120px;
+}
+h3{
+  font-size:25px;
+  font-family: 'Abel', sans-serif;
+  color:rgb(255,255,255);
+  text-shadow: 0 0 2px rgb(255,255,255);
+  transform: translatey(10px);
+}
+
+p{
+  
+  font-family: 'Abel', sans-serif;
+  color: white;
+  text-align:center;
+  width:220px;
+  transform: translatex(12px);
+}
+
+
+.card2 {
+  text-align:center;
+  position: absolute;
+  left: 550px;
+  width: 250px;
+  height: 350px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  background: linear-gradient(rgb(93,94,170),rgb(93,66,103));
+  animation: animate 1s linear infinite;
+  transition:.6s;
+  
+  transform: rotatex(75deg) translatey(-200px) translatez(-100px);
+  box-shadow: 0px 20px 60px rgba(0, 0, 0, 0.5);
+}
+.card2:hover{
+   transform: rotatex(0deg);
+  transition:.6s;
+  box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.3);
+}
+.card2 img{
+  transform: translateY(15px);
+  width:180px;
+  height:150px;
+}
+.card3 {
+  text-align:center;
+  position: absolute;
+  left: 1000px;
+  width: 250px;
+  height: 350px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  background: linear-gradient(#ff5252, #b33939);
+  transition:.6s;
+  
+  transform: rotatex(75deg) translatey(-200px) translatez(-100px);
+  box-shadow: 0px 20px 60px rgba(0, 0, 0, 0.5);
+}
+.card3:hover{
+   transform: rotatex(0deg);
+  transition:.6s;
+  box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.3);
+}
+.card3 img{
+  transform: translateY(15px);
+  width:200px;
+  height:120px;
+}
+.footer{
+  position: absolute;
+  top: 500px;
+  marging: 10px;
+  width: 100%;
+   text-align: center;
+}
+.footer h2{
+  font-size:18px;
+  font-family: 'Exo', sans-serif;
+  
+}
+
+15. Tarjetas de la misma altura
+@import url('https://fonts.googleapis.com/css?family=Roboto+Slab:100,300,400,700');
+@import url('https://fonts.googleapis.com/css?family=Raleway:300,300i,400,400i,500,500i,600,600i,700,700i,800,800i,900,900i');
+
+*{
+  box-sizing: border-box;
+}
+
+body, html {
+   font-family: 'Roboto Slab', serif;
+    margin: 0;
+  width: 100%;
+height: 100%;
+    padding: 0;
+}
+
+body {
+  background-color: #D2DBDD;
+  display: flex;
+  display: -webkit-flex;
+  -webkit-justify-content: center;
+  -webkit-align-items: center;
+  justify-content: center;
+  align-items: center;
+}
+
+.cards {
+    width: 100%;
+    display: flex;
+    display: -webkit-flex;
+    justify-content: center;
+    -webkit-justify-content: center;
+    max-width: 820px;
+}
+
+.card--1 .card__img, .card--1 .card__img--hover {
+    background-image: url('https://images.pexels.com/photos/45202/brownie-dessert-cake-sweet-45202.jpeg?auto=compress&cs=tinysrgb&h=750&w=1260');
+}
+
+.card--2 .card__img, .card--2 .card__img--hover {
+    background-image: url('https://images.pexels.com/photos/307008/pexels-photo-307008.jpeg?auto=compress&cs=tinysrgb&h=750&w=1260');
+}
+
+.card__like {
+    width: 18px;
+}
+
+.card__clock {
+    width: 15px;
+  vertical-align: middle;
+    fill: #AD7D52;
+}
+.card__time {
+    font-size: 12px;
+    color: #AD7D52;
+    vertical-align: middle;
+    margin-left: 5px;
+}
+
+.card__clock-info {
+    float: right;
+}
+
+.card__img {
+  visibility: hidden;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    width: 100%;
+    height: 235px;
+  border-top-left-radius: 12px;
+border-top-right-radius: 12px;
+  
+}
+
+.card__info-hover {
+    position: absolute;
+    padding: 16px;
+  width: 100%;
+  opacity: 0;
+  top: 0;
+}
+
+.card__img--hover {
+  transition: 0.2s all ease-out;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    width: 100%;
+  position: absolute;
+    height: 235px;
+  border-top-left-radius: 12px;
+border-top-right-radius: 12px;
+top: 0;
+  
+}
+.card {
+  margin-right: 25px;
+  transition: all .4s cubic-bezier(0.175, 0.885, 0, 1);
+  background-color: #fff;
+    width: 33.3%;
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0px 13px 10px -7px rgba(0, 0, 0,0.1);
+}
+.card:hover {
+  box-shadow: 0px 30px 18px -8px rgba(0, 0, 0,0.1);
+    transform: scale(1.10, 1.10);
+}
+
+.card__info {
+z-index: 2;
+  background-color: #fff;
+  border-bottom-left-radius: 12px;
+border-bottom-right-radius: 12px;
+   padding: 16px 24px 24px 24px;
+}
+
+.card__category {
+    font-family: 'Raleway', sans-serif;
+    text-transform: uppercase;
+    font-size: 13px;
+    letter-spacing: 2px;
+    font-weight: 500;
+  color: #868686;
+}
+
+.card__title {
+    margin-top: 5px;
+    margin-bottom: 10px;
+    font-family: 'Roboto Slab', serif;
+}
+
+.card__by {
+    font-size: 12px;
+    font-family: 'Raleway', sans-serif;
+    font-weight: 500;
+}
+
+.card__author {
+    font-weight: 600;
+    text-decoration: none;
+    color: #AD7D52;
+}
+
+.card:hover .card__img--hover {
+    height: 100%;
+    opacity: 0.3;
+}
+
+.card:hover .card__info {
+    background-color: transparent;
+    position: relative;
+}
+
+.card:hover .card__info-hover {
+    opacity: 1;
+}
+
+
+16. Efecto de desplazamiento de los iconos de redes sociales
+body {
+  margin: 0;
+  padding:0;
+  background: #262626;
+}
+
+ul {
+  display: flex;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+ul li {
+  list-style: none;
+}
+
+ul li a {
+  width: 80px;
+  height: 80px;
+  background-color: #fff;
+  text-align: center;
+  line-height: 80px;
+  font-size: 35px;
+  margin: 0 10px;
+  display: block;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+  border: 3px solid #fff;
+  z-index: 1;
+}
+
+ul li a .icon {
+  position: relative;
+  color: #262626;
+  transition: .5s;
+  z-index: 3;
+}
+
+ul li a:hover .icon {
+  color: #fff;
+  transform: rotateY(360deg);
+}
+
+ul li a:before {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #f00;
+  transition: .5s;
+  z-index: 2;
+}
+
+ul li a:hover:before {
+  top: 0;
+}
+
+ul li:nth-child(1) a:before{
+  background: #3b5999;
+}
+
+ul li:nth-child(2) a:before{
+  background: #55acee;
+}
+
+ul li:nth-child(3) a:before {
+  background: #0077b5;
+}
+
+ul li:nth-child(4) a:before {
+  background: #dd4b39;
+}
+
+17. Botón de cierre interactivo
+@mixin transition() {
+    transition: all .4s cubic-bezier(.215,.61,.355,1);
+}
+
+div {
+  a {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    right: 50%;
+    top: 50%;
+    margin-top: -50px;
+    margin-right: -50px;
+    background-color: #ffffff;
+    border-radius: 50px;
+    opacity: 1;
+    @include transition();
+    -webkit-box-shadow: 0px 0px 30px 0px rgba(247,149,29,0.5);
+    -moz-box-shadow: 0px 0px 30px 0px rgba(247,149,29,0.5);
+    box-shadow: 0px 0px 30px 0px rgba(247,149,29,0.5);
+    
+    & > span {
+      background-color: #f5a700;
+      display: block;
+      height: 12px;
+      border-radius: 6px;
+      position: relative;
+      @include transition();
+      position: absolute;
+      top: 50%;
+      margin-top: -6px;
+      left: 18px;
+      width: 64px;
+      display: -webkit-box;
+      display: -moz-box;
+      display: -ms-flexbox;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-justify-content: space-between;
+      justify-content: space-between;
+      -moz-justify-content: space-between;
+      -ms-justify-content: space-between;
+
+      span {
+        display: block;
+        background-color: #ed7f00;
+        width: 12px;
+        height: 12px;
+        border-radius: 6px;
+        @include transition();
+        position: absolute;
+        left: 0;
+        top: 0;
+      }
+
+      &.left {
+        transform: rotate(45deg);
+        transform-origin: center;
+
+        .circle-left {
+          @include transition();
+          margin-left: 0;
+        }
+
+        .circle-right {
+          @include transition();
+          margin-left: 52px;
+        }
+      }
+
+      &.right {
+        transform: rotate(-45deg);
+        transform-origin: center;
+
+        .circle-left {
+          @include transition();
+          margin-left: 0;
+        }
+
+        .circle-right {
+          @include transition();
+          margin-left: 52px;
+        }
+      }
+    }
+
+    &:hover {
+      & > span {
+        background-color: #2faee0;
+        @include transition();
+
+        span {
+          @include transition();
+          background-color: #008ac9;
+        }
+
+        &.left {
+
+          .circle-left {
+            @include transition();
+            margin-left: 52px;
+          }
+
+          .circle-right {
+            @include transition();
+            margin-left: 0;
+          }
+        }
+
+        &.right {
+
+          .circle-left {
+            @include transition();
+            margin-left: 52px;
+          }
+
+          .circle-right {
+            @include transition();
+            margin-left: 0;
+          }
+        }
+      }
+    }
+  }
+}
+
+18. Efecto de desplazamiento del icono
+body{
+    padding: 0;
+    margin: 0;
+    background: #262626;
+}
+ul{
+position: absolute;
+    top: 50%;
+    left: 50%;
+    display: flex;
+    transform: translate(-50%, -50%)
+}
+ul li{
+    list-style: none;
+    width: 100px;
+    height: 100px;
+   
+    margin: 10px;
+    text-align: center;
+    line-height: 100px;
+    position: relative;
+    overflow: hidden;
+    font-size: 50px;
+    border-radius: 50%;
+    transform: rotate(45deg);
+    
+   
+        
+}
+ul li:before{
+    content: "";
+    width: 50%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: #d35400;
+   
+  
+   
+}
+ul li .fa{
+    transform: rotate(-45deg);
+    color: #fff;
+}
+ul li:after{
+    content: "";
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    
+    opacity:.7;
+    background:#e67e22;
+    transition: .5s ease-in-out;
+   z-index: -3;
+    
+    
+     
+   
+}
+ul li:hover:after{
+     
+    top: 0;
+    
+}
+
+19. Mosaicos sociales CSS
+body {
+  margin:0;
+  padding:0;
+  background:#ccc;
+  font-family: 'Roboto Condensed', sans-serif;
+
+}
+
+ul {
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%, -50%);
+  display:flex;
+  margin:0;
+  padding:0;
+}
+
+ul li {
+  list-style:none;
+  margin:0 5px;
+}
+
+ul li a .fa {
+  font-size: 40px;
+  color: #262626;
+  line-height:80px;
+  transition: .5s;
+  padding-right: 14px;
+}
+
+ul li a span {
+  padding:0;
+  margin:0;
+  position:absolute;
+  top: 30px;
+  color: #262626;
+  letter-spacing: 4px;
+  transition: .5s;
+}
+
+ul li a {
+  text-decoration: none;
+  display:absolute;
+  display:block;
+  width:210px;
+  height:80px;
+  background: #fff;
+  text-align:left;
+  padding-left: 20px;
+  transform: rotate(-30deg) skew(25deg) translate(0,0);
+  transition:.5s;
+  box-shadow: -20px 20px 10px rgba(0,0,0,.5);
+}
+ul li a:before {
+  content: '';
+  position: absolute;
+  top:10px;
+  left:-20px;
+  height:100%;
+  width:20px;
+  background: #b1b1b1;
+  transform: .5s;
+  transform: rotate(0deg) skewY(-45deg);
+}
+ul li a:after {
+  content: '';
+  position: absolute;
+  bottom:-20px;
+  left:-10px;
+  height:20px;
+  width:100%;
+  background: #b1b1b1;
+  transform: .5s;
+  transform: rotate(0deg) skewX(-45deg);
+}
+
+ul li a:hover {
+  transform: rotate(-30deg) skew(25deg) translate(20px,-15px);
+  box-shadow: -50px 50px 50px rgba(0,0,0,.5);
+}
+
+ul li:hover .fa {
+  color:#fff;
+}
+
+ul li:hover span {
+  color:#fff;
+}
+
+ul li:hover:nth-child(1) a{
+  background: #3b5998;
+}
+ul li:hover:nth-child(1) a:before{
+  background: #365492;
+}
+ul li:hover:nth-child(1) a:after{
+  background: #4a69ad;
+}
+
+ul li:hover:nth-child(2) a{
+  background: #00aced;
+}
+ul li:hover:nth-child(2) a:before{
+  background: #097aa5;
+}
+ul li:hover:nth-child(2) a:after{
+  background: #53b9e0;
+}
+
+ul li:hover:nth-child(3) a{
+  background: #dd4b39;
+}
+ul li:hover:nth-child(3) a:before{
+  background: #b33a2b;
+}
+ul li:hover:nth-child(3) a:after{
+  background: #e66a5a;
+}
+
+ul li:hover:nth-child(4) a{
+  background: #e4405f;
+}
+ul li:hover:nth-child(4) a:before{
+  background: #d81c3f;
+}
+ul li:hover:nth-child(4) a:after{
+  background: #e46880;
+}
+
+20. Efecto de desplazamiento del icono de texto y degradado
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+ul {
+  display: flex;
+  position: relative;
+  gap: 25px;
+}
+
+ul li {
+  position: relative;
+  list-style: none;
+  width: 60px;
+  height: 60px;
+  background: white;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border-radius: 60px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: 0.5s;
+}
+
+ul li::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 60px;
+  background: linear-gradient(45deg, var(--i), var(--j));
+  opacity: 0;
+  transition: 0.5s;
+}
+
+ul li::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  width: 100%;
+  height: 100%;
+  border-radius: 60px;
+  background: linear-gradient(45deg, var(--i), var(--j));
+  transition: 0.5s;
+  filter: blur(15px);
+  z-index: -1;
+  opacity: 0;
+}
+
+ul li:hover {
+  width: 180px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0);
+}
+
+ul li:hover::before {
+  opacity: 1;
+}
+
+ul li:hover::after {
+  opacity: 0.5;
+}
+
+ul li ion-icon {
+  color: #777;
+  font-size: 1.75em;
+  transition: 0.5s;
+  transition-delay: 0.25s;
+}
+
+ul li:hover ion-icon {
+  transform: scale(0);
+  color: #fff;
+  transition-delay: 0s;
+}
+
+ul li span {
+  position: absolute;
+}
+
+ul li .title {
+  color: #fff;
+  font-size: 1.1em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: scale(0);
+  transition: 0.5s;
+  transition-delay: 0s;
+}
+
+ul li:hover .title {
+  transform: scale(1);
+  transition-delay: 0.25s;
+}
+35. Rayos de enmascaramiento
+$w: 4vmin;
+$r: 50%;
+$o: .5*(100% + $r) - $r;
+
+@property --k {
+	syntax: '<number>';
+	initial-value: 0;
+	inherits: false
+}
+
+body {
+	display: grid;
+	margin: 0;
+	height: 100vh;
+}
+
+img {
+	--k: 0;
+	--j: calc(1 - var(--k));
+	--list: transparent calc(50% - #{$w}), red 0  calc(50% + #{$w}), transparent 0;
+	place-self: center;
+	object-fit: cover;
+	width: 90vmin; height: 90vmin;
+	filter: grayScale(var(--j));
+	mask: 
+		radial-gradient(closest-side, red calc(#{$r} - 1px), transparent #{$r}), 
+		radial-gradient(closest-side, 
+			transparent calc(#{$r} - #{$o} + var(--k)*2*#{$o} - 1px), 
+			red calc(#{$r} - #{$o} + var(--k)*2*#{$o}) calc(var(--k)*100% + var(--j)*#{$r} - 1px), 
+			transparent calc(var(--k)*100% + var(--j)*#{$r})), 
+		linear-gradient(var(--list)), 
+		linear-gradient(90deg, var(--list)), 
+		linear-gradient(45deg, var(--list)), 
+		linear-gradient(-45deg, var(--list));
+	mask-composite: add, intersect, add, add;
+	transition: --k .2s ease-out;
+
+	&:hover { --k: 1 }
+}
+
+36. Scotch VHS
+@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Mulish:ital,wght@0,200..1000;1,200..1000&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap");
+
+:root {
+  --dark-color: #191f1d;
+  --mid-dark: #555a57;
+  --light-color: #ece0c8;
+  --mid-light: #949993;
+  --shadow: #0005;
+  --linear-rainbow: linear-gradient(
+    to right,#ede6bf,#ecc947,#cb5a31,#6f5d79,#4e779a
+  );
+  --circle-rainbow: radial-gradient(
+    circle at left top,#ede6bf,#ecc947,#cb5a31,#6f5d79,#4e779a
+  );
+  --noise-texture: url(https://i.gyazo.com/a26366e538851a5c569ff648e99b7fd4.png);
+  --gif-texture: url(https://64.media.tumblr.com/da60c13b478dda09ab90c27e880983b8/tumblr_nd4pwdPKdc1tun3l0o1_1280.gifv);
+  --mulish: "Mulish", sans-serif;
+  --playfair: "Playfair Display", serif;
+  --dm:"DM Serif Display", serif;
+  --main-transition:all 0.2s ease-in-out;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100vh;
+}
+
+body {
+  display: grid;
+  place-items: center;
+  background: var(--dark-color);
+  background-image: var(--noise-texture);
+  background-blend-mode: overlay;
+}
+
+h1 {
+  margin: 0;
+  font-family: var(--mulish);
+  font-weight: 1000;
+  font-size: 64px;
+  color: var(--light-color);
+}
+
+h2 {
+  margin: 0;
+  font-family: var(--playfair);
+  font-size: 16px;
+  color: var(--mid-light);
+}
+
+h3 {
+  margin: 0;
+  font-family: var(--dm);
+  font-size: 24px;
+  color: var(--mid-light);
+}
+
+p {
+  font-family: var(--mulish);
+  font-weight: 700;
+  width: 390px;
+  color: var(--mid-light);
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  box-sizing: border-box;
+  margin: 30px 128px;
+  gap: 48px;
+  font-size: 16px;
+}
+
+a {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-size: 12px;
+  font-family: var(--mulish);
+  color: var(--mid-light);
+  font-weight: 400;
+  text-decoration: none;
+  transition: var(--main-transition);
+}
+
+a:not(.buy, .buy-cta, .learn) {
+  width: 64px;
+}
+
+a:hover:not(.buy, .buy-cta, .learn) {
+  transition: var(--main-transition);
+  font-weight: 900;
+  text-shadow: 0 0 8px var(--light-color);
+}
+
+.scotch-container {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  height: 580px;
+  width: 960px;
+  background-image: linear-gradient(
+    150deg,
+    var(--dark-color) 60.2%,
+    var(--mid-dark) 60.28%,
+    var(--mid-dark) 60.7%,
+    var(--dark-color) 60.78%,
+    var(--dark-color) 61.4%,
+    var(--mid-dark) 61.48%,
+    var(--mid-dark) 62.6%,
+    var(--dark-color) 62.68%,
+    var(--dark-color) 63.4%,
+    var(--mid-dark) 63.48%,
+    var(--mid-dark) 64.6%,
+    var(--dark-color) 64.68%,
+    var(--dark-color) 65.4%,
+    var(--mid-dark) 65.48%,
+    var(--mid-dark) 67.4%,
+    var(--dark-color) 67.48%,
+    var(--dark-color) 68.4%,
+    var(--mid-dark) 68.48%,
+    var(--mid-dark) 71.4%,
+    var(--dark-color) 71.48%,
+    var(--dark-color) 72.4%,
+    var(--mid-dark) 72.48%,
+    var(--mid-dark) 76.4%,
+    var(--dark-color) 76.48%,
+    var(--dark-color) 77.4%,
+    var(--mid-dark) 77.48%,
+    var(--mid-dark) 81.4%,
+    var(--dark-color) 81.48%,
+    var(--dark-color) 82.4%,
+    var(--mid-dark) 82.48%,
+    var(--mid-dark) 87.4%,
+    var(--dark-color) 87.48%
+  );
+  box-sizing: border-box;
+/*   scale:2; */
+  animation: spawn 2s ease-in-out forwards; 
+}
+
+.scotch-container:before {
+  content: "";
+  display: flex;
+  position: absolute;
+  background-image:var(--noise-texture);
+  height: 580px;
+  width: 960px;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.scotch-container:hover:after {
+  content: "";
+  display: flex;
+  position: absolute;
+  background-image:var(--gif-texture);
+  height: 580px;
+  width: 960px;
+  translate:0px 0px;
+  background-repeat: no-repeat;
+  background-position-y:-20px;
+  background-size: cover;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  opacity: 64%;
+  z-index: 3;
+}
+
+.main-container {
+  padding: 0;
+  margin: auto;
+  display: grid;
+  height: 460px;
+  gap: 64px;
+  place-items: center;
+  box-sizing: border-box;
+}
+
+.text-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.text-sphere-container {
+  display: flex;
+  width: 125%;
+  gap: 128px;
+  align-items: center;
+}
+
+.sphere {
+  display: grid;
+  height: 200px;
+  width: 200px;
+  background-image: var(--circle-rainbow);
+  border: 3px solid var(--dark-color);
+  border-radius: 50%;
+  transition: all 0.4s;
+  box-shadow: 0px 0px var(--shadow);
+}
+
+.sphere:hover {
+  scale: 1.1;
+  box-shadow: 16px 16px var(--shadow);
+  transition: var(--main-transition);
+}
+
+.buy {
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  border: 1px solid var(--mid-light);
+  height: 40px;
+  width: 128px;
+  transition: var(--main-transition);
+}
+
+.buy:hover {
+  scale: 1.1;
+  rotate:-2deg;
+  background: var(--light-color);
+  color: var(--dark-color);
+  border: 1px solid var(--light-color);
+  transition: var(--main-transition);
+}
+
+.buy-cta {
+  display: grid;
+  place-items: center;
+  color: var(--dark-color);
+  font-weight: 900;
+  background-image: linear-gradient(
+    to right,
+    var(--light-color),
+    var(--light-color)
+  );
+  height: 40px;
+  width: 200px;
+  font-size: 16px;
+  transition: var(--main-transition);
+}
+
+.buy-cta:hover {
+  scale: 1.1;
+  rotate:2deg;
+  color: var(--light-color);
+  background-image: var(--linear-rainbow);
+  transition: var(--main-transition);
+}
+
+.learn-arrow {
+  margin: -40px 0;
+  text-align: center;
+  transition: var(--main-transition);
+}
+
+.learn:hover {
+  scale: 1.2;
+  font-weight: 900;
+}
+
+.learn {
+  display: grid;
+  color: var(--light-color);
+  font-family: var(--mulish);
+  font-weight: 400;
+  cursor: pointer;
+  font-size: 12px;
+  transition: var(--main-transition);
+}
+
+.arrow {
+  margin: -6px;
+  padding: 0;
+  font-size: 32px;
+  color: var(--light-color);
+}
+
+@keyframes spawn{
+  0%{
+    box-shadow: 0 0 0 var(--shadow);
+    opacity:0%;
+  }
+  100%{
+    box-shadow: 0 0 32px var(--shadow);
+    opacity:100%;
+  }
+}
+
+37. Todos menos yo
+@import url("https://unpkg.com/papercss@1.9.2/dist/paper.css") layer(csspaper);
+
+.card-list:has(li:hover) li:not(:hover) {
+  filter: blur(4px)
+}
+
+/* Demo style */
+body {
+  min-height: 100vh;
+  background-color: #f6eee3;
+  background-size: 20px 20px;
+  background-image:  repeating-linear-gradient(0deg, #e5decf, #e5decf 1px, #f6eee3 1px, #f6eee3);
+  padding: 1rem;
+  color: var(--text-color);
+}
+
+h1 {
+  font-size: 2.2rem;
+  color: var(--primary-color);
+  margin: 0 0 2rem;  
+}
+
+h2 {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.card-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+}
+
+li {
+  margin: 0;
+  transition: all 150ms ease-in-out;
+}
+
+li::before {
+  content: "";
+}
+
+img {
+  display: block;
+  min-width: 0;
+  width: 100%;
+  margin-bottom: .6rem;
+}
+
+a {
+  background: none;
+}
+
+.paper {
+  padding: 1.5rem;
+}
+
+li a {
+  padding-inline-start: 1rem;
+}

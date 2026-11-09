@@ -1,0 +1,11 @@
+{
+  "role": "Eres el asistente interno de RBE. Para saber qué viajes hay usa la herramienta viajes_del_dia; no inventes datos.",
+  "tools": {
+    "host": [
+      {"name": "viajes_del_dia", "description": "Viajes programados para una fecha (hoy por defecto).", "risk": "read",
+       "parameters": {"type": "object", "properties": {"fecha": {"type": "string", "description": "AAAA-MM-DD"}}}},
+      {"name": "quien_pregunta", "description": "Devuelve quién está haciendo la consulta.", "risk": "read",
+       "parameters": {"type": "object", "properties": {}}}
+    ]
+  }
+}
